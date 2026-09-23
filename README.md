@@ -21,11 +21,12 @@ Open `index.html` in any modern browser. Everything lives in that one file: the 
 - **Bosses every 5th wave**, alternating between two:
   - **Hive Queen:** fan volleys, aimed streams, summoned escorts, and a spiral barrage below 1/3 health.
   - **Iron Maw:** a telegraphed laser beam, twin cannons, and bullet rings.
+- **Challenging stages** after waves 3, 8, 13 and so on: 40 enemies loop through without firing. Every hit scores 100, and hitting all 40 is a PERFECT worth 10,000.
 - **Six power-ups:** Spread Shot, Rapid Fire, Shield, Time Warp, Nova Blast (clears the screen), and Extra Ship.
 - **Scoring:**
   - A no-hit bonus for clearing a wave without dying.
   - Extra ships at 20,000 points and then every 60,000.
   - An arcade-style results screen with shots fired, number of hits, and hit-miss ratio.
 - **Top 10 table** with 3-letter initials, saved in your browser's local storage.
-- **Chiptune soundtrack** with a separate boss theme, generated live with no audio files.
+- **Chiptune soundtrack** with separate boss and bonus-stage themes, generated live with no audio files.
 - **CRT scanlines**, screen shake, and pixel explosions. All motion effects respect the reduced-motion setting.

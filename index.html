@@ -131,7 +131,7 @@
   .banner.good .bt { color: var(--teal); }
   .toast {
     position: absolute;
-    left: 0; right: 0; bottom: calc(var(--px) * 30);
+    left: 0; right: 0; top: calc(var(--px) * 104);
     z-index: 3;
     text-align: center;
     font-size: var(--fs-s);
@@ -411,7 +411,7 @@
             <img alt="" data-spr="warden"><span class="c-violet">WARDEN</span><span>150</span><span>400</span>
           </div>
           <div class="bosses"><img alt="Hive Queen" data-spr="queen"><img alt="Iron Maw" data-spr="maw"></div>
-          <p class="note">A BOSS GUARDS EVERY 5TH WAVE</p>
+          <p class="note">A BOSS GUARDS EVERY 5TH WAVE<br>BONUS STAGE AFTER WAVE 3, 8, 13…</p>
         </div>
         <div class="panel" hidden>
           <h2>POWER-UPS</h2>
@@ -695,7 +695,8 @@ const Snd = (() => {
   ];
   const SONGS = {
     main: { bpm: 144, roots: [45, 41, 48, 43], arps: [[69, 72, 76, 81], [65, 69, 72, 77], [64, 67, 72, 76], [67, 71, 74, 79]], mel: MEL },
-    boss: { bpm: 168, roots: [45, 46, 45, 44], arps: [[69, 72, 76, 72], [70, 74, 77, 74], [69, 72, 76, 79], [68, 71, 74, 77]], mel: null }
+    boss: { bpm: 168, roots: [45, 46, 45, 44], arps: [[69, 72, 76, 72], [70, 74, 77, 74], [69, 72, 76, 79], [68, 71, 74, 77]], mel: null },
+    bonus: { bpm: 156, roots: [48, 41, 43, 48], arps: [[72, 76, 79, 84], [69, 72, 77, 81], [71, 74, 79, 83], [72, 76, 79, 84]], mel: null }
   };
   const ARP = [0, 1, 2, 3, 2, 1, 2, 3, 0, 1, 2, 3, 2, 3, 2, 1];
   function note(st, t, sd) {
@@ -752,7 +753,8 @@ let state = 'title';                // title | play | paused | over | entry
 const G = {
   score: 0, lives: 3, wave: 0, phase: 'intro', phaseT: 0, diveT: 1, fireT: 2, slowT: 0, hitThisWave: false,
   shots: 0, hits: 0, nextLife: 20000, bossCount: 0, killsSinceDrop: 0, overT: 0, overReady: false,
-  formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: []
+  formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
+  bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0
 };
 const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: false, spreadT: 0, rapidT: 0, respawnT: 0 };
 let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [];
@@ -854,6 +856,7 @@ function nextWave() {
 }
 function spawnWave() {
   const n = G.wave;
+  if (G.bonus) { spawnBonus(); return; }
   if (n % 5 === 0) { spawnBoss(); return; }
   const rows = waveRows(n);
   G.rows = rows.map(r => r.count);
@@ -875,6 +878,50 @@ function spawnWave() {
   G.entering = total;
   G.diveT = 1.0;
   G.fireT = 2;
+}
+// Challenging stage: 5 squads of 8 fly through without shooting; each squad is 4 + 4 mirrored.
+const BONUS_FLIGHTS = [
+  [{ x: -12, y: 40 }, { x: 40, y: 60 }, { x: 90, y: 110 }, { x: 122, y: 82 }, { x: 92, y: 50 }, { x: 60, y: 80 }, { x: 100, y: 118 }, { x: 192, y: 108 }],
+  [{ x: -12, y: 118 }, { x: 50, y: 110 }, { x: 92, y: 80 }, { x: 92, y: 40 }, { x: 60, y: 30 }, { x: 40, y: 60 }, { x: 80, y: 100 }, { x: 140, y: 90 }, { x: 192, y: 60 }],
+  [{ x: 90, y: -12 }, { x: 88, y: 40 }, { x: 60, y: 90 }, { x: 30, y: 110 }, { x: 20, y: 70 }, { x: 50, y: 40 }, { x: 110, y: 60 }, { x: 150, y: 100 }, { x: 192, y: 118 }],
+  [{ x: -12, y: 30 }, { x: 40, y: 40 }, { x: 80, y: 80 }, { x: 100, y: 120 }, { x: 130, y: 100 }, { x: 120, y: 60 }, { x: 80, y: 60 }, { x: 50, y: 100 }, { x: 70, y: 126 }, { x: 192, y: 128 }],
+  [{ x: 192, y: 20 }, { x: 140, y: 40 }, { x: 40, y: 60 }, { x: 140, y: 80 }, { x: 40, y: 100 }, { x: 140, y: 118 }, { x: -12, y: 124 }]
+];
+const BONUS_TYPES = ['stinger', 'drone', 'warden', 'drone', 'stinger'];
+function spawnBonus() {
+  const speed = Math.min(95 + G.wave * 2, 130);
+  G.rows = [];
+  let total = 0;
+  BONUS_FLIGHTS.forEach((flight, sq) => {
+    for (let i = 0; i < 8; i++) {
+      const e = makeEnemy(BONUS_TYPES[sq], 0, 0);
+      e.hp = 1; e.bonus = true; e.flight = flight; e.mirror = i >= 4; e.speed = speed;
+      e.delay = 0.6 + sq * 2.4 + (i % 4) * 0.18;
+      enemies.push(e);
+      total++;
+    }
+  });
+  G.bonusHits = 0;
+  G.bonusTotal = total;
+}
+function startBonusIntro() {
+  G.pendingBonus = false;
+  G.bonus = true;
+  G.phase = 'intro';
+  G.phaseT = 2.4;
+  banner('CHALLENGING STAGE', 'NO ENEMY FIRE - HIT THEM ALL', 'good', 2.3);
+  Snd.jingle();
+  Snd.play('bonus');
+}
+function bonusClear() {
+  const perfect = G.bonusHits === G.bonusTotal;
+  const bonus = perfect ? 10000 : G.bonusHits * 100;
+  addScore(bonus);
+  banner(perfect ? 'PERFECT!' : 'HITS ' + G.bonusHits + ' OF ' + G.bonusTotal, 'BONUS ' + bonus, 'good', 2.4);
+  if (perfect) Snd.life(); else Snd.jingle();
+  G.bonus = false;
+  G.phase = 'clear';
+  G.phaseT = 2.6;
 }
 function startDive(e) {
   const n = G.wave, dir = e.x < W / 2 ? -1 : 1, px = player.x, x = e.x, y = e.y;
@@ -909,10 +956,11 @@ function updateEnemy(e, dt) {
     case 'wait':
       e.delay -= dt;
       if (e.delay <= 0) {
-        let pts = e.pattern(slotOf(e));
-        if (e.mirror) pts = pts.map((p, i) => i === pts.length - 1 ? p : { x: W - p.x, y: p.y });
-        followPath(e, pts, 'join', e.speed);
-        if (G.wave >= 3 && Math.random() < Math.min(0.35, G.wave * 0.03)) e.shots = [e.path.len * rand(0.3, 0.5)];
+        let pts = e.flight || e.pattern(slotOf(e));
+        const keepLast = !e.flight;   // an entry path ends at the enemy's own slot, which is never mirrored
+        if (e.mirror) pts = pts.map((p, i) => keepLast && i === pts.length - 1 ? p : { x: W - p.x, y: p.y });
+        followPath(e, pts, e.flight ? 'exit' : 'join', e.speed);
+        if (!e.bonus && G.wave >= 3 && Math.random() < Math.min(0.35, G.wave * 0.03)) e.shots = [e.path.len * rand(0.3, 0.5)];
       }
       break;
     case 'path': {
@@ -1141,11 +1189,12 @@ function killEnemy(e) {
   e.dead = true;
   if (e.entering) { e.entering = false; G.entering--; }
   const moving = e.state === 'path' || e.state === 'join';
-  const pts = moving ? e.T.divePts : e.T.pts;
+  const pts = e.bonus ? 100 : moving ? e.T.divePts : e.T.pts;
   addScore(pts);
   if (moving) popups.push({ text: String(pts), x: e.x, y: e.y - 4, t: 0, c: e.type === 'warden' ? PAL.y : PAL.w });
   explode(e.x, e.y, e.T.colors, 14, 60);
   Snd.boom();
+  if (e.bonus) { G.bonusHits++; return; }
   G.killsSinceDrop++;
   const chance = G.killsSinceDrop >= 18 ? 1 : e.T.drop + (moving ? 0.03 : 0);
   if (Math.random() < chance) { dropPickup(e.x, e.y); G.killsSinceDrop = 0; }
@@ -1219,6 +1268,7 @@ function waveClear() {
   if (G.lives <= 0) return;
   G.phase = 'clear';
   G.phaseT = 2.2;
+  G.pendingBonus = G.wave % 5 === 3;
   if (!G.hitThisWave) {
     const bonus = 500 * G.wave;
     addScore(bonus);
@@ -1294,13 +1344,13 @@ function update(dt) {
   } else if (G.phase === 'clear') {
     G.phaseT -= dt;
     if (G.phaseT < 1) warpTarget = 1;
-    if (G.phaseT <= 0) nextWave();
+    if (G.phaseT <= 0) { if (G.pendingBonus) startBonusIntro(); else nextWave(); }
   }
   warp += (warpTarget - warp) * Math.min(1, dt * 2.5);
 
   updatePlayer(dt);
   for (const e of enemies) updateEnemy(e, et);
-  if (G.phase === 'active' && !boss && G.entering <= 0) schedule(et);
+  if (G.phase === 'active' && !boss && !G.bonus && G.entering <= 0) schedule(et);
   if (boss) updateBoss(et);
 
   for (const s of pshots) {
@@ -1345,9 +1395,10 @@ function update(dt) {
   pickups = pickups.filter(p => !p.dead);
   enemies = enemies.filter(e => !e.dead);
 
-  if (G.phase === 'active' && !boss && enemies.length === 0) waveClear();
+  if (G.lives > 0 && G.phase === 'active' && !boss && enemies.length === 0) { if (G.bonus) bonusClear(); else waveClear(); }
   if (G.overT > 0) { G.overT -= dt; if (G.overT <= 0) showGameOver(); }
   updateFx(dt);
+  tickUi(dt);
   updateHud();
 }
 
@@ -1482,25 +1533,27 @@ function updateHud() {
   const vals = { s: G.score, hi: Math.max(G.score, scores[0] ? scores[0].score : 0), w: Math.max(G.wave, 1) };
   for (const k in vals) if (hudLast[k] !== vals[k]) { hudLast[k] = vals[k]; hudEls[k].textContent = vals[k]; }
 }
-let bannerTimer = 0, toastTimer = 0;
+const ui = { bannerT: 0, toastT: 0 };
+function tickUi(dt) {
+  if (ui.bannerT > 0 && (ui.bannerT -= dt) <= 0) $('banner').hidden = true;
+  if (ui.toastT > 0 && (ui.toastT -= dt) <= 0) $('toast').hidden = true;
+}
 function banner(title, sub, cls, dur) {
   const el = $('banner');
   el.className = 'banner ' + (cls || '');
   $('bannerTitle').textContent = title;
   $('bannerSub').textContent = sub || '';
   el.hidden = false;
-  clearTimeout(bannerTimer);
-  bannerTimer = setTimeout(() => { el.hidden = true; }, dur * 1000);
+  ui.bannerT = dur;
 }
 function toast(text, color) {
   const el = $('toast');
   el.textContent = text;
   el.style.color = color;
   el.hidden = false;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.hidden = true; }, 1300);
+  ui.toastT = 1.3;
 }
-function hideBanners() { clearTimeout(bannerTimer); clearTimeout(toastTimer); $('banner').hidden = true; $('toast').hidden = true; }
+function hideBanners() { ui.bannerT = ui.toastT = 0; $('banner').hidden = true; $('toast').hidden = true; }
 
 const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry'];
 function showOverlay(id) {
@@ -1607,7 +1660,8 @@ function handleEntryKey(e) {
 function resetGame(from) {
   Object.assign(G, { score: 0, lives: 3, wave: 0, phase: 'intro', phaseT: 0, diveT: 1, fireT: 2, slowT: 0, hitThisWave: false,
     shots: 0, hits: 0, nextLife: 20000, bossCount: 0, killsSinceDrop: 0, overT: 0, overReady: false,
-    formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [] });
+    formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
+    bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0 });
   Object.assign(player, { x: W / 2, y: H - 22, alive: true, invuln: 1.5, cd: 0.2, shield: false, spreadT: 0, rapidT: 0, respawnT: 0 });
   enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; boss = null;
   if (from) {
