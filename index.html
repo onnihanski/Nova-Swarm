@@ -64,7 +64,7 @@
     max-width: 100%;
     background: var(--space);
     overflow: hidden;
-    touch-action: none;
+    touch-action: manipulation;
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
@@ -78,6 +78,7 @@
     display: block;
     width: 100%;
     height: 100%;
+    touch-action: none;
     image-rendering: -moz-crisp-edges;
     image-rendering: pixelated;
   }
@@ -375,8 +376,125 @@
   .deck-btns { display: flex; gap: 8px; }
   .deck .btn { font-size: 12px; padding: 7px 10px; }
 
+  /* ---- economy: scrap, debrief, hangar, gambles ---- */
+  .coarse .kh { display: none; }
+  .ov { touch-action: manipulation; }
+  .ov.solid {
+    background: var(--space);
+    justify-content: flex-start;
+    gap: calc(var(--px) * 3);
+    padding: calc(var(--px) * 5) calc(var(--px) * 6);
+  }
+  .ov.tight { gap: calc(var(--px) * 3); padding-top: calc(var(--px) * 16); }
+  .ico { image-rendering: pixelated; width: calc(var(--px) * 5); height: auto; vertical-align: middle; }
+  .wallet { font-size: var(--fs-s); color: var(--amber); letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+  .fine { font-size: max(9px, calc(var(--u) * 4px)); color: var(--ink-dim); line-height: 1.35; margin: 0; }
+  .msg { font-size: var(--fs-s); line-height: 1.35; min-height: 2.7em; margin: 0; white-space: pre-line; }
+  .btn.sm { padding: calc(var(--px) * 2 + 2px) calc(var(--px) * 3 + 3px); }
+  .choice .btn[aria-pressed="true"] {
+    color: var(--space);
+    background: var(--teal);
+    box-shadow: inset calc(var(--px) * -1) calc(var(--px) * -1) 0 #1f8f86, inset var(--px) var(--px) 0 #a8fff0;
+  }
+  .title-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: calc(var(--px) * 3); }
+  .odds {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: grid;
+    grid-template-columns: auto auto auto;
+    column-gap: calc(var(--px) * 5);
+    row-gap: var(--px);
+    align-items: center;
+    font-size: var(--fs-s);
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+  }
+  .odds li { display: contents; }
+  .odds .p { text-align: right; color: var(--amber); }
+  .odds .d { color: var(--ink-dim); }
+  .odds img { image-rendering: pixelated; width: calc(var(--px) * 7); height: auto; vertical-align: middle; }
+
+  .game-box { display: flex; flex-direction: column; align-items: center; gap: calc(var(--px) * 3); }
+  .coin {
+    width: calc(var(--px) * 22); height: calc(var(--px) * 22);
+    display: grid; place-items: center;
+    font-family: var(--display); font-size: calc(var(--px) * 13); line-height: 1;
+    color: var(--space);
+    background: var(--amber);
+    box-shadow: inset calc(var(--px) * -2) calc(var(--px) * -2) 0 var(--amber-dk), inset calc(var(--px) * 2) calc(var(--px) * 2) 0 #ffe08a;
+  }
+  .coin.spin { animation: flip .16s steps(2) infinite; }
+  @keyframes flip { 50% { transform: scaleX(.15); } }
+  .reflex { position: relative; width: calc(var(--px) * 130); max-width: 100%; height: calc(var(--px) * 10); background: var(--bezel-lo); box-shadow: inset 0 0 0 var(--px) var(--bezel-hi); }
+  .reflex .zone { position: absolute; top: 0; bottom: 0; background: var(--teal); opacity: .8; }
+  .reflex .needle { position: absolute; top: calc(var(--px) * -2); bottom: calc(var(--px) * -2); width: max(2px, var(--px)); background: var(--ink); }
+
+  .hg-head { width: 100%; display: flex; justify-content: space-between; align-items: baseline; }
+  .hg-head h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: calc(var(--px) * 16); line-height: 1; letter-spacing: .04em; color: var(--teal); }
+  .hg-tabs { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--px); }
+  .hg-tab {
+    font: inherit; font-size: var(--fs-s); letter-spacing: .04em;
+    min-height: 26px; padding: calc(var(--px) * 2) 0;
+    color: var(--ink-dim); background: var(--bezel-lo);
+    border: 0; border-bottom: var(--px) solid var(--bezel);
+    cursor: pointer;
+  }
+  .hg-tab[aria-selected="true"] { color: var(--amber); background: var(--bezel); border-bottom-color: var(--amber); }
+  .hg-tab:focus-visible, .tile:focus-visible { outline: 2px solid var(--amber); outline-offset: -2px; }
+  .hg-body { width: 100%; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
+  .hg-pane { display: flex; flex-direction: column; align-items: center; gap: calc(var(--px) * 3); padding-block: calc(var(--px) * 2); }
+
+  .shop { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: calc(var(--px) * 2); }
+  .shop li {
+    display: grid; grid-template-columns: 1fr auto; align-items: center; gap: calc(var(--px) * 4);
+    padding: calc(var(--px) * 2) calc(var(--px) * 3);
+    font-size: var(--fs-s); text-align: left;
+    background: rgba(36, 26, 82, .6);
+  }
+  .shop .nm, .detail .nm { display: block; letter-spacing: .06em; }
+  .shop .ds, .detail .ds { display: block; color: var(--ink-dim); }
+  .shop .btn { min-width: calc(var(--px) * 24); }
+
+  .reels { display: flex; gap: calc(var(--px) * 3); padding: calc(var(--px) * 3); background: var(--bezel-lo); box-shadow: inset 0 0 0 var(--px) var(--bezel-hi); }
+  .reel { width: calc(var(--px) * 22); height: calc(var(--px) * 22); display: grid; place-items: center; background: var(--space); box-shadow: inset 0 0 0 var(--px) var(--bezel); }
+  .reel.win { box-shadow: inset 0 0 0 var(--px) var(--amber); }
+  .reel img { width: calc(var(--px) * 18); height: auto; image-rendering: pixelated; }
+
+  .crate-stage { min-height: calc(var(--px) * 46); display: grid; place-items: center; }
+  .crate-stage > img { width: calc(var(--px) * 30); height: auto; image-rendering: pixelated; }
+  .crate-stage.shake > img { animation: shake .12s steps(2) infinite; }
+  @keyframes shake { 0% { transform: translate(calc(var(--px) * -1), 0); } 50% { transform: translate(var(--px), calc(var(--px) * -1)); } }
+  .reveal { display: flex; flex-direction: column; align-items: center; gap: var(--px); font-size: var(--fs-s); }
+  .reveal img { width: calc(var(--px) * 24); height: auto; image-rendering: pixelated; }
+  .reveal .rar { letter-spacing: .1em; }
+
+  .album { width: 100%; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: calc(var(--px) * 2); }
+  .tile {
+    position: relative;
+    aspect-ratio: 1; max-width: 100%; min-width: 0;
+    padding: 0;
+    background: var(--bezel-lo);
+    border: 0;
+    box-shadow: inset 0 0 0 var(--px) var(--rc, var(--bezel));
+    cursor: pointer;
+  }
+  .tile img { position: absolute; left: 15%; top: 15%; width: 70%; height: 70%; object-fit: contain; image-rendering: pixelated; }
+  .tile.eq::after { content: ""; position: absolute; top: var(--px); right: var(--px); width: calc(var(--px) * 3); height: calc(var(--px) * 3); background: var(--amber); }
+  .tile[aria-pressed="true"] { background: var(--bezel); box-shadow: inset 0 0 0 var(--px) var(--rc), 0 0 0 var(--px) var(--ink); }
+  .detail { width: 100%; min-height: calc(var(--px) * 22); display: grid; grid-template-columns: 1fr auto; align-items: center; gap: calc(var(--px) * 4); font-size: var(--fs-s); text-align: left; }
+
+  .wheel-wrap { position: relative; width: calc(var(--px) * 84); height: calc(var(--px) * 84); }
+  .wheel-wrap canvas { image-rendering: pixelated; }
+  .wheel-wrap .pointer {
+    position: absolute; left: 50%; top: calc(var(--px) * -3);
+    width: calc(var(--px) * 8); height: calc(var(--px) * 8);
+    transform: translateX(-50%);
+    background: var(--ink);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .blink, .banner.warn .bt, .scores li.new span { animation: none; }
+    .blink, .banner.warn .bt, .scores li.new span, .coin.spin, .crate-stage.shake > img { animation: none; }
   }
 </style>
 </head>
@@ -396,7 +514,7 @@
 
     <section class="ov" id="ovTitle" aria-label="Title screen">
       <h1 class="logo"><span class="a">NOVA</span><span class="b">SWARM</span></h1>
-      <p class="tag">THE HIVE HAS REACHED SECTOR 9</p>
+      <p class="tag wallet"><img class="ico" alt="" data-icon="scrap"> <span class="js-scrap">0</span> SCRAP &nbsp;&middot;&nbsp; ALBUM <span class="js-album">0/24</span></p>
       <div class="attract">
         <div class="panel">
           <h2>BEST PILOTS</h2>
@@ -424,6 +542,7 @@
             <dt>FIRE</dt><dd>SPACE / Z (HOLD)</dd>
             <dt>PAUSE</dt><dd>P / ESC</dd>
             <dt>SOUND</dt><dd>M</dd>
+            <dt>HANGAR</dt><dd>H (TITLE + DEBRIEF)</dd>
             <dt>TOUCH</dt><dd>DRAG TO FLY + FIRE</dd>
           </dl>
           <p class="note">EXTRA SHIP AT 20000,<br>THEN EVERY 60000</p>
@@ -435,7 +554,10 @@
         <button class="tab" type="button" data-i="2" aria-label="Power-ups"></button>
         <button class="tab" type="button" data-i="3" aria-label="Controls"></button>
       </div>
-      <button class="start blink" type="button" id="startBtn">PRESS SPACE TO START</button>
+      <div class="title-actions">
+        <button class="start blink" type="button" id="startBtn">PRESS SPACE TO START</button>
+        <button class="btn sm" type="button" id="hangarBtn">HANGAR<span class="kh"> (H)</span></button>
+      </div>
     </section>
 
     <section class="ov dim" id="ovPause" aria-label="Paused" hidden>
@@ -456,6 +578,7 @@
         <dt>SHOTS FIRED</dt><dd id="rShots">0</dd>
         <dt>NUMBER OF HITS</dt><dd id="rHits">0</dd>
         <dt>HIT-MISS RATIO</dt><dd class="hl" id="rRatio">0.0 %</dd>
+        <dt>SCRAP EARNED</dt><dd class="hl" id="rScrap">0</dd>
       </dl>
       <button class="btn primary" type="button" id="overBtn">CONTINUE</button>
     </section>
@@ -473,11 +596,104 @@
       <p class="dimtxt" id="entryHint">TYPE LETTERS OR USE ARROWS<br>ENTER TO SAVE</p>
     </section>
 
+    <section class="ov dim" id="ovDebrief" aria-label="Wave debrief" hidden>
+      <h2 class="big c-teal" id="dbTitle">WAVE 1 CLEAR</h2>
+      <p class="dimtxt" id="dbNote">WAVE BONUS</p>
+      <dl class="results" id="dbLines"></dl>
+      <div class="game-box" id="dbGamble">
+        <p class="dimtxt">DOUBLE OR NOTHING? (OPTIONAL)</p>
+        <div class="row">
+          <button class="btn sm" type="button" id="dbCoin">COIN FLIP</button>
+          <button class="btn sm" type="button" id="dbReflex">REFLEX TEST</button>
+        </div>
+        <p class="fine">COIN: 50% DOUBLE / 50% LOSE THE BONUS<br>REFLEX: STOP THE NEEDLE IN THE GREEN (20% OF THE BAR)</p>
+      </div>
+      <div class="game-box" id="dbGame" hidden>
+        <div class="coin" id="dbCoinFace" hidden>2X</div>
+        <div class="reflex" id="dbBar" hidden><div class="zone" id="dbZone"></div><div class="needle" id="dbNeedle"></div></div>
+        <button class="btn primary sm" type="button" id="dbStop" hidden>STOP<span class="kh"> (SPACE)</span></button>
+        <p class="msg" id="dbMsg"></p>
+      </div>
+      <p class="wallet"><img class="ico" alt="" data-icon="scrap"> <span class="js-scrap">0</span> SCRAP</p>
+      <div class="row">
+        <button class="btn" type="button" id="dbHangar">HANGAR<span class="kh"> (H)</span></button>
+        <button class="btn primary" type="button" id="dbNext">NEXT WAVE</button>
+      </div>
+    </section>
+
+    <section class="ov dim" id="ovWager" aria-label="Challenging stage wager" hidden>
+      <h2 class="big c-teal">CHALLENGING STAGE</h2>
+      <p class="dimtxt">BET SCRAP ON YOUR HITS? (OPTIONAL)</p>
+      <p class="fine">HIT AT LEAST</p>
+      <div class="row choice" id="wgTargets"></div>
+      <p class="fine">STAKE</p>
+      <div class="row choice" id="wgStakes"></div>
+      <p class="msg" id="wgInfo"></p>
+      <p class="wallet"><img class="ico" alt="" data-icon="scrap"> <span class="js-scrap">0</span> SCRAP</p>
+      <div class="row">
+        <button class="btn" type="button" id="wgPlace" disabled>PLACE BET</button>
+        <button class="btn primary" type="button" id="wgSkip">NO BET<span class="kh"> (SPACE)</span></button>
+      </div>
+    </section>
+
+    <section class="ov solid" id="ovHangar" aria-label="Hangar" hidden>
+      <div class="hg-head"><h2>HANGAR</h2><span class="wallet"><img class="ico" alt="" data-icon="scrap"> <span class="js-scrap">0</span> SCRAP</span></div>
+      <div class="hg-tabs" role="tablist" aria-label="Hangar sections">
+        <button class="hg-tab" type="button" role="tab" data-pane="hgShop" aria-selected="true">SHOP</button>
+        <button class="hg-tab" type="button" role="tab" data-pane="hgSlots" aria-selected="false">SLOTS</button>
+        <button class="hg-tab" type="button" role="tab" data-pane="hgCrate" aria-selected="false">CAPSULE</button>
+        <button class="hg-tab" type="button" role="tab" data-pane="hgAlbum" aria-selected="false">ALBUM</button>
+      </div>
+      <div class="hg-body">
+        <div class="hg-pane" id="hgShop" role="tabpanel">
+          <p class="fine" id="shopNote">UPGRADES LAST ONE RUN</p>
+          <ul class="shop" id="shopList"></ul>
+        </div>
+        <div class="hg-pane" id="hgSlots" role="tabpanel" hidden>
+          <div class="reels"><div class="reel"><img alt="" id="reel0"></div><div class="reel"><img alt="" id="reel1"></div><div class="reel"><img alt="" id="reel2"></div></div>
+          <p class="msg" id="slotMsg">3 OF A KIND: THAT POWER-UP NEXT WAVE</p>
+          <button class="btn primary" type="button" id="slotSpin">SPIN &middot; 10 SCRAP</button>
+          <ul class="odds" id="slotOdds"></ul>
+        </div>
+        <div class="hg-pane" id="hgCrate" role="tabpanel" hidden>
+          <div class="crate-stage" id="crateStage">
+            <img alt="Mystery capsule" id="crateImg">
+            <div class="reveal" id="crateReveal" hidden><img alt="" id="rvImg"><span id="rvName"></span><span class="rar" id="rvRar"></span><span class="dimtxt" id="rvNote"></span></div>
+          </div>
+          <div class="row">
+            <button class="btn primary" type="button" id="crateOpen">OPEN &middot; 60 SCRAP</button>
+            <button class="btn" type="button" id="crateEquip" hidden>EQUIP</button>
+          </div>
+          <ul class="odds" id="crateOdds"></ul>
+          <p class="fine">DUPLICATES REFUND 5 / 15 / 40 / 100 SCRAP.<br>OR BUY ANY ITEM OUTRIGHT IN THE ALBUM.</p>
+        </div>
+        <div class="hg-pane" id="hgAlbum" role="tabpanel" hidden>
+          <p class="fine"><span class="js-album">0/24</span> COLLECTED &middot; COSMETIC ONLY</p>
+          <div class="album" id="albumGrid"></div>
+          <div class="detail"><div><span class="nm" id="adName">PICK AN ITEM</span><span class="ds" id="adMeta"></span></div><button class="btn sm" type="button" id="adAct" hidden>EQUIP</button></div>
+        </div>
+      </div>
+      <p class="fine">SCRAP IS EARNED ONLY BY PLAYING. EVERY GAMBLE IS OPTIONAL AND SHOWS ITS ODDS.</p>
+      <button class="btn primary" type="button" id="hgBack">BACK</button>
+    </section>
+
+    <section class="ov dim tight" id="ovWheel" aria-label="Prize wheel" hidden>
+      <h2 class="big c-amber">PRIZE WHEEL</h2>
+      <p class="dimtxt">ONE FREE SPIN EVERY GAME OVER</p>
+      <div class="wheel-wrap"><canvas id="wheel" width="96" height="96"></canvas><div class="pointer"></div></div>
+      <p class="msg" id="wheelMsg"></p>
+      <ul class="odds" id="wheelOdds"></ul>
+      <div class="row">
+        <button class="btn" type="button" id="wheelSkip">SKIP</button>
+        <button class="btn primary" type="button" id="wheelSpin">SPIN<span class="kh"> (SPACE)</span></button>
+      </div>
+    </section>
+
     <div class="scan"></div>
   </div>
 
   <div class="deck">
-    <p class="keys" id="keysHint"><kbd>WASD</kbd> MOVE &nbsp;<kbd>SPACE</kbd> FIRE &nbsp;<kbd>P</kbd> PAUSE &nbsp;<kbd>M</kbd> SOUND</p>
+    <p class="keys" id="keysHint"><kbd>WASD</kbd> MOVE &nbsp;<kbd>SPACE</kbd> FIRE &nbsp;<kbd>P</kbd> PAUSE &nbsp;<kbd>M</kbd> SOUND &nbsp;<kbd>H</kbd> HANGAR</p>
     <div class="deck-btns">
       <button class="btn" type="button" id="soundBtn">SOUND: ON</button>
       <button class="btn" type="button" id="pauseBtn" disabled>PAUSE</button>
@@ -533,10 +749,13 @@ function paint(rows, colorOf) {
   });
   return c;
 }
-function sprite(half, remap = {}) {
+function spriteC(half, colorOf) {
   const rows = mirror(half);
-  return { img: paint(rows, ch => PAL[remap[ch] || ch]), hit: paint(rows, () => '#ffffff'), w: rows[0].length, h: rows.length };
+  return { img: paint(rows, colorOf), hit: paint(rows, () => '#ffffff'), w: rows[0].length, h: rows.length };
 }
+function sprite(half, remap = {}) { return spriteC(half, ch => PAL[remap[ch] || ch]); }
+const PLAYER_HALF = ['.....w', '.....w', '....tb', '....tb', '...ttb', 't..tbb', 't.tttt', 'tttTtw', 'ttTTtt', 'tT.tt.', 't..T..'];
+const LIFE_HALF = ['...w', '..tb', '.ttb', 'tttt', 'tTtt', 't..T'];
 
 const DRONE = [
   ['..c..', '...c.', '..ccc', '.cckc', 'ccccc', 'c.ccc', 'c.c..', '...c.'],
@@ -551,8 +770,8 @@ const WARDEN = [
   ['v..v..', 'v.vvv.', 'vvVvvv', '.vvyvv', '..vvvv', '..vVVV', '.v...v', 'v.....']
 ];
 const SPR = {
-  player: sprite(['.....w', '.....w', '....tb', '....tb', '...ttb', 't..tbb', 't.tttt', 'tttTtw', 'ttTTtt', 'tT.tt.', 't..T..']),
-  life: sprite(['...w', '..tb', '.ttb', 'tttt', 'tTtt', 't..T']),
+  player: sprite(PLAYER_HALF),
+  life: sprite(LIFE_HALF),
   drone: DRONE.map(f => sprite(f)),
   stinger: STINGER.map(f => sprite(f)),
   warden: WARDEN.map(f => sprite(f)),
@@ -618,14 +837,182 @@ function capsule(p, border) {
 for (const p of Object.values(POWERS)) { p.img = capsule(p, p.color); p.alt = capsule(p, '#ffffff'); }
 
 const ETYPES = {
-  drone: { spr: SPR.drone, hp: 1, pts: 50, divePts: 100, colors: [PAL.c, PAL.C, PAL.w], drop: 0.06 },
-  stinger: { spr: SPR.stinger, hp: 1, pts: 80, divePts: 160, colors: [PAL.a, PAL.b, PAL.y], drop: 0.08 },
-  warden: { spr: SPR.warden, hp: 2, pts: 150, divePts: 400, colors: [PAL.v, PAL.V, PAL.y], drop: 0.16 }
+  drone: { spr: SPR.drone, hp: 1, pts: 50, divePts: 100, colors: [PAL.c, PAL.C, PAL.w], drop: 0.06, scrap: 1 },
+  stinger: { spr: SPR.stinger, hp: 1, pts: 80, divePts: 160, colors: [PAL.a, PAL.b, PAL.y], drop: 0.08, scrap: 2 },
+  warden: { spr: SPR.warden, hp: 2, pts: 150, divePts: 400, colors: [PAL.v, PAL.V, PAL.y], drop: 0.16, scrap: 3 }
 };
 const BOSSES = {
   queen: { name: 'HIVE QUEEN', spr: SPR.queen, hp: 70, pts: 3000, colors: [PAL.v, PAL.c, PAL.b, PAL.a, PAL.y], bar: PAL.v },
   maw: { name: 'IRON MAW', spr: SPR.maw, hp: 90, pts: 4000, colors: [PAL.s, PAL.S, PAL.a, PAL.r, PAL.y], bar: PAL.a }
 };
+
+/* ================= scrap, loadout, collection ================= */
+SPR.golden = DRONE.map(f => sprite(f, { c: 'a', C: 'A' }));
+const SCRAP_ICON = sprite(['..s', '.sa', 'sa.', '.sa', '..s']);
+const CRATE_SPR = sprite(['...aaaa', '..avvvv', '.avvvvw', '.avvvww', '.avvvvw', 'aaaaaaa', 'AAAAAAy', '.tttttt', '.tTtttt', '.tTtttt', '..tTttt', '...TTTT']);
+const RARITY = [
+  { name: 'COMMON', color: '#a79fc9', odds: 60, refund: 5, price: 80 },
+  { name: 'RARE', color: '#5aa9ff', odds: 28, refund: 15, price: 200 },
+  { name: 'EPIC', color: '#b26bff', odds: 10, refund: 40, price: 450 },
+  { name: 'LEGENDARY', color: '#ffb627', odds: 2, refund: 100, price: 1000 }
+];
+const KIND_NAME = { paint: 'PAINT JOB', trail: 'ENGINE TRAIL', badge: 'PILOT BADGE', trophy: 'TROPHY CARD' };
+const BADGE_ART = {
+  wings: ['a...', 'aa..', 'aaa.', 'aaaw', '.aay', '..aa', '...a'],
+  guard: ['tttt', 'tTTT', 'tTTw', 'tTww', '.tTw', '..tT', '...t'],
+  star: ['...y', '..yy', 'yyyy', '.yyy', '..yy', '.yy.', 'y...'],
+  skull: ['.www', 'wwww', 'wkkw', 'wkkw', 'wwwk', '.www', '.w.w'],
+  diamond: ['...b', '..bv', '.bvv', 'bvvw', '.bvv', '..bv', '...b'],
+  crown: ['a..a', 'a..a', 'aa.a', 'aaaa', 'aacy', 'aaaa', 'AAAA']
+};
+// 24 cosmetic collectibles. None of them change gameplay.
+const COLLECTION = [
+  { id: 'paint-slate', kind: 'paint', r: 0, name: 'SLATE', pal: { t: '#9a93c9', T: '#4a4478', b: '#5aa9ff', w: '#f4e9d8' } },
+  { id: 'paint-mint', kind: 'paint', r: 0, name: 'MINT', pal: { t: '#9be564', T: '#3f8f3a', b: '#3ee6c1', w: '#f4e9d8' } },
+  { id: 'paint-crimson', kind: 'paint', r: 1, name: 'CRIMSON', pal: { t: '#ff5d73', T: '#a3244a', b: '#ffb627', w: '#f4e9d8' } },
+  { id: 'paint-cobalt', kind: 'paint', r: 1, name: 'COBALT', pal: { t: '#5aa9ff', T: '#2d4fb3', b: '#f4e9d8', w: '#fff27a' } },
+  { id: 'paint-sunburst', kind: 'paint', r: 2, name: 'SUNBURST', pal: { t: '#ffb627', T: '#c9661a', b: '#ff5d73', w: '#fff27a' } },
+  { id: 'paint-gold', kind: 'paint', r: 3, name: 'GOLD CHROME', pal: { t: '#ffe08a', T: '#c9961a', b: '#ffffff', w: '#ffffff' } },
+  { id: 'trail-lime', kind: 'trail', r: 0, name: 'LIME', core: '#f4ffb0', outer: '#9be564' },
+  { id: 'trail-ice', kind: 'trail', r: 0, name: 'ICE', core: '#ffffff', outer: '#5aa9ff' },
+  { id: 'trail-rose', kind: 'trail', r: 1, name: 'ROSE', core: '#ffd0dc', outer: '#ff5d73' },
+  { id: 'trail-toxic', kind: 'trail', r: 1, name: 'TOXIC', core: '#e8ff7a', outer: '#3ee6c1' },
+  { id: 'trail-plasma', kind: 'trail', r: 2, name: 'PLASMA', core: '#ffffff', outer: '#b26bff' },
+  { id: 'trail-rainbow', kind: 'trail', r: 3, name: 'RAINBOW', core: '#ffffff', outer: '#ff5d73', rainbow: true },
+  { id: 'badge-wings', kind: 'badge', r: 0, name: 'WINGS', art: BADGE_ART.wings },
+  { id: 'badge-guard', kind: 'badge', r: 0, name: 'GUARDIAN', art: BADGE_ART.guard },
+  { id: 'badge-star', kind: 'badge', r: 1, name: 'ACE STAR', art: BADGE_ART.star },
+  { id: 'badge-skull', kind: 'badge', r: 1, name: 'DAREDEVIL', art: BADGE_ART.skull },
+  { id: 'badge-diamond', kind: 'badge', r: 2, name: 'DIAMOND', art: BADGE_ART.diamond },
+  { id: 'badge-crown', kind: 'badge', r: 3, name: 'CROWN', art: BADGE_ART.crown },
+  { id: 'trophy-drone', kind: 'trophy', r: 0, name: 'DRONE', spr: () => SPR.drone[0], note: 'SWOOPS IN, LOOPS OUT' },
+  { id: 'trophy-stinger', kind: 'trophy', r: 0, name: 'STINGER', spr: () => SPR.stinger[0], note: 'THE ZIG-ZAG DIVER' },
+  { id: 'trophy-warden', kind: 'trophy', r: 1, name: 'WARDEN', spr: () => SPR.warden[0], note: 'ARMORED, FIRES SPREADS' },
+  { id: 'trophy-queen', kind: 'trophy', r: 2, name: 'HIVE QUEEN', spr: () => SPR.queen, note: 'ALSO EARNED BY BEATING HER' },
+  { id: 'trophy-maw', kind: 'trophy', r: 2, name: 'IRON MAW', spr: () => SPR.maw, note: 'ALSO EARNED BY BEATING IT' },
+  { id: 'trophy-golden', kind: 'trophy', r: 3, name: 'GOLDEN DRONE', spr: () => SPR.golden[0], note: 'ALSO EARNED WITH A PERFECT STAGE' }
+];
+const byId = id => COLLECTION.find(i => i.id === id);
+
+// Scrap wallet: earned only by playing, saved in this browser.
+const SCRAP_KEY = 'nova-swarm-scrap-v1';
+const Wallet = {
+  scrap: Math.max(0, Math.floor(Number(store.get(SCRAP_KEY, 0)) || 0)),
+  add(n) { n = Math.floor(n); if (n <= 0) return; this.scrap += n; store.set(SCRAP_KEY, this.scrap); refreshWallet(); },
+  spend(n) { if (n > this.scrap) return false; this.scrap -= n; store.set(SCRAP_KEY, this.scrap); refreshWallet(); return true; }
+};
+
+const ALBUM_KEY = 'nova-swarm-album-v1';
+function loadAlbum() {
+  const a = store.get(ALBUM_KEY, null) || {};
+  const out = { owned: {}, equip: { paint: null, trail: null, badge: null } };
+  if (a.owned && typeof a.owned === 'object') for (const id in a.owned) if (byId(id)) out.owned[id] = 1;
+  if (a.equip && typeof a.equip === 'object') for (const k of ['paint', 'trail', 'badge']) if (out.owned[a.equip[k]]) out.equip[k] = a.equip[k];
+  return out;
+}
+const album = loadAlbum();
+const saveAlbum = () => store.set(ALBUM_KEY, album);
+const ownedCount = () => Object.keys(album.owned).length;
+function grantItem(item) {
+  if (album.owned[item.id]) { const refund = RARITY[item.r].refund; Wallet.add(refund); return { isNew: false, refund }; }
+  album.owned[item.id] = 1;
+  saveAlbum();
+  refreshWallet();
+  return { isNew: true, refund: 0 };
+}
+function awardTrophy(id) {
+  const item = byId(id);
+  if (!item || album.owned[id]) return false;
+  grantItem(item);
+  toast('NEW TROPHY CARD: ' + item.name, RARITY[item.r].color);
+  return true;
+}
+function rollItem() {
+  let roll = Math.random() * 100, r = 0;
+  while (r < 3 && (roll -= RARITY[r].odds) >= 0) r++;
+  return pick(COLLECTION.filter(i => i.r === r));
+}
+
+// Run upgrades bought from the title screen wait here until the next run starts.
+const LOADOUT_KEY = 'nova-swarm-loadout-v1';
+const emptyLoadout = () => ({ shield: false, fastFire: 0, spreadStart: false, magnet: false, extraShips: 0, powers: [] });
+function loadLoadout() {
+  const l = store.get(LOADOUT_KEY, null);
+  if (!l || typeof l !== 'object') return emptyLoadout();
+  return { shield: !!l.shield, fastFire: clamp(l.fastFire | 0, 0, 2), spreadStart: !!l.spreadStart, magnet: !!l.magnet,
+    extraShips: clamp(l.extraShips | 0, 0, 2), powers: Array.isArray(l.powers) ? l.powers.filter(k => POWERS[k] && k !== 'life').slice(0, 5) : [] };
+}
+let loadout = loadLoadout();
+const saveLoadout = () => store.set(LOADOUT_KEY, loadout);
+const RUN = { fastFire: 0, spreadStart: false, magnet: false, shipsBought: 0, nextPowers: [] };
+
+const STATS_KEY = 'nova-swarm-stats-v1';
+const stats = (() => {
+  const st = store.get(STATS_KEY, null);
+  return { bonus: st && Array.isArray(st.bonus) ? st.bonus.filter(n => Number.isFinite(n)).slice(-20) : [] };
+})();
+const saveStats = () => store.set(STATS_KEY, stats);
+
+// cosmetics
+const shipCache = {};
+function shipFor(id) {
+  const key = id || 'standard';
+  if (!shipCache[key]) {
+    const pal = (id && byId(id) && byId(id).pal) || {};
+    const colorOf = ch => pal[ch] || PAL[ch];
+    shipCache[key] = { ship: spriteC(PLAYER_HALF, colorOf), life: spriteC(LIFE_HALF, colorOf) };
+  }
+  return shipCache[key];
+}
+function trailColors(id) {
+  const t = byId(id === undefined ? album.equip.trail : id);
+  if (!t) return { core: PAL.y, outer: PAL.a };
+  if (t.rainbow) return { core: '#ffffff', outer: 'hsl(' + Math.floor(clock * 240) % 360 + ',95%,62%)' };
+  return t;
+}
+function badgeSprite(item) { return item._spr || (item._spr = sprite(item.art)); }
+function trailSwatch(t) {
+  const c = document.createElement('canvas');
+  c.width = 7; c.height = 11;
+  const g = c.getContext('2d');
+  [3, 5, 7, 7, 5, 5, 3, 3, 3, 1, 1].forEach((w, y) => {
+    const x0 = (7 - w) >> 1;
+    for (let x = x0; x < x0 + w; x++) {
+      const edge = x === x0 || x === x0 + w - 1;
+      g.fillStyle = t.rainbow ? 'hsl(' + y * 33 + ',95%,' + (edge ? 60 : 82) + '%)' : edge ? t.outer : t.core;
+      g.fillRect(x, y, 1, 1);
+    }
+  });
+  return c;
+}
+function itemCanvas(item) {
+  if (!item._cv) {
+    item._cv = item.kind === 'paint' ? shipFor(item.id).ship.img
+      : item.kind === 'trail' ? trailSwatch(item)
+      : item.kind === 'badge' ? badgeSprite(item).img
+      : item.spr().img;
+  }
+  return item._cv;
+}
+function itemUrl(item) { return item._url || (item._url = itemCanvas(item).toDataURL()); }
+function silhouetteUrl(item) {
+  if (!item._sil) {
+    const src = itemCanvas(item), c = document.createElement('canvas');
+    c.width = src.width; c.height = src.height;
+    const g = c.getContext('2d');
+    g.drawImage(src, 0, 0);
+    g.globalCompositeOperation = 'source-in';
+    g.fillStyle = '#3a2c7a';
+    g.fillRect(0, 0, c.width, c.height);
+    item._sil = c.toDataURL();
+  }
+  return item._sil;
+}
+function refreshWallet() {
+  document.querySelectorAll('.js-scrap').forEach(el => { el.textContent = Wallet.scrap; });
+  const a = ownedCount() + '/' + COLLECTION.length;
+  document.querySelectorAll('.js-album').forEach(el => { el.textContent = a; });
+}
 
 /* ================= sound: tiny chiptune synth ================= */
 const Snd = (() => {
@@ -744,6 +1131,11 @@ const Snd = (() => {
     laser() { noise(1.0, 0.25, 900, 700, 0, 0, 'bandpass'); tone('square', 70, 60, 1.0, 0.1); },
     bossHit() { if (thr('bhit', 70)) tone('square', 180, 120, 0.05, 0.08); },
     blip() { tone('square', 880, 0, 0.05, 0.07); },
+    coin() { if (thr('coin', 45)) tone('square', 1320, 1760, 0.05, 0.045); },
+    tick() { if (thr('tick', 50)) tone('square', 700, 0, 0.02, 0.035); },
+    win() { seq([523, 784, 1047, 1568], 0.07, 'square', 0.12, 0.09); },
+    lose() { tone('square', 220, 110, 0.35, 0.08); },
+    fanfare(r) { seq([[523, 659], [523, 659, 784], [523, 659, 784, 1047], [523, 659, 784, 1047, 1319, 1568]][r], 0.08, 'square', 0.12, 0.09); },
     over() { seq([392, 330, 262, 196], 0.22, 'triangle', 0.3, 0.2); }
   };
 })();
@@ -754,10 +1146,11 @@ const G = {
   score: 0, lives: 3, wave: 0, phase: 'intro', phaseT: 0, diveT: 1, fireT: 2, slowT: 0, hitThisWave: false,
   shots: 0, hits: 0, nextLife: 20000, bossCount: 0, killsSinceDrop: 0, overT: 0, overReady: false,
   formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
-  bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0
+  bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
+  scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0
 };
 const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: false, spreadT: 0, rapidT: 0, respawnT: 0 };
-let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [];
+let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [], scrapBits = [];
 let boss = null;
 let shakeAmt = 0, flash = 0, warp = 0, clock = 0;
 
@@ -840,6 +1233,7 @@ function slotOf(e) {
 }
 function nextWave() {
   G.wave++;
+  G.extra = [];
   G.phase = 'intro';
   G.hitThisWave = false;
   if (G.wave % 5 === 0) {
@@ -905,6 +1299,7 @@ function spawnBonus() {
   G.bonusTotal = total;
 }
 function startBonusIntro() {
+  G.extra = [];
   G.pendingBonus = false;
   G.bonus = true;
   G.phase = 'intro';
@@ -914,14 +1309,25 @@ function startBonusIntro() {
   Snd.play('bonus');
 }
 function bonusClear() {
-  const perfect = G.bonusHits === G.bonusTotal;
-  const bonus = perfect ? 10000 : G.bonusHits * 100;
-  addScore(bonus);
-  banner(perfect ? 'PERFECT!' : 'HITS ' + G.bonusHits + ' OF ' + G.bonusTotal, 'BONUS ' + bonus, 'good', 2.4);
+  const hits = G.bonusHits, total = G.bonusTotal, perfect = hits === total;
+  const extra = [['HITS', hits + ' / ' + total]];
+  if (G.wager) {
+    const w = G.wager;
+    if (hits >= w.n) { const win = Math.round(w.stake * w.mult); Wallet.add(win); extra.push(['WAGER WON', '+' + win + ' SCRAP']); }
+    else extra.push(['WAGER LOST', '-' + w.stake + ' SCRAP']);
+    G.wager = null;
+  }
+  stats.bonus = stats.bonus.concat(hits).slice(-20);
+  saveStats();
+  if (perfect && awardTrophy('trophy-golden')) extra.push(['TROPHY CARD', 'GOLDEN DRONE']);
+  G.clear = { title: perfect ? 'PERFECT!' : 'STAGE CLEAR', note: 'CHALLENGING STAGE', pts: perfect ? 10000 : hits * 100,
+    scrap: perfect ? 100 : Math.floor(hits / 4), extra, gambled: false, banked: false, busy: false };
+  banner(perfect ? 'PERFECT!' : 'HITS ' + hits + ' OF ' + total, '', 'good', 1.5);
   if (perfect) Snd.life(); else Snd.jingle();
   G.bonus = false;
   G.phase = 'clear';
-  G.phaseT = 2.6;
+  G.phaseT = 1.5;
+  for (const b of scrapBits) b.home = true;
 }
 function startDive(e) {
   const n = G.wave, dir = e.x < W / 2 ? -1 : 1, px = player.x, x = e.x, y = e.y;
@@ -1030,7 +1436,7 @@ function enemyFire(e, formation) {
   } else aimed(e.x, e.y + 4, s, formation ? 0.25 : 0.1);
 }
 function fire() {
-  player.cd = player.rapidT > 0 ? 0.1 : 0.2;
+  player.cd = (player.rapidT > 0 ? 0.1 : 0.2) * (1 - 0.2 * RUN.fastFire);
   const x = player.x, y = player.y - 7;
   pshots.push({ x, y, vx: 0, vy: -230 });
   G.shots++;
@@ -1094,6 +1500,7 @@ function updateBoss(dt) {
       Snd.bigBoom();
       dropPickup(b.x - 12, b.y, true);
       dropPickup(b.x + 12, b.y, true);
+      dropScrap(b.x, b.y, 120 + 40 * b.k, true);
       boss = null;
     }
     return;
@@ -1174,6 +1581,8 @@ function damageBoss(n) {
   for (const s of eshots) spark(s.x, s.y);
   eshots = [];
   for (const e of enemies) if (!e.dead) { e.dead = true; explode(e.x, e.y, e.T.colors, 10, 50); }
+  if (awardTrophy(b.kind === 'queen' ? 'trophy-queen' : 'trophy-maw')) G.extra.push(['TROPHY CARD', b.B.name]);
+  G.extra.push(['BOSS SCRAP', '+' + (120 + 40 * b.k)]);
   Snd.bigBoom();
 }
 
@@ -1194,6 +1603,7 @@ function killEnemy(e) {
   if (moving) popups.push({ text: String(pts), x: e.x, y: e.y - 4, t: 0, c: e.type === 'warden' ? PAL.y : PAL.w });
   explode(e.x, e.y, e.T.colors, 14, 60);
   Snd.boom();
+  dropScrap(e.x, e.y, e.bonus ? 1 : e.T.scrap + (moving ? 1 : 0));
   if (e.bonus) { G.bonusHits++; return; }
   G.killsSinceDrop++;
   const chance = G.killsSinceDrop >= 18 ? 1 : e.T.drop + (moving ? 0.03 : 0);
@@ -1267,15 +1677,50 @@ function respawn() {
 function waveClear() {
   if (G.lives <= 0) return;
   G.phase = 'clear';
-  G.phaseT = 2.2;
+  G.phaseT = 1.3;
   G.pendingBonus = G.wave % 5 === 3;
-  if (!G.hitThisWave) {
-    const bonus = 500 * G.wave;
-    addScore(bonus);
-    banner('WAVE ' + G.wave + ' CLEAR', 'NO-HIT BONUS ' + bonus, 'good', 2);
-  } else banner('WAVE ' + G.wave + ' CLEAR', '', 'good', 1.8);
+  const noHit = !G.hitThisWave;
+  G.clear = { title: 'WAVE ' + G.wave + ' CLEAR', note: noHit ? 'NO-HIT BONUS' : 'WAVE BONUS', pts: noHit ? 500 * G.wave : 0,
+    scrap: 3 + Math.floor(G.wave / 2) + (noHit ? 5 + G.wave : 0), extra: G.extra.slice(), gambled: false, banked: false, busy: false };
+  banner('WAVE ' + G.wave + ' CLEAR', noHit ? 'NO-HIT BONUS' : '', 'good', 1.3);
+  for (const b of eshots) spark(b.x, b.y);
+  eshots = [];
+  for (const b of scrapBits) b.home = true;
   Snd.jingle();
 }
+function onWaveStart() {
+  if (RUN.spreadStart) player.spreadT = Math.max(player.spreadT, 15);
+  if (RUN.nextPowers.length) G.powerT = 2.5;
+}
+
+/* ================= scrap ================= */
+function dropScrap(x, y, value, burst) {
+  const n = burst ? Math.min(24, value) : Math.min(4, value);
+  for (let i = 0; i < n; i++) {
+    const v = Math.floor(value / n) + (i < value % n ? 1 : 0);
+    if (v > 0) scrapBits.push({ x: x + rand(-2, 2), y: y + rand(-2, 2), vx: rand(-28, 28), vy: rand(-45, -10), v, t: 0, home: !!burst });
+  }
+}
+function updateScrap(dt) {
+  const reach = RUN.magnet ? 44 : 22;
+  for (const b of scrapBits) {
+    b.t += dt;
+    const dx = player.x - b.x, dy = player.y - b.y, d = Math.hypot(dx, dy) || 1;
+    if (player.alive && (b.home || d < reach)) {
+      const sp = Math.min(220, 70 + b.t * 160);
+      b.vx = dx / d * sp; b.vy = dy / d * sp;
+    } else {
+      b.vy = Math.min(b.vy + 70 * dt, 42);
+      b.vx *= 1 - dt * 1.5;
+    }
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    if (player.alive && d < 7) { b.dead = true; collectScrap(b.v); }
+    else if (b.y > H + 4) b.dead = true;
+  }
+  scrapBits = scrapBits.filter(b => !b.dead);
+}
+function collectScrap(v) { Wallet.add(v); G.scrapRun += v; Snd.coin(); }
+function flushScrap() { for (const b of scrapBits) collectScrap(b.v); scrapBits = []; }
 
 /* ================= effects ================= */
 function explode(x, y, colors, n, spd) {
@@ -1290,6 +1735,7 @@ function spark(x, y) {
 }
 function shakeIt(m) { shakeAmt = Math.max(shakeAmt, m); }
 function updateFx(dt) {
+  if (state !== 'play') warp += (0 - warp) * Math.min(1, dt * 2.5);
   const k = (1 + warp * 7) * (G.slowT > 0 && state !== 'title' ? 0.4 : 1);
   for (const s of stars) {
     s.y += STAR_SPEED[s.z] * k * dt;
@@ -1320,6 +1766,12 @@ function updatePlayer(dt) {
   touch.dx = touch.dy = 0;
   player.x = clamp(player.x, 7, W - 7);
   player.y = clamp(player.y, H * 0.55, H - 14);
+  G.trailT += dt;
+  if (G.trailT > 0.04) {
+    G.trailT = 0;
+    const tc = trailColors();
+    for (const ox of [-2, 2]) parts.push({ x: player.x + ox, y: player.y + 8, vx: rand(-6, 6), vy: rand(30, 55), t: 0, life: rand(0.15, 0.3), c: Math.random() < 0.5 ? tc.core : tc.outer, s: 1 });
+  }
   player.cd -= dt;
   if (player.invuln > 0) player.invuln -= dt;
   if (player.spreadT > 0) player.spreadT -= dt;
@@ -1340,11 +1792,11 @@ function update(dt) {
   else if (G.phase === 'intro') {
     G.phaseT -= dt;
     if (G.phaseT > 0.7) warpTarget = 1;
-    if (G.phaseT <= 0) { G.phase = 'active'; spawnWave(); }
+    if (G.phaseT <= 0) { G.phase = 'active'; spawnWave(); onWaveStart(); }
   } else if (G.phase === 'clear') {
     G.phaseT -= dt;
     if (G.phaseT < 1) warpTarget = 1;
-    if (G.phaseT <= 0) { if (G.pendingBonus) startBonusIntro(); else nextWave(); }
+    if (G.phaseT <= 0) openDebrief();
   }
   warp += (warpTarget - warp) * Math.min(1, dt * 2.5);
 
@@ -1394,6 +1846,8 @@ function update(dt) {
   }
   pickups = pickups.filter(p => !p.dead);
   enemies = enemies.filter(e => !e.dead);
+  updateScrap(dt);
+  if (G.powerT > 0 && G.phase === 'active' && player.alive && (G.powerT -= dt) <= 0) RUN.nextPowers.splice(0).forEach(applyPower);
 
   if (G.lives > 0 && G.phase === 'active' && !boss && enemies.length === 0) { if (G.bonus) bonusClear(); else waveClear(); }
   if (G.overT > 0) { G.overT -= dt; if (G.overT <= 0) showGameOver(); }
@@ -1460,18 +1914,24 @@ function drawBeam(b) {
   cx.fillStyle = '#ffffff'; cx.fillRect(x - 1, y0, 3, H - y0);
 }
 function drawPlayer() {
-  if (!player.alive || state === 'title') return;
+  if (!player.alive || !inRun()) return;
   if (!(player.invuln > 0 && Math.floor(clock * 12) % 2)) {
-    drawSpr(SPR.player, player.x, player.y);
-    const fx = Math.round(player.x) - 5, fy = Math.round(player.y) + 6, f = Math.floor(clock * 20) % 3;
-    cx.fillStyle = PAL.y; cx.fillRect(fx + 3, fy, 1, 1); cx.fillRect(fx + 7, fy, 1, 1);
-    if (f) { cx.fillStyle = PAL.a; cx.fillRect(fx + 3, fy + 1, 1, f); cx.fillRect(fx + 7, fy + 1, 1, f); }
+    drawSpr(shipFor(album.equip.paint).ship, player.x, player.y);
+    const fx = Math.round(player.x) - 5, fy = Math.round(player.y) + 6, f = Math.floor(clock * 20) % 3, tc = trailColors();
+    cx.fillStyle = tc.core; cx.fillRect(fx + 3, fy, 1, 1); cx.fillRect(fx + 7, fy, 1, 1);
+    if (f) { cx.fillStyle = tc.outer; cx.fillRect(fx + 3, fy + 1, 1, f); cx.fillRect(fx + 7, fy + 1, 1, f); }
   }
   if (player.shield) ringPts(player.x, player.y + 0.5, 8.5, Math.floor(clock * 6) % 2 ? PAL.t : PAL.b, Math.floor(clock * 10) % 3);
 }
 function drawHudCanvas() {
-  if (state === 'title') return;
-  for (let i = 0; i < G.lives - 1; i++) drawSpr(SPR.life, 6 + i * 9, H - 6);
+  if (!inRun()) return;
+  const badge = byId(album.equip.badge);
+  if (badge) drawSpr(badgeSprite(badge), 5, H - 6);
+  const lx = badge ? 15 : 6, life = shipFor(album.equip.paint).life;
+  for (let i = 0; i < G.lives - 1; i++) drawSpr(life, lx + i * 9, H - 6);
+  const sc = String(Wallet.scrap), sw = sc.length * 4 + 6, sx = Math.round(W / 2 - sw / 2);
+  drawSpr(SCRAP_ICON, sx + 2, H - 6);
+  txt(sc, sx + 7, H - 8, PAL.a);
   let y = H - 9;
   for (const [k, t] of [['spread', player.spreadT], ['rapid', player.rapidT], ['warp', G.slowT]]) {
     if (t <= 0) continue;
@@ -1491,6 +1951,8 @@ function drawHudCanvas() {
     cx.fillStyle = PAL.k; cx.fillRect(x0 + Math.round(w / 3), 27, 1, 2); cx.fillRect(x0 + Math.round(w * 2 / 3), 27, 1, 2);
   }
 }
+// The play field shows the ship and HUD only during a run (not on the title or the title's hangar).
+const inRun = () => !(state === 'title' || (state === 'hangar' && hangar.from === 'title'));
 function draw() {
   cx.setTransform(1, 0, 0, 1, 0, 0);
   cx.fillStyle = PAL.k;
@@ -1516,6 +1978,12 @@ function draw() {
     const x = Math.round(b.x), y = Math.round(b.y);
     cx.fillStyle = f ? PAL.c : PAL.a; cx.fillRect(x - 1, y - 1, 2, 3);
     cx.fillStyle = '#ffffff'; cx.fillRect(x - f, y, 1, 1);
+  }
+  for (const b of scrapBits) {
+    const x = Math.round(b.x), y = Math.round(b.y);
+    cx.fillStyle = Math.floor(clock * 8 + b.v) % 2 ? PAL.s : PAL.w;
+    cx.fillRect(x - 1, y, 3, 1); cx.fillRect(x, y - 1, 1, 3);
+    cx.fillStyle = PAL.a; cx.fillRect(x, y, 1, 1);
   }
   drawPlayer();
   for (const p of parts) { cx.fillStyle = p.c; const s = p.t > p.life * 0.6 ? 1 : p.s; cx.fillRect(Math.round(p.x), Math.round(p.y), s, s); }
@@ -1555,7 +2023,7 @@ function toast(text, color) {
 }
 function hideBanners() { ui.bannerT = ui.toastT = 0; $('banner').hidden = true; $('toast').hidden = true; }
 
-const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry'];
+const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovHangar', 'ovWheel'];
 function showOverlay(id) {
   for (const o of OVERLAYS) $(o).hidden = o !== id;
   cyclePanels(id === 'ovTitle');
@@ -1600,6 +2068,8 @@ function renderScores(hl) {
       const sp = document.createElement('span');
       sp.className = cls;
       sp.textContent = text;
+      const badge = cls === 'nm' && s.badge && byId(s.badge);
+      if (badge) { const img = document.createElement('img'); img.className = 'ico'; img.alt = badge.name; img.src = itemUrl(badge); sp.prepend(img, ' '); }
       li.appendChild(sp);
     }
     ol.appendChild(li);
@@ -1616,6 +2086,7 @@ function showEntry() {
   const rank = scores.filter(s => s.score >= G.score).length + 1;
   $('entryRank').textContent = ordinal(rank) + ' PLACE  ' + G.score;
   showOverlay('ovEntry');
+  ui.readyAt = clock + 0.5;   // a key still held from the previous screen must not skip a letter
   renderEntry();
 }
 function renderEntry() {
@@ -1635,7 +2106,7 @@ function saveEntry() {
   if (state !== 'entry') return;
   const name = entry.letters.join('');
   store.set('nova-swarm-initials', name);
-  const rec = { name, score: G.score, wave: G.wave };
+  const rec = { name, score: G.score, wave: G.wave, badge: album.equip.badge || undefined };
   scores.push(rec);
   scores.sort((a, b) => b.score - a.score);
   scores = scores.slice(0, 10);
@@ -1645,6 +2116,7 @@ function saveEntry() {
 }
 function handleEntryKey(e) {
   const c = e.code;
+  if (clock < ui.readyAt) { if (c === 'Space' || c === 'Enter' || /^Key[A-Z]$/.test(c)) e.preventDefault(); return; }
   if (/^Key[A-Z]$/.test(c)) { entry.letters[entry.i] = c.slice(3); entry.i = Math.min(entry.i + 1, 2); Snd.blip(); renderEntry(); }
   else if (c === 'ArrowUp') shiftLetter(entry.i, 1);
   else if (c === 'ArrowDown') shiftLetter(entry.i, -1);
@@ -1661,9 +2133,12 @@ function resetGame(from) {
   Object.assign(G, { score: 0, lives: 3, wave: 0, phase: 'intro', phaseT: 0, diveT: 1, fireT: 2, slowT: 0, hitThisWave: false,
     shots: 0, hits: 0, nextLife: 20000, bossCount: 0, killsSinceDrop: 0, overT: 0, overReady: false,
     formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
-    bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0 });
+    bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
+    scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0 });
+  Object.assign(RUN, { fastFire: 0, spreadStart: false, magnet: false, shipsBought: 0, nextPowers: [] });
+  if (from && from.run) Object.assign(RUN, { fastFire: clamp(from.run.fastFire | 0, 0, 2), spreadStart: !!from.run.spreadStart, magnet: !!from.run.magnet, shipsBought: from.run.shipsBought | 0 });
   Object.assign(player, { x: W / 2, y: H - 22, alive: true, invuln: 1.5, cd: 0.2, shield: false, spreadT: 0, rapidT: 0, respawnT: 0 });
-  enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; boss = null;
+  enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; scrapBits = []; boss = null;
   if (from) {
     G.score = Math.max(0, from.score | 0);
     G.lives = clamp(from.lives | 0, 1, 5);
@@ -1678,6 +2153,7 @@ function startGame() {
   Snd.unlock();
   state = 'play';
   resetGame();
+  applyLoadout();
   showOverlay(null);
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
@@ -1701,9 +2177,10 @@ function showTitle(panel, hl) {
   Snd.hold(false);
   Snd.stop();
   hideBanners();
-  enemies = []; eshots = []; pshots = []; pickups = []; popups = []; boss = null;
+  enemies = []; eshots = []; pshots = []; pickups = []; popups = []; scrapBits = []; boss = null;
   G.slowT = 0;
   warp = 0;
+  refreshWallet();
   renderScores(hl);
   showOverlay('ovTitle');
   showPanel(panel || 0);
@@ -1715,21 +2192,527 @@ function showGameOver() {
   Snd.stop();
   Snd.over();
   hideBanners();
+  flushScrap();
+  $('rScrap').textContent = G.scrapRun;
   $('rScore').textContent = G.score;
   $('rWave').textContent = G.wave;
   $('rShots').textContent = G.shots;
   $('rHits').textContent = G.hits;
   $('rRatio').textContent = (G.shots ? (G.hits / G.shots * 100) : 0).toFixed(1) + ' %';
-  $('overBtn').textContent = qualifies(G.score) ? 'ENTER INITIALS' : 'CONTINUE';
+  $('overBtn').textContent = 'SPIN THE PRIZE WHEEL';
   showOverlay('ovOver');
   G.overReady = false;
   setTimeout(() => { G.overReady = true; }, 900);
 }
 function continueFromOver() {
   if (state !== 'over' || !G.overReady) return;
+  openWheel();
+}
+function afterWheel() {
+  if (state !== 'wheel' || wheel.spinning) return;
   if (qualifies(G.score)) showEntry();
   else showTitle(0);
 }
+
+/* ================= debrief, hangar and optional gambles ================= */
+// All gambles use scrap earned in play, show their odds, and can always be skipped.
+const mkBtn = (cls, html, fn) => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = cls; b.innerHTML = html;
+  b.addEventListener('click', () => { fn(); b.blur(); });
+  return b;
+};
+const pct = p => (p * 100 >= 10 ? (p * 100).toFixed(0) : (p * 100).toFixed(1)) + '%';
+function oddsRows(list, rows) {
+  list.textContent = '';
+  for (const [a, b, c] of rows) {
+    const li = document.createElement('li');
+    const s1 = document.createElement('span'); if (a instanceof Node) s1.append(a); else s1.innerHTML = a;
+    const s2 = document.createElement('span'); s2.className = 'p'; s2.textContent = b;
+    const s3 = document.createElement('span'); s3.className = 'd'; s3.textContent = c;
+    li.append(s1, s2, s3);
+    list.appendChild(li);
+  }
+}
+function imgOf(url, cls) { const i = document.createElement('img'); i.alt = ''; i.src = url; if (cls) i.className = cls; return i; }
+
+/* ---- wave debrief + double or nothing ---- */
+function openDebrief() {
+  flushScrap();
+  hideBanners();
+  keys.clear();
+  touch.id = null;
+  state = 'debrief';
+  const c = G.clear;
+  $('dbTitle').textContent = c.title;
+  $('dbNote').textContent = c.note;
+  $('dbGame').hidden = true;
+  $('dbMsg').textContent = '';
+  const next = G.wave + 1;
+  $('dbNext').innerHTML = (G.pendingBonus ? 'BONUS STAGE' : next % 5 === 0 ? 'BOSS WAVE ' + next : 'WAVE ' + next) + '<span class="kh"> (SPACE)</span>';
+  renderDebrief();
+  showOverlay('ovDebrief');
+  ui.readyAt = clock + 0.6;
+}
+function renderDebrief() {
+  const c = G.clear, dl = $('dbLines');
+  dl.textContent = '';
+  const rows = [['BONUS POINTS', '+' + c.pts], ['BONUS SCRAP', '+' + c.scrap], ...c.extra, ['SCRAP THIS RUN', String(G.scrapRun)]];
+  for (const [k, v] of rows) {
+    const dt = document.createElement('dt'); dt.textContent = k;
+    const dd = document.createElement('dd'); dd.textContent = v;
+    dl.append(dt, dd);
+  }
+  $('dbGamble').hidden = c.gambled || c.banked || (c.pts <= 0 && c.scrap <= 0);
+  $('dbNext').disabled = $('dbHangar').disabled = !!c.busy;
+}
+function bankClear() {
+  const c = G.clear;
+  if (!c || c.banked) return;
+  c.banked = true;
+  if (c.pts) addScore(c.pts);
+  if (c.scrap) { Wallet.add(c.scrap); G.scrapRun += c.scrap; }
+}
+function startGamble(kind) {
+  const c = G.clear;
+  if (state !== 'debrief' || !c || c.gambled || c.banked || c.busy) return false;
+  c.gambled = true; c.busy = true;
+  renderDebrief();
+  $('dbGame').hidden = false;
+  $('dbCoinFace').hidden = kind !== 'coin';
+  $('dbBar').hidden = $('dbStop').hidden = kind !== 'reflex';
+  return true;
+}
+function settleGamble(win) {
+  const c = G.clear;
+  if (win) { c.pts *= 2; c.scrap *= 2; $('dbMsg').textContent = 'DOUBLED!'; Snd.win(); }
+  else { c.pts = 0; c.scrap = 0; $('dbMsg').textContent = 'BONUS LOST.\nYOUR SCRAP WALLET IS UNTOUCHED.'; Snd.lose(); }
+  c.busy = false;
+  renderDebrief();
+}
+function gambleCoin() {
+  if (!startGamble('coin')) return;
+  const face = $('dbCoinFace'), win = Math.random() < 0.5;
+  face.textContent = '?';
+  face.classList.add('spin');
+  $('dbMsg').textContent = 'FLIPPING...';
+  setTimeout(() => { face.classList.remove('spin'); face.textContent = win ? '2X' : '0'; settleGamble(win); }, reduceMotion ? 300 : 1200);
+}
+const reflex = { on: false, t: 0, zone: 0, last: 0, raf: 0 };
+const reflexPos = () => { const q = (reflex.t * 0.9) % 2; return q < 1 ? q : 2 - q; };
+function gambleReflex() {
+  if (!startGamble('reflex')) return;
+  reflex.zone = rand(0.1, 0.7);
+  $('dbZone').style.left = reflex.zone * 100 + '%';
+  $('dbZone').style.width = '20%';
+  $('dbMsg').textContent = 'STOP THE NEEDLE IN THE GREEN';
+  reflex.on = true; reflex.t = 0; reflex.last = performance.now();
+  ui.readyAt = clock + 0.25;
+  reflexTick();
+}
+function reflexTick() {
+  if (!reflex.on) return;
+  const now = performance.now();
+  reflex.t += Math.min(0.05, (now - reflex.last) / 1000);
+  reflex.last = now;
+  $('dbNeedle').style.left = 'calc(' + reflexPos() * 100 + '% - 1px)';
+  reflex.raf = requestAnimationFrame(reflexTick);
+}
+function stopReflex() {
+  if (!reflex.on) return;
+  reflex.on = false;
+  cancelAnimationFrame(reflex.raf);
+  const q = reflexPos();
+  $('dbNeedle').style.left = 'calc(' + q * 100 + '% - 1px)';
+  $('dbStop').hidden = true;
+  settleGamble(q >= reflex.zone && q <= reflex.zone + 0.2);
+}
+function proceedFromDebrief() {
+  if (state !== 'debrief' || (G.clear && G.clear.busy)) return;
+  bankClear();
+  if (G.pendingBonus && Wallet.scrap >= WAGER_STAKES[0]) openWager();
+  else resumeRun();
+}
+function resumeRun() {
+  G.clear = null;
+  state = 'play';
+  keys.clear();
+  showOverlay(null);
+  if (G.pendingBonus) startBonusIntro(); else nextWave();
+}
+
+/* ---- challenging-stage wager ---- */
+const WAGER_TARGETS = [{ n: 20, mult: 1.5 }, { n: 30, mult: 2 }, { n: 36, mult: 3 }, { n: 40, mult: 6 }];
+const WAGER_STAKES = [10, 25, 50];
+const wager = { t: -1, s: -1 };
+function openWager() {
+  state = 'wager';
+  wager.t = wager.s = -1;
+  renderWager();
+  showOverlay('ovWager');
+  ui.readyAt = clock + 0.6;
+}
+function renderWager() {
+  [...$('wgTargets').children].forEach((b, i) => b.setAttribute('aria-pressed', String(i === wager.t)));
+  [...$('wgStakes').children].forEach((b, i) => { b.setAttribute('aria-pressed', String(i === wager.s)); b.disabled = WAGER_STAKES[i] > Wallet.scrap; });
+  if (wager.s >= 0 && WAGER_STAKES[wager.s] > Wallet.scrap) wager.s = -1;
+  const t = WAGER_TARGETS[wager.t], st = WAGER_STAKES[wager.s], played = stats.bonus.length;
+  let rec = played ? 'YOUR BEST SO FAR: ' + Math.max(...stats.bonus) + ' OF 40' : 'NO CHALLENGING STAGES PLAYED YET';
+  if (t && played) rec = 'YOU HIT ' + t.n + (t.n < 40 ? '+' : '') + ' IN ' + stats.bonus.filter(h => h >= t.n).length + ' OF ' + played + ' STAGES';
+  const pay = t && st ? 'PAYS ' + Math.round(st * t.mult) + ' SCRAP IF YOU HIT ' + t.n + (t.n < 40 ? '+' : '') + '. MISS AND LOSE ' + st + '.'
+    : 'PICK A TARGET AND A STAKE, OR SKIP.';
+  $('wgInfo').textContent = rec + '\n' + pay;
+  $('wgPlace').disabled = !(t && st);
+}
+function placeWager() {
+  const t = WAGER_TARGETS[wager.t], st = WAGER_STAKES[wager.s];
+  if (state !== 'wager' || !t || !st || !Wallet.spend(st)) return;
+  G.wager = { n: t.n, mult: t.mult, stake: st };
+  Snd.power();
+  resumeRun();
+  toast('BET ' + st + ' SCRAP ON ' + t.n + (t.n < 40 ? '+' : '') + ' HITS', PAL.a);
+}
+function skipWager() { if (state === 'wager') { G.wager = null; resumeRun(); } }
+
+/* ---- hangar ---- */
+const PANES = ['hgShop', 'hgSlots', 'hgCrate', 'hgAlbum'];
+const hangar = { from: 'title', pane: 'hgShop', sel: null };
+function openHangar(from) {
+  if (from === 'debrief') { if (G.clear && G.clear.busy) return; bankClear(); }
+  hangar.from = from;
+  state = 'hangar';
+  $('shopNote').textContent = from === 'title' ? 'UPGRADES APPLY TO YOUR NEXT RUN, THEN EXPIRE' : 'UPGRADES LAST FOR THE REST OF THIS RUN';
+  $('hgBack').innerHTML = (from === 'title' ? 'BACK TO TITLE' : 'BACK TO DEBRIEF') + '<span class="kh"> (ESC)</span>';
+  $('slotMsg').textContent = '3 OF A KIND: THAT POWER-UP ' + (from === 'title' ? 'IN WAVE 1' : 'NEXT WAVE');
+  resetCrate();
+  showPane(hangar.pane);
+  refreshWallet();
+  showOverlay('ovHangar');
+  ui.readyAt = clock + 0.4;
+}
+function closeHangar() {
+  if (state !== 'hangar' || slot.spinning || crate.busy) return;
+  if (hangar.from === 'title') showTitle(0);
+  else { state = 'debrief'; renderDebrief(); showOverlay('ovDebrief'); ui.readyAt = clock + 0.4; }
+}
+function showPane(id) {
+  hangar.pane = id;
+  for (const pn of PANES) $(pn).hidden = pn !== id;
+  document.querySelectorAll('.hg-tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.pane === id)));
+  if (id === 'hgShop') renderShop();
+  if (id === 'hgCrate') renderCrateButton();
+  if (id === 'hgAlbum') renderAlbum();
+  $('slotSpin').disabled = slot.spinning || Wallet.scrap < SLOT_COST;
+}
+
+// shop: one-run upgrades
+const SHOP = [
+  { id: 'shield', name: 'SHIELD', desc: 'BLOCKS ONE HIT' },
+  { id: 'spread', name: 'SPREAD START', desc: '15 SEC OF SPREAD SHOT EACH WAVE' },
+  { id: 'fast', name: 'FAST FIRE', desc: '+20% FIRE RATE, STACKS TWICE' },
+  { id: 'ship', name: 'EXTRA SHIP', desc: 'ONE MORE LIFE (MAX 5)' },
+  { id: 'magnet', name: 'SCRAP MAGNET', desc: 'PULLS SCRAP FROM TWICE AS FAR' }
+];
+function shopOffer(id) {
+  const T = hangar.from === 'title';
+  switch (id) {
+    case 'shield': return (T ? loadout.shield : player.shield) ? { status: 'READY' } : { cost: 30 };
+    case 'spread': return (T ? loadout.spreadStart : RUN.spreadStart) ? { status: 'OWNED' } : { cost: 60 };
+    case 'fast': { const lv = T ? loadout.fastFire : RUN.fastFire; return lv >= 2 ? { status: 'MAX' } : { cost: [50, 90][lv], lv }; }
+    case 'ship': {
+      const lives = T ? 3 + loadout.extraShips : G.lives, n = T ? loadout.extraShips : RUN.shipsBought;
+      return lives >= 5 ? { status: 'MAX' } : { cost: 80 + 40 * n };
+    }
+    case 'magnet': return (T ? loadout.magnet : RUN.magnet) ? { status: 'OWNED' } : { cost: 25 };
+  }
+  return { status: '-' };
+}
+function buyUpgrade(id) {
+  const o = shopOffer(id);
+  if (state !== 'hangar' || o.cost == null || !Wallet.spend(o.cost)) { Snd.lose(); return; }
+  const T = hangar.from === 'title';
+  if (id === 'shield') { if (T) loadout.shield = true; else player.shield = true; }
+  else if (id === 'spread') { if (T) loadout.spreadStart = true; else RUN.spreadStart = true; }
+  else if (id === 'fast') { if (T) loadout.fastFire++; else RUN.fastFire++; }
+  else if (id === 'ship') { if (T) loadout.extraShips++; else { G.lives++; RUN.shipsBought++; } }
+  else if (id === 'magnet') { if (T) loadout.magnet = true; else RUN.magnet = true; }
+  if (T) saveLoadout();
+  Snd.power();
+  renderShop();
+}
+function renderShop() {
+  const ul = $('shopList');
+  ul.textContent = '';
+  for (const it of SHOP) {
+    const o = shopOffer(it.id), li = document.createElement('li'), box = document.createElement('div');
+    const n = document.createElement('span'); n.className = 'nm'; n.textContent = it.name + (it.id === 'fast' && o.lv ? ' LV ' + o.lv : '');
+    const d = document.createElement('span'); d.className = 'ds'; d.textContent = it.desc;
+    box.append(n, d);
+    const b = mkBtn('btn sm', o.cost != null ? o.cost + ' <img class="ico" alt="scrap" src="' + scrapUrl() + '">' : o.status, () => buyUpgrade(it.id));
+    b.disabled = o.cost == null || o.cost > Wallet.scrap;
+    b.setAttribute('aria-label', o.cost != null ? 'Buy ' + it.name + ' for ' + o.cost + ' scrap' : it.name + ': ' + o.status);
+    li.append(box, b);
+    ul.appendChild(li);
+  }
+}
+
+// slot machine: three of a kind queues that power-up; three ships is the jackpot
+const SLOT_SYMS = [{ k: 'spread', w: 3 }, { k: 'rapid', w: 3 }, { k: 'shield', w: 2 }, { k: 'nova', w: 1 }, { k: 'life', w: 1 }];
+const SLOT_COST = 10, SLOT_PAIR = 5;
+const slot = { spinning: false };
+function slotOdds() {
+  const total = SLOT_SYMS.reduce((a, x) => a + x.w, 0);
+  const rows = SLOT_SYMS.map(x => { const q = x.w / total; return { k: x.k, three: q ** 3, pair: 3 * q * q * (1 - q) }; });
+  const three = rows.reduce((a, r) => a + r.three, 0), pair = rows.reduce((a, r) => a + r.pair, 0);
+  return { rows, pair, none: 1 - three - pair };
+}
+function weightedSym() {
+  let r = Math.random() * SLOT_SYMS.reduce((a, x) => a + x.w, 0);
+  for (const x of SLOT_SYMS) if ((r -= x.w) < 0) return x.k;
+  return SLOT_SYMS[0].k;
+}
+const setReel = (i, k) => { $('reel' + i).src = powerUrl(k); $('reel' + i).alt = POWERS[k].name; };
+function spinSlots() {
+  if (state !== 'hangar' || slot.spinning) return;
+  if (!Wallet.spend(SLOT_COST)) { $('slotMsg').textContent = 'NOT ENOUGH SCRAP.\nEARN MORE BY PLAYING.'; Snd.lose(); return; }
+  slot.spinning = true;
+  $('slotSpin').disabled = true;
+  document.querySelectorAll('.reel').forEach(r => r.classList.remove('win'));
+  $('slotMsg').textContent = 'SPINNING...';
+  const res = [weightedSym(), weightedSym(), weightedSym()];
+  const stops = reduceMotion ? [120, 200, 280] : [600, 900, 1200], t0 = performance.now();
+  const iv = setInterval(() => {
+    const el = performance.now() - t0;
+    for (let i = 0; i < 3; i++) setReel(i, el < stops[i] ? pick(SLOT_SYMS).k : res[i]);
+    Snd.tick();
+    if (el >= stops[2]) { clearInterval(iv); settleSlots(res); }
+  }, 70);
+}
+function settleSlots(res) {
+  slot.spinning = false;
+  const [a, b, c] = res, T = hangar.from === 'title', reels = document.querySelectorAll('.reel');
+  if (a === b && b === c) {
+    reels.forEach(r => r.classList.add('win'));
+    if (a === 'life') {
+      const room = T ? 3 + loadout.extraShips < 5 : G.lives < 5;
+      if (room) { if (T) loadout.extraShips++; else G.lives++; }
+      else Wallet.add(100);
+      $('slotMsg').textContent = room ? 'JACKPOT! EXTRA SHIP' + (T ? ' FOR YOUR NEXT RUN' : '') : 'JACKPOT! SHIPS ARE MAXED:\n+100 SCRAP INSTEAD';
+      Snd.life();
+    } else {
+      (T ? loadout.powers : RUN.nextPowers).push(a);
+      $('slotMsg').textContent = POWERS[a].name + '!\nREADY ' + (T ? 'IN WAVE 1' : 'NEXT WAVE');
+      Snd.win();
+    }
+    if (T) saveLoadout();
+  } else if (a === b || b === c || a === c) {
+    reels.forEach((r, i) => { if (res.filter(k => k === res[i]).length === 2) r.classList.add('win'); });
+    Wallet.add(SLOT_PAIR);
+    $('slotMsg').textContent = 'A PAIR: ' + SLOT_PAIR + ' SCRAP BACK';
+    Snd.blip();
+  } else { $('slotMsg').textContent = 'NO MATCH'; Snd.lose(); }
+  $('slotSpin').disabled = Wallet.scrap < SLOT_COST;
+}
+
+// mystery capsule: rolls a collectible rarity
+const CRATE_COST = 60;
+const crate = { busy: false, last: null };
+function renderCrateButton() {
+  const b = $('crateOpen');
+  b.disabled = crate.busy || Wallet.scrap < CRATE_COST;
+  b.innerHTML = Wallet.scrap < CRATE_COST && !crate.busy ? 'NEED 60 SCRAP' : 'OPEN &middot; 60 SCRAP';
+}
+function resetCrate() {
+  if (crate.busy) return;
+  crate.last = null;
+  $('crateReveal').hidden = true;
+  $('crateImg').hidden = false;
+  $('crateEquip').hidden = true;
+  renderCrateButton();
+}
+function openCrate() {
+  if (state !== 'hangar' || crate.busy || !Wallet.spend(CRATE_COST)) return;
+  crate.busy = true;
+  resetCrateView();
+  renderCrateButton();
+  $('crateStage').classList.add('shake');
+  Snd.charge();
+  const item = rollItem();
+  setTimeout(() => {
+    $('crateStage').classList.remove('shake');
+    const res = grantItem(item);
+    crate.busy = false;
+    crate.last = item;
+    $('crateImg').hidden = true;
+    $('crateReveal').hidden = false;
+    $('rvImg').src = itemUrl(item);
+    $('rvName').textContent = item.name;
+    $('rvRar').textContent = RARITY[item.r].name + ' ' + KIND_NAME[item.kind];
+    $('rvRar').style.color = RARITY[item.r].color;
+    $('rvNote').textContent = res.isNew ? 'NEW! ADDED TO YOUR ALBUM' : 'DUPLICATE: +' + res.refund + ' SCRAP';
+    $('crateEquip').hidden = !(res.isNew && item.kind !== 'trophy');
+    $('crateEquip').disabled = false;
+    $('crateEquip').textContent = 'EQUIP';
+    renderCrateButton();
+    Snd.fanfare(item.r);
+  }, reduceMotion ? 250 : 900);
+}
+function resetCrateView() { $('crateReveal').hidden = true; $('crateImg').hidden = false; $('crateEquip').hidden = true; }
+function equipCrateItem() {
+  if (!crate.last || crate.last.kind === 'trophy') return;
+  equipItem(crate.last);
+  $('crateEquip').textContent = 'EQUIPPED';
+  $('crateEquip').disabled = true;
+}
+
+// album: every item can also be bought outright, so collecting never requires gambling
+function equipItem(item) { album.equip[item.kind] = item.id; saveAlbum(); Snd.blip(); }
+function renderAlbum() {
+  const grid = $('albumGrid');
+  if (!grid.children.length) {
+    for (const item of COLLECTION) {
+      const b = mkBtn('tile', '', () => { hangar.sel = item.id; renderAlbum(); });
+      b.dataset.id = item.id;
+      b.style.setProperty('--rc', RARITY[item.r].color);
+      b.appendChild(imgOf(silhouetteUrl(item)));
+      grid.appendChild(b);
+    }
+  }
+  for (const b of grid.children) {
+    const item = byId(b.dataset.id), owned = !!album.owned[item.id];
+    b.firstChild.src = owned ? itemUrl(item) : silhouetteUrl(item);
+    b.classList.toggle('eq', album.equip[item.kind] === item.id);
+    b.setAttribute('aria-pressed', String(hangar.sel === item.id));
+    b.setAttribute('aria-label', (owned ? item.name : 'Not collected: ' + item.name) + ', ' + RARITY[item.r].name + ' ' + KIND_NAME[item.kind]);
+  }
+  const item = byId(hangar.sel), act = $('adAct');
+  if (!item) { $('adName').textContent = 'PICK AN ITEM'; $('adMeta').textContent = 'AMBER CORNER = EQUIPPED'; act.hidden = true; return; }
+  const owned = !!album.owned[item.id], price = RARITY[item.r].price;
+  $('adName').textContent = item.name + (owned ? '' : ' (NOT COLLECTED)');
+  $('adName').style.color = RARITY[item.r].color;
+  $('adMeta').textContent = RARITY[item.r].name + ' ' + KIND_NAME[item.kind] + (item.note ? ' · ' + item.note : '');
+  act.hidden = owned && item.kind === 'trophy';
+  act.disabled = !owned && Wallet.scrap < price;
+  act.textContent = !owned ? 'BUY ' + price : album.equip[item.kind] === item.id ? 'UNEQUIP' : 'EQUIP';
+}
+function albumAction() {
+  const item = byId(hangar.sel);
+  if (state !== 'hangar' || !item) return;
+  if (!album.owned[item.id]) {
+    if (!Wallet.spend(RARITY[item.r].price)) return;
+    grantItem(item);
+    Snd.fanfare(item.r);
+  } else if (item.kind !== 'trophy') {
+    if (album.equip[item.kind] === item.id) { album.equip[item.kind] = null; saveAlbum(); Snd.blip(); }
+    else equipItem(item);
+  }
+  renderAlbum();
+}
+
+/* ---- prize wheel: one free spin per game over ---- */
+const WHEEL = [
+  { name: '10 SCRAP', label: '10', scrap: 10, c: '#4a4478' },
+  { name: 'BLANK', blank: true, c: '#1a1340' },
+  { name: '25 SCRAP', label: '25', scrap: 25, c: '#4a4478' },
+  { name: 'MYSTERY CAPSULE', icon: 'crate', capsule: true, c: '#5b2c9e' },
+  { name: 'BLANK', blank: true, c: '#1a1340' },
+  { name: '50 SCRAP', label: '50', scrap: 50, c: '#4a4478' },
+  { name: 'SHIELD NEXT RUN', icon: 'shield', item: 'shield', c: '#1f8f86' },
+  { name: 'BLANK', blank: true, c: '#1a1340' },
+  { name: 'EXTRA SHIP NEXT RUN', icon: 'life', item: 'ship', c: '#a3244a' },
+  { name: '100 SCRAP', label: '100', scrap: 100, c: '#c9661a' }
+];
+const wheel = { spun: false, spinning: false, rot: 0 };
+function drawWheel() {
+  const c = $('wheel'), g = c.getContext('2d'), R = 46, n = WHEEL.length, seg = TAU / n;
+  g.clearRect(0, 0, 96, 96);
+  WHEEL.forEach((w, i) => {
+    const a0 = -Math.PI / 2 + i * seg;
+    g.beginPath(); g.moveTo(48, 48); g.arc(48, 48, R, a0, a0 + seg); g.closePath();
+    g.fillStyle = w.c; g.fill();
+    g.strokeStyle = '#0d0a26'; g.lineWidth = 1; g.stroke();
+    const am = a0 + seg / 2, lx = Math.round(48 + Math.cos(am) * 31), ly = Math.round(48 + Math.sin(am) * 31);
+    if (w.label) { g.fillStyle = PAL.w; glyphs(g, w.label, lx - Math.floor((w.label.length * 4 - 1) / 2), ly - 2); }
+    else if (w.blank) { g.fillStyle = '#4a4478'; glyphs(g, 'X', lx - 1, ly - 2); }
+    else {
+      const img = w.icon === 'crate' ? CRATE_SPR.img : w.icon === 'life' ? SPR.life.img : POWERS.shield.img;
+      const k = w.icon === 'crate' ? 0.7 : 1, iw = Math.round(img.width * k), ih = Math.round(img.height * k);
+      g.imageSmoothingEnabled = false;
+      g.drawImage(img, lx - (iw >> 1), ly - (ih >> 1), iw, ih);
+    }
+  });
+  g.beginPath(); g.arc(48, 48, R, 0, TAU); g.strokeStyle = PAL.a; g.lineWidth = 2; g.stroke();
+  g.fillStyle = PAL.a; g.fillRect(45, 45, 6, 6);
+}
+function openWheel() {
+  state = 'wheel';
+  wheel.spun = wheel.spinning = false;
+  const el = $('wheel');
+  el.style.transition = 'none';
+  el.style.transform = 'rotate(' + (wheel.rot % 360) + 'deg)';
+  wheel.rot %= 360;
+  $('wheelMsg').textContent = '10 EQUAL SLICES: EACH IS\nA 1 IN 10 CHANCE';
+  $('wheelSpin').innerHTML = 'SPIN<span class="kh"> (SPACE)</span>';
+  $('wheelSpin').disabled = false;
+  $('wheelSkip').hidden = false;
+  showOverlay('ovWheel');
+  ui.readyAt = clock + 0.6;
+}
+function spinWheel() {
+  if (state !== 'wheel' || wheel.spinning) return;
+  if (wheel.spun) { afterWheel(); return; }
+  wheel.spun = wheel.spinning = true;
+  $('wheelSpin').disabled = true;
+  $('wheelSkip').hidden = true;
+  $('wheelMsg').textContent = 'SPINNING...';
+  const i = Math.floor(Math.random() * WHEEL.length), seg = 360 / WHEEL.length;
+  const target = wheel.rot + 1800 + (360 - (wheel.rot % 360)) + (360 - (i + 0.5) * seg) % 360 + rand(-seg * 0.35, seg * 0.35);
+  const dur = reduceMotion ? 0.6 : 3.2, el = $('wheel');
+  el.style.transition = 'transform ' + dur + 's cubic-bezier(.12,.7,.15,1)';
+  el.style.transform = 'rotate(' + target + 'deg)';
+  wheel.rot = target;
+  const tick = setInterval(() => Snd.tick(), 120);
+  setTimeout(() => { clearInterval(tick); settleWheel(i); }, dur * 1000 + 120);
+}
+function settleWheel(i) {
+  const w = WHEEL[i];
+  let msg;
+  if (w.blank) { msg = 'BLANK. NO PRIZE THIS TIME.'; Snd.lose(); }
+  else if (w.scrap) { Wallet.add(w.scrap); msg = 'YOU WON ' + w.scrap + ' SCRAP!'; Snd.win(); }
+  else if (w.capsule) {
+    const item = rollItem(), res = grantItem(item);
+    msg = 'CAPSULE: ' + RARITY[item.r].name + ' ' + item.name + '\n' + (res.isNew ? 'NEW! ADDED TO YOUR ALBUM' : 'DUPLICATE: +' + res.refund + ' SCRAP');
+    Snd.fanfare(item.r);
+  } else if (w.item === 'shield') { loadout.shield = true; saveLoadout(); msg = 'YOUR NEXT RUN STARTS\nWITH A SHIELD'; Snd.win(); }
+  else {
+    if (3 + loadout.extraShips < 5) { loadout.extraShips++; saveLoadout(); msg = 'YOUR NEXT RUN STARTS\nWITH AN EXTRA SHIP'; }
+    else { Wallet.add(50); msg = 'EXTRA SHIPS MAXED:\n+50 SCRAP INSTEAD'; }
+    Snd.life();
+  }
+  wheel.spinning = false;
+  $('wheelMsg').textContent = msg;
+  $('wheelSpin').innerHTML = 'CONTINUE<span class="kh"> (SPACE)</span>';
+  $('wheelSpin').disabled = false;
+}
+
+/* ---- run start: apply the pending loadout ---- */
+function applyLoadout() {
+  const l = loadout, got = [];
+  RUN.fastFire = l.fastFire; RUN.spreadStart = l.spreadStart; RUN.magnet = l.magnet; RUN.nextPowers = l.powers.slice();
+  if (l.extraShips) { G.lives = Math.min(5, G.lives + l.extraShips); got.push('+' + l.extraShips + ' SHIP'); }
+  if (l.shield) { player.shield = true; got.push('SHIELD'); }
+  if (l.fastFire) got.push('FAST FIRE ' + l.fastFire);
+  if (l.spreadStart) got.push('SPREAD START');
+  if (l.magnet) got.push('MAGNET');
+  if (l.powers.length) got.push(l.powers.length + ' BONUS POWER' + (l.powers.length > 1 ? 'S' : ''));
+  loadout = emptyLoadout();
+  saveLoadout();
+  if (got.length) toast('LOADOUT: ' + got.join(', '), PAL.t);
+}
+let scrapIconUrl = '';
+const scrapUrl = () => scrapIconUrl || (scrapIconUrl = SCRAP_ICON.img.toDataURL());
+const powerUrls = {};
+const powerUrl = k => powerUrls[k] || (powerUrls[k] = POWERS[k].img.toDataURL());
 
 /* ================= input ================= */
 const keys = new Set();
@@ -1741,10 +2724,12 @@ addEventListener('keydown', e => {
   Snd.unlock();
   const c = e.code;
   if (state === 'entry') { handleEntryKey(e); return; }
-  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM') e.preventDefault();
+  if (MENU_STATES.has(state)) { handleMenuKey(e); return; }
+  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || (c === 'KeyH' && state === 'title')) e.preventDefault();
   if (c === 'KeyM') { if (!e.repeat) cycleSound(); return; }
   if (state === 'title') {
     if ((FIRE.has(c) || c === 'Enter') && !e.repeat) startGame();
+    else if (c === 'KeyH' && !e.repeat) openHangar('title');
     else if (MOVE[c] === 'l') showPanel(panelIdx - 1);
     else if (MOVE[c] === 'r') showPanel(panelIdx + 1);
   } else if (state === 'play') {
@@ -1758,6 +2743,32 @@ addEventListener('keydown', e => {
     if (!e.repeat && (FIRE.has(c) || c === 'Enter')) continueFromOver();
   }
 });
+// Menus between waves: Space/Enter is the safe default (continue, skip, no bet).
+// A button the player has tabbed to keeps its own Space/Enter behaviour.
+const MENU_STATES = new Set(['debrief', 'wager', 'hangar', 'wheel']);
+function handleMenuKey(e) {
+  const c = e.code, a = document.activeElement;
+  if (c === 'KeyM') { e.preventDefault(); if (!e.repeat) cycleSound(); return; }
+  const confirm = c === 'Space' || c === 'Enter';
+  if (confirm && a && a.tagName === 'BUTTON' && !a.disabled && !a.closest('[hidden]')) return;
+  if (confirm || c === 'Escape' || c === 'KeyH' || /^Digit[1-4]$/.test(c)) e.preventDefault();
+  if (e.repeat || clock < ui.readyAt) return;
+  if (state === 'debrief') {
+    if (reflex.on) { if (confirm || FIRE.has(c)) stopReflex(); }
+    else if (confirm) proceedFromDebrief();
+    else if (c === 'KeyH') openHangar('debrief');
+  } else if (state === 'wager') {
+    if (confirm || c === 'Escape') skipWager();
+  } else if (state === 'hangar') {
+    if (c === 'Escape' || c === 'KeyH') closeHangar();
+    else if (/^Digit[1-4]$/.test(c)) showPane(PANES[+c.slice(5) - 1]);
+    else if (confirm && hangar.pane === 'hgSlots') spinSlots();
+    else if (confirm && hangar.pane === 'hgCrate') openCrate();
+  } else if (state === 'wheel') {
+    if (confirm) spinWheel();
+    else if (c === 'Escape' && !wheel.spun) afterWheel();
+  }
+}
 addEventListener('keyup', e => {
   const c = e.code;
   if (MOVE[c]) keys.delete(MOVE[c]);
@@ -1798,6 +2809,22 @@ onClick('saveBtn', saveEntry);
 onClick('soundBtn', cycleSound);
 onClick('pauseBtn', () => { if (state === 'play') pause(); else resume(); });
 tabs.forEach(t => t.addEventListener('click', () => showPanel(+t.dataset.i)));
+onClick('hangarBtn', () => openHangar('title'));
+onClick('dbNext', proceedFromDebrief);
+onClick('dbHangar', () => openHangar('debrief'));
+onClick('dbCoin', gambleCoin);
+onClick('dbReflex', gambleReflex);
+onClick('dbStop', stopReflex);
+onClick('wgPlace', placeWager);
+onClick('wgSkip', skipWager);
+onClick('hgBack', closeHangar);
+onClick('slotSpin', spinSlots);
+onClick('crateOpen', openCrate);
+onClick('crateEquip', equipCrateItem);
+onClick('adAct', albumAction);
+onClick('wheelSpin', spinWheel);
+onClick('wheelSkip', afterWheel);
+document.querySelectorAll('.hg-tab').forEach(t => t.addEventListener('click', () => { showPane(t.dataset.pane); t.blur(); }));
 document.querySelectorAll('.arrow').forEach(b => b.addEventListener('click', () => shiftLetter(+b.dataset.i, +b.dataset.d)));
 document.querySelectorAll('.letter').forEach(b => b.addEventListener('click', () => { entry.i = +b.dataset.i; renderEntry(); }));
 
@@ -1853,7 +2880,25 @@ function setupStatic() {
     list.appendChild(li);
   }
   $('soundBtn').textContent = 'SOUND: ' + ['ON', 'SFX ONLY', 'OFF'][Snd.mode];
+  document.querySelectorAll('img[data-icon="scrap"]').forEach(img => { img.src = scrapUrl(); });
+  $('crateImg').src = CRATE_SPR.img.toDataURL();
+  ['spread', 'rapid', 'shield'].forEach((k, i) => setReel(i, k));
+  const so = slotOdds();
+  oddsRows($('slotOdds'), [
+    ...so.rows.map(r => [imgOf(powerUrl(r.k)).outerHTML + ' x3', pct(r.three), r.k === 'life' ? 'JACKPOT: EXTRA SHIP' : POWERS[r.k].name + ' NEXT WAVE']),
+    ['ANY PAIR', pct(so.pair), SLOT_PAIR + ' SCRAP BACK'],
+    ['NO MATCH', pct(so.none), 'NOTHING']
+  ]);
+  oddsRows($('crateOdds'), RARITY.map(r => ['<span style="color:' + r.color + '">' + r.name + '</span>', r.odds + '%', COLLECTION.filter(i => RARITY[i.r] === r).length + ' ITEMS']));
+  const groups = {};
+  for (const w of WHEEL) { const k = w.scrap ? 'SCRAP (10 / 25 / 50 / 100)' : w.name; groups[k] = (groups[k] || 0) + 1; }
+  oddsRows($('wheelOdds'), Object.entries(groups).map(([k, n]) => [k, pct(n / WHEEL.length), n + ' SLICE' + (n > 1 ? 'S' : '')]));
+  drawWheel();
+  WAGER_TARGETS.forEach((t, i) => $('wgTargets').appendChild(mkBtn('btn sm', t.n + (t.n < 40 ? '+' : '') + ' &middot; ' + t.mult + 'X', () => { wager.t = i; renderWager(); })));
+  WAGER_STAKES.forEach((st, i) => $('wgStakes').appendChild(mkBtn('btn sm', st + ' <img class="ico" alt="scrap" src="' + scrapUrl() + '">', () => { wager.s = i; renderWager(); })));
+  refreshWallet();
   if (coarse) {
+    root.classList.add('coarse');
     $('startBtn').textContent = 'TAP TO START';
     $('keysHint').textContent = 'DRAG ON THE SCREEN TO FLY. YOUR SHIP FIRES WHILE YOU HOLD.';
     $('entryHint').innerHTML = 'TAP THE ARROWS TO PICK LETTERS';
@@ -1866,7 +2911,7 @@ function frame(now) {
   last = now;
   clock += dt;
   if (state === 'play' || state === 'over' || state === 'entry') update(dt);
-  else if (state === 'title') updateFx(dt);
+  else if (state !== 'paused') updateFx(dt);
   draw();
   requestAnimationFrame(frame);
 }
@@ -1886,8 +2931,13 @@ function start(data) {
 }
 
 try {
-  window.claude?.hot?.snapshot?.(() => ((state === 'play' || state === 'paused') && G.lives > 0)
-    ? { resume: { score: G.score, wave: G.wave, lives: G.lives } } : {});
+  window.claude?.hot?.snapshot?.(() => {
+    // between waves, resume at the next wave (the pending bonus is banked first)
+    const between = state === 'debrief' || state === 'wager' || (state === 'hangar' && hangar.from !== 'title');
+    if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0) return {};
+    if (between) bankClear();
+    return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, run: { ...RUN } } };
+  });
 } catch (e) { /* hot reload is optional */ }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
