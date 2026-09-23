@@ -10,7 +10,7 @@ Open `index.html` in any modern browser. Everything lives in that one file: the 
 
 | Action | Keyboard | Touch |
 | --- | --- | --- |
-| Move | Arrow keys / WASD | Drag anywhere on the screen |
+| Move | WASD (arrow keys also work) | Drag anywhere on the screen |
 | Fire | Space / Z (hold for auto-fire) | Fires automatically while your finger is down |
 | Pause | P / Esc | Pause button under the screen |
 | Sound | M (cycles on / SFX only / off) | Sound button under the screen |

@@ -420,7 +420,7 @@
         <div class="panel" hidden>
           <h2>CONTROLS</h2>
           <dl class="ctl">
-            <dt>MOVE</dt><dd>ARROWS / WASD</dd>
+            <dt>MOVE</dt><dd>W A S D</dd>
             <dt>FIRE</dt><dd>SPACE / Z (HOLD)</dd>
             <dt>PAUSE</dt><dd>P / ESC</dd>
             <dt>SOUND</dt><dd>M</dd>
@@ -477,7 +477,7 @@
   </div>
 
   <div class="deck">
-    <p class="keys" id="keysHint"><kbd>ARROWS</kbd> MOVE &nbsp;<kbd>SPACE</kbd> FIRE &nbsp;<kbd>P</kbd> PAUSE &nbsp;<kbd>M</kbd> SOUND</p>
+    <p class="keys" id="keysHint"><kbd>WASD</kbd> MOVE &nbsp;<kbd>SPACE</kbd> FIRE &nbsp;<kbd>P</kbd> PAUSE &nbsp;<kbd>M</kbd> SOUND</p>
     <div class="deck-btns">
       <button class="btn" type="button" id="soundBtn">SOUND: ON</button>
       <button class="btn" type="button" id="pauseBtn" disabled>PAUSE</button>
@@ -1679,7 +1679,8 @@ function continueFromOver() {
 
 /* ================= input ================= */
 const keys = new Set();
-const MOVE = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd' };
+// WASD moves the ship; arrow keys stay mapped as a fallback.
+const MOVE = { KeyW: 'u', KeyA: 'l', KeyS: 'd', KeyD: 'r', ArrowUp: 'u', ArrowLeft: 'l', ArrowDown: 'd', ArrowRight: 'r' };
 const FIRE = new Set(['Space', 'KeyZ', 'KeyJ', 'KeyK']);
 addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
