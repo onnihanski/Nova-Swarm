@@ -601,7 +601,7 @@
       <p class="dimtxt" id="dbNote">WAVE BONUS</p>
       <dl class="results" id="dbLines"></dl>
       <div class="game-box" id="dbGamble">
-        <p class="dimtxt">DOUBLE OR NOTHING? (OPTIONAL)</p>
+        <p class="dimtxt">DOUBLE OR NOTHING ON THE BONUS?</p>
         <div class="row">
           <button class="btn sm" type="button" id="dbCoin">COIN FLIP</button>
           <button class="btn sm" type="button" id="dbReflex">REFLEX TEST</button>
@@ -842,8 +842,8 @@ const ETYPES = {
   warden: { spr: SPR.warden, hp: 2, pts: 150, divePts: 400, colors: [PAL.v, PAL.V, PAL.y], drop: 0.16, scrap: 3 }
 };
 const BOSSES = {
-  queen: { name: 'HIVE QUEEN', spr: SPR.queen, hp: 70, pts: 3000, colors: [PAL.v, PAL.c, PAL.b, PAL.a, PAL.y], bar: PAL.v },
-  maw: { name: 'IRON MAW', spr: SPR.maw, hp: 90, pts: 4000, colors: [PAL.s, PAL.S, PAL.a, PAL.r, PAL.y], bar: PAL.a }
+  queen: { name: 'HIVE QUEEN', spr: SPR.queen, hp: 58, pts: 3000, colors: [PAL.v, PAL.c, PAL.b, PAL.a, PAL.y], bar: PAL.v },
+  maw: { name: 'IRON MAW', spr: SPR.maw, hp: 80, pts: 4000, colors: [PAL.s, PAL.S, PAL.a, PAL.r, PAL.y], bar: PAL.a }
 };
 
 /* ================= scrap, loadout, collection ================= */
@@ -1467,7 +1467,7 @@ function spawnEscort(b) {
   followPath(e, [{ x: b.x, y: b.y + 8 }, { x: cxk(b.x + dir * 30), y: b.y + 30 }, { x: cxk(px - dir * 20), y: H * 0.6 },
     { x: cxk(px + dir * 10), y: H * 0.85 }, { x: cxk(px + dir * 40), y: H + 14 }], 'exit', 80 + b.k * 5);
   e.diving = true;
-  e.shots = [e.path.len * 0.3];
+  e.shots = b.hp / b.max <= 0.66 ? [e.path.len * 0.3] : [];   // escorts only shoot once she's hurt
   enemies.push(e);
 }
 function endAttack(b, phase) {
@@ -1481,7 +1481,12 @@ function updateBoss(dt) {
   if (b.flash > 0) b.flash -= dt;
   if (b.state === 'enter') {
     b.y += 22 * dt;
-    if (b.y >= 54) { b.y = 54; b.state = 'fight'; b.t = 0; }
+    if (b.y >= 54) {
+      b.y = 54; b.state = 'fight'; b.t = 0;
+      // supply drop as the fight starts: a shield, or rapid fire if one is already up
+      pickups.push({ kind: player.shield ? 'rapid' : 'shield', x: cxk(player.x), y: 70, t: 0 });
+      toast('SUPPLY DROP', PAL.t);
+    }
     return;
   }
   if (b.state === 'dying') {
@@ -1508,7 +1513,7 @@ function updateBoss(dt) {
   const ratio = b.hp / b.max;
   const phase = ratio > 0.66 ? 1 : ratio > 0.33 ? 2 : 3;
   if (b.atk !== 'laser') {
-    const tx = b.kind === 'queen' ? W / 2 + Math.sin(b.t * 0.8) * 52 : W / 2 + Math.sin(b.t * 0.5) * 56;
+    const tx = b.kind === 'queen' ? W / 2 + Math.sin(b.t * 0.7) * 44 : W / 2 + Math.sin(b.t * 0.5) * 56;
     const ty = b.kind === 'queen' ? 54 + Math.sin(b.t * 1.6) * 8 : 50 + Math.sin(b.t * 0.9) * 4;
     b.x += (tx - b.x) * Math.min(1, dt * 3);
     b.y += (ty - b.y) * Math.min(1, dt * 3);
@@ -1535,7 +1540,7 @@ function updateBoss(dt) {
       if (b.subT <= 0) { fan(b.x, b.y + 8, b.sub % 2 ? 8 : 7, 1.0, spd); b.sub++; b.subT = 0.32; if (b.sub >= 3) endAttack(b, phase); }
       break;
     case 'stream':
-      if (b.subT <= 0) { aimed(b.x, b.y + 8, spd + 20, 0.05); b.sub++; b.subT = 0.12; if (b.sub >= (phase === 3 ? 7 : 5)) endAttack(b, phase); }
+      if (b.subT <= 0) { aimed(b.x, b.y + 8, spd + 12, 0.05); b.sub++; b.subT = 0.14; if (b.sub >= (phase === 3 ? 6 : 4)) endAttack(b, phase); }
       break;
     case 'spawn':
       if (b.subT <= 0) { spawnEscort(b); b.sub++; b.subT = 0.3; if (b.sub >= (phase >= 2 ? 3 : 2)) endAttack(b, phase); }
