@@ -130,6 +130,7 @@
   .bs { margin-top: calc(var(--px) * 3); font-size: var(--fs-s); color: var(--amber); letter-spacing: .06em; }
   .banner.warn .bt { color: var(--coral); animation: blink .5s steps(1) infinite; }
   .banner.good .bt { color: var(--teal); }
+  .screen.paused .banner, .screen.paused .toast { visibility: hidden; }
   .toast {
     position: absolute;
     left: 0; right: 0; top: calc(var(--px) * 104);
@@ -413,6 +414,14 @@
     font-variant-numeric: tabular-nums;
   }
   .odds li { display: contents; }
+  .missions {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: 1fr auto; column-gap: calc(var(--px) * 5); row-gap: var(--px);
+    font-size: var(--fs-s); text-align: left;
+  }
+  .missions li { display: contents; }
+  .missions .p { text-align: right; color: var(--amber); }
+  .missions li.done span { color: var(--teal); }
   .odds .p { text-align: right; color: var(--amber); }
   .odds .d { color: var(--ink-dim); }
   .odds img { image-rendering: pixelated; width: calc(var(--px) * 7); height: auto; vertical-align: middle; }
@@ -550,6 +559,11 @@
           <ul class="pows" id="powList"></ul>
         </div>
         <div class="panel" hidden>
+          <h2>NEXT RUN MISSIONS</h2>
+          <ul class="missions" id="titleMissions"></ul>
+          <p class="note">EACH MISSION PAYS SCRAP.<br>PAUSE TO CHECK YOUR PROGRESS.</p>
+        </div>
+        <div class="panel" hidden>
           <h2>CONTROLS</h2>
           <dl class="ctl">
             <dt>MOVE</dt><dd>W A S D</dd>
@@ -569,7 +583,8 @@
         <button class="tab" type="button" data-i="1" aria-label="Score advance table"></button>
         <button class="tab" type="button" data-i="2" aria-label="Bosses"></button>
         <button class="tab" type="button" data-i="3" aria-label="Power-ups"></button>
-        <button class="tab" type="button" data-i="4" aria-label="Controls"></button>
+        <button class="tab" type="button" data-i="4" aria-label="Next run missions"></button>
+        <button class="tab" type="button" data-i="5" aria-label="Controls"></button>
       </div>
       <div class="title-actions">
         <button class="start blink" type="button" id="startBtn">PRESS SPACE TO START</button>
@@ -584,6 +599,8 @@
         <button class="btn" type="button" id="quitBtn">QUIT</button>
       </div>
       <p class="dimtxt">P OR ESC TO RESUME</p>
+      <p class="fine">MISSIONS</p>
+      <ul class="missions" id="pauseMissions"></ul>
     </section>
 
     <section class="ov dim" id="ovOver" aria-label="Game over" hidden>
@@ -596,6 +613,7 @@
         <dt>NUMBER OF HITS</dt><dd id="rHits">0</dd>
         <dt>HIT-MISS RATIO</dt><dd class="hl" id="rRatio">0.0 %</dd>
         <dt>SCRAP EARNED</dt><dd class="hl" id="rScrap">0</dd>
+        <dt>MISSIONS DONE</dt><dd id="rMissions">0/3</dd>
       </dl>
       <button class="btn primary" type="button" id="overBtn">CONTINUE</button>
     </section>
@@ -1233,7 +1251,7 @@ const G = {
   formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
   bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
   scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
-  combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0
+  combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0, missions: []
 };
 const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: false, charge: 0, wings: false };
 let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [], scrapBits = [];
@@ -1319,6 +1337,7 @@ function slotOf(e) {
 }
 function nextWave() {
   G.wave++;
+  mission('wave', G.wave);
   G.extra = [];
   G.waveMult = 1;
   G.waveGrazes = 0;
@@ -1407,6 +1426,7 @@ function bonusClear() {
     G.wager = null;
   }
   stats.bonus = stats.bonus.concat(hits).slice(-20);
+  mission('bonus', hits);
   saveStats();
   if (perfect && awardTrophy('trophy-golden')) extra.push(['TROPHY CARD', 'GOLDEN DRONE']);
   G.clear = { title: perfect ? 'PERFECT!' : 'STAGE CLEAR', note: 'CHALLENGING STAGE', pts: perfect ? 10000 : hits * 100,
@@ -1595,6 +1615,7 @@ function releaseCaptive(e) {
   const p = captivePos(e);
   e.captive = null;
   rescue = { x: p.x, y: p.y, t: 0, side: 1 };
+  mission('rescue');
   addScore(1000);
   popups.push({ text: '1000', x: p.x, y: p.y - 6, t: -0.6, c: PAL.t });
   G.extra.push(['FIGHTER RESCUED', '+1000']);
@@ -1634,7 +1655,7 @@ function layMine(x, y) { if (mines.length < 14 && player.alive) mines.push({ x, 
 function popMine(m, pts) {
   m.dead = true;
   explode(m.x, m.y, [PAL.c, PAL.a, PAL.y], 8, 40);
-  if (pts) { addScore(pts); G.minesShot++; }
+  if (pts) { addScore(pts); G.minesShot++; mission('mines'); }
   Snd.hit();
 }
 function updateMines(et) {
@@ -1899,6 +1920,7 @@ function killBoss(b) {
   eshots = [];
   for (const e of enemies) if (!e.dead) { e.dead = true; explode(e.x, e.y, e.T.colors, 10, 50); }
   if (awardTrophy('trophy-' + b.kind)) G.extra.push(['TROPHY CARD', b.B.name]);
+  mission('boss');
   G.extra.push(['BOSS SCRAP', '+' + (120 + 40 * b.k)]);
   Snd.bigBoom();
 }
@@ -1955,7 +1977,7 @@ function pierceHits(s) {
       s.hit.push(e);
       first();
       damageEnemy(e, 2);
-      if (e.dead) s.kills = (s.kills || 0) + 1;
+      if (e.dead) { s.kills = (s.kills || 0) + 1; mission('pierce', s.kills); }
     }
   }
   for (const e of enemies) {
@@ -1974,6 +1996,55 @@ function pierceHits(s) {
   }
 }
 
+/* ================= missions: three goals per run, each paid in scrap ================= */
+const MISSIONS = [
+  { id: 'dive', n: 12, reward: 30, text: n => 'SHOOT ' + n + ' DIVING ENEMIES' },
+  { id: 'combo', n: 4, reward: 40, best: true, text: n => 'REACH A X' + n + ' COMBO' },
+  { id: 'graze', n: 15, reward: 40, text: n => 'GRAZE ' + n + ' BULLETS' },
+  { id: 'rescue', n: 1, reward: 60, text: () => 'RESCUE A CAPTURED FIGHTER' },
+  { id: 'nohit', n: 2, reward: 40, text: n => 'CLEAR ' + n + ' WAVES WITHOUT A HIT' },
+  { id: 'bonus', n: 30, reward: 50, best: true, text: n => 'HIT ' + n + '+ IN A BONUS STAGE' },
+  { id: 'boss', n: 1, reward: 60, text: () => 'DEFEAT A BOSS' },
+  { id: 'power', n: 5, reward: 30, text: n => 'COLLECT ' + n + ' POWER-UPS' },
+  { id: 'pierce', n: 3, reward: 40, best: true, text: n => 'HIT ' + n + ' FOES WITH 1 CHARGE SHOT' },
+  { id: 'mines', n: 5, reward: 30, text: n => 'SHOOT ' + n + ' MINES' },
+  { id: 'wave', n: 8, reward: 50, best: true, text: n => 'REACH WAVE ' + n },
+  { id: 'minis', n: 6, reward: 30, text: n => 'SHOOT ' + n + ' SPLITTER MINIS' }
+];
+let nextMissions = null;   // rolled on the title screen so they can be shown before the run
+function rollMissions(rnd = Math.random) {
+  const pool = MISSIONS.slice(), out = [];
+  while (out.length < 3) out.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]);
+  return out.map(m => ({ id: m.id, n: m.n, reward: m.reward, best: !!m.best, text: m.text(m.n), prog: 0, done: false }));
+}
+// Progress: most missions add up; "best" ones keep the highest value reached.
+function mission(id, v = 1) {
+  for (const m of G.missions) {
+    if (m.id !== id || m.done) continue;
+    m.prog = m.best ? Math.max(m.prog, v) : m.prog + v;
+    if (m.prog < m.n) continue;
+    m.done = true;
+    m.prog = m.n;
+    Wallet.add(m.reward);
+    G.scrapRun += m.reward;
+    toast('MISSION DONE: +' + m.reward + ' SCRAP', PAL.y);
+    Snd.win();
+  }
+}
+function renderMissions(el, list, progress) {
+  el.textContent = '';
+  for (const m of list) {
+    const li = document.createElement('li'), t = document.createElement('span'), r = document.createElement('span');
+    li.className = m.done ? 'done' : '';
+    t.textContent = m.text;
+    r.className = 'p';
+    r.textContent = m.done ? 'DONE' : progress && !m.best && m.n > 1 ? m.prog + '/' + m.n : '+' + m.reward;
+    li.append(t, r);
+    el.appendChild(li);
+  }
+}
+const missionsDone = () => G.missions.filter(m => m.done).length + '/' + G.missions.length;
+
 /* ================= combo multiplier + graze bonus ================= */
 // Back-to-back kills (each within 1.6s of the last) build a multiplier: x2 at 5 kills, +1 every 4 more, up to x8.
 const COMBO_WINDOW = 1.6;
@@ -1984,7 +2055,7 @@ function comboKill() {
   G.combo++;
   G.comboT = COMBO_WINDOW;
   const m = comboMult();
-  if (m > before) { Snd.combo(m); G.waveMult = Math.max(G.waveMult, m); G.bestMult = Math.max(G.bestMult, m); }
+  if (m > before) { Snd.combo(m); G.waveMult = Math.max(G.waveMult, m); G.bestMult = Math.max(G.bestMult, m); mission('combo', m); }
   return m;
 }
 function breakCombo() { G.combo = 0; G.comboT = 0; }
@@ -1992,6 +2063,7 @@ function breakCombo() { G.combo = 0; G.comboT = 0; }
 function graze(b) {
   G.grazes++;
   G.waveGrazes++;
+  mission('graze');
   addScore(20);
   spark(b.x, b.y);
   Snd.graze();
@@ -2013,6 +2085,8 @@ function killEnemy(e) {
   const mult = e.bonus ? 1 : comboKill(), pts = (e.bonus ? 100 : moving ? e.T.divePts : e.T.pts) * mult;
   if (e.captive) releaseCaptive(e);
   addScore(pts);
+  if (moving && !e.bonus) mission('dive');
+  if (e.type === 'mini') mission('minis');
   if (moving || mult > 1) popups.push({ text: String(pts), x: e.x, y: e.y - 4, t: 0, c: mult > 1 ? comboColor(mult) : e.type === 'warden' ? PAL.y : PAL.w });
   explode(e.x, e.y, e.T.colors, 14, 60);
   Snd.boom();
@@ -2113,6 +2187,7 @@ function waveClear() {
   G.phaseT = 1.3;
   G.pendingBonus = G.wave % 5 === 3;
   const noHit = !G.hitThisWave;
+  if (noHit) mission('nohit');
   if (G.waveMult > 1) G.extra.push(['BEST COMBO', 'X' + G.waveMult]);
   if (G.waveGrazes) G.extra.push(['GRAZES', String(G.waveGrazes)]);
   G.clear = { title: 'WAVE ' + G.wave + ' CLEAR', note: noHit ? 'NO-HIT BONUS' : 'WAVE BONUS', pts: noHit ? 500 * G.wave : 0,
@@ -2305,7 +2380,7 @@ function update(dt) {
     p.y += 24 * dt;
     p.x += Math.sin(p.t * 3) * 8 * dt;
     if (p.y > H + 8) p.dead = true;
-    else if (player.alive && Math.abs(p.x - player.x) < (player.twin ? 14 : 8) && Math.abs(p.y - player.y) < 8) { p.dead = true; applyPower(p.kind); }
+    else if (player.alive && Math.abs(p.x - player.x) < (player.twin ? 14 : 8) && Math.abs(p.y - player.y) < 8) { p.dead = true; applyPower(p.kind); mission('power'); }
   }
   pickups = pickups.filter(p => !p.dead);
   enemies = enemies.filter(e => !e.dead);
@@ -2554,6 +2629,7 @@ function hideBanners() { ui.bannerT = ui.toastT = 0; $('banner').hidden = true; 
 const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovHangar', 'ovWheel'];
 function showOverlay(id) {
   for (const o of OVERLAYS) $(o).hidden = o !== id;
+  scr.classList.toggle('paused', id === 'ovPause');   // frozen banners stay out of the pause menu
   cyclePanels(id === 'ovTitle');
   const pb = $('pauseBtn');
   pb.textContent = state === 'paused' ? 'RESUME' : 'PAUSE';
@@ -2663,7 +2739,7 @@ function resetGame(from) {
     formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
     bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
     scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
-    combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0 });
+    combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0, missions: from ? rollMissions() : [] });
   Object.assign(RUN, { fastFire: 0, spreadStart: false, magnet: false, shipsBought: 0, nextPowers: [] });
   if (from && from.run) Object.assign(RUN, { fastFire: clamp(from.run.fastFire | 0, 0, 2), spreadStart: !!from.run.spreadStart, magnet: !!from.run.magnet, shipsBought: from.run.shipsBought | 0 });
   Object.assign(player, { x: W / 2, y: H - 22, alive: true, invuln: 1.5, cd: 0.2, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: !!(from && from.twin), charge: 0, wings: !!(from && from.wings) });
@@ -2683,6 +2759,8 @@ function startGame() {
   Snd.unlock();
   state = 'play';
   resetGame();
+  G.missions = nextMissions || rollMissions();
+  nextMissions = null;
   applyLoadout();
   if (hullStat().shieldStart) player.shield = true;
   showOverlay(null);
@@ -2693,6 +2771,7 @@ function pause() {
   state = 'paused';
   keys.clear();
   touch.id = null;
+  renderMissions($('pauseMissions'), G.missions, true);
   showOverlay('ovPause');
   Snd.hold(true);
 }
@@ -2713,6 +2792,8 @@ function showTitle(panel, hl) {
   warp = 0;
   refreshWallet();
   renderScores(hl);
+  if (!nextMissions) nextMissions = rollMissions();
+  renderMissions($('titleMissions'), nextMissions, false);
   showOverlay('ovTitle');
   showPanel(panel || 0);
   fitLogo();
@@ -2725,6 +2806,7 @@ function showGameOver() {
   hideBanners();
   flushScrap();
   $('rScrap').textContent = G.scrapRun;
+  $('rMissions').textContent = missionsDone();
   $('rScore').textContent = G.score;
   $('rWave').textContent = G.wave;
   $('rShots').textContent = G.shots;
@@ -2789,7 +2871,7 @@ function openDebrief() {
 function renderDebrief() {
   const c = G.clear, dl = $('dbLines');
   dl.textContent = '';
-  const rows = [['BONUS POINTS', '+' + c.pts], ['BONUS SCRAP', '+' + c.scrap], ...c.extra, ['SCRAP THIS RUN', String(G.scrapRun)]];
+  const rows = [['BONUS POINTS', '+' + c.pts], ['BONUS SCRAP', '+' + c.scrap], ...c.extra, ['SCRAP THIS RUN', String(G.scrapRun)], ['MISSIONS DONE', missionsDone()]];
   for (const [k, v] of rows) {
     const dt = document.createElement('dt'); dt.textContent = k;
     const dd = document.createElement('dd'); dd.textContent = v;
