@@ -923,6 +923,9 @@ const BOSSES = {
 
 /* ================= scrap, loadout, collection ================= */
 SPR.golden = DRONE.map(f => sprite(f, { c: 'a', C: 'A' }));
+// a lopsided rock (not mirrored)
+const METEOR_ROWS = ['..sSs..', '.sSSSs.', 'sSsSSSs', 'SSSsSSS', 'sSSSSsS', '.SSSs..', '..sS...'];
+SPR.meteor = { img: paint(METEOR_ROWS, ch => PAL[ch]), hit: paint(METEOR_ROWS, () => '#ffffff'), w: 7, h: 7 };
 SPR.captive = sprite(PLAYER_HALF, { t: 'c', T: 'C', b: 'a' });
 const BOMB_SPR = sprite(['..y', '.cc', 'ccw', 'ccc', '.cC']);
 const WING_SPR = spriteC(['..w', '.gg', 'ggG', 'g.G'], ch => ({ w: PAL.w, g: '#9be564', G: '#3f8f3a' })[ch]);
@@ -1251,7 +1254,8 @@ const G = {
   formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
   bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
   scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
-  combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0, missions: []
+  combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0, missions: [],
+  event: null, lastEvent: 0, meteorT: 0
 };
 const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: false, charge: 0, wings: false };
 let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [], scrapBits = [];
@@ -1343,6 +1347,7 @@ function nextWave() {
   G.waveGrazes = 0;
   G.phase = 'intro';
   G.hitThisWave = false;
+  rollEvent();
   if (G.wave % 5 === 0) {
     G.phaseT = 2.6;
     banner('WARNING', 'BOSS APPROACHING', 'warn', 2.4);
@@ -1350,7 +1355,7 @@ function nextWave() {
     Snd.play('boss');
   } else {
     G.phaseT = 1.7;
-    banner('WAVE ' + G.wave, G.wave === 1 ? 'GET READY' : '', '', 1.5);
+    banner('WAVE ' + G.wave, G.event ? EVENTS[G.event].name : G.wave === 1 ? 'GET READY' : '', G.event ? 'warn' : '', G.event ? 2 : 1.5);
     Snd.jingle();
     Snd.play('main');
   }
@@ -1408,6 +1413,7 @@ function spawnBonus() {
 }
 function startBonusIntro() {
   G.extra = [];
+  G.event = null;
   G.pendingBonus = false;
   G.bonus = true;
   G.phase = 'intro';
@@ -1647,6 +1653,59 @@ function dockRescue() {
   player.x = clamp(player.x + side * TWIN_DX, 7 + TWIN_DX, W - 7 - TWIN_DX);
   Snd.life();
   toast('TWIN FIGHTERS!', PAL.t);
+}
+
+/* ================= sector events: occasional twists on regular waves ================= */
+const EVENTS = {
+  meteor: { name: 'METEOR SHOWER', tag: 'METEORS', color: PAL.s },
+  dark: { name: 'DARK SECTOR', tag: 'DARK', color: PAL.v },
+  fast: { name: 'DOUBLE TIME: 2X SCRAP', tag: '2X SPEED', color: PAL.a }
+};
+// From wave 4, about 3 regular waves in 10 get an event, never two waves in a row.
+function rollEvent() {
+  G.event = null;
+  if (G.wave >= 4 && G.wave % 5 !== 0 && G.lastEvent < G.wave - 1 && Math.random() < 0.3) {
+    G.event = pick(Object.keys(EVENTS));
+    G.lastEvent = G.wave;
+  }
+}
+let meteors = [];
+function updateMeteors(dt, et) {
+  if (G.event === 'meteor' && G.phase === 'active' && player.alive && (G.meteorT -= dt) <= 0) {
+    G.meteorT = rand(0.8, 1.5);
+    meteors.push({ x: rand(12, W - 12), y: -6, vx: rand(-14, 14), vy: rand(40, 58), hp: 2, a: 0, va: rand(-3, 3), flash: 0 });
+  }
+  for (const m of meteors) {
+    m.x += m.vx * et; m.y += m.vy * et; m.a += m.va * et;
+    if (m.flash > 0) m.flash -= dt;
+    if (m.y > H + 8 || m.x < -8 || m.x > W + 8) m.dead = true;
+    else if (player.alive && nearestShipDx(m.x) < 5.5 && Math.abs(m.y - player.y) < 5.5) { breakMeteor(m, 0); hitPlayer(m.x); }
+  }
+  meteors = meteors.filter(m => !m.dead);
+}
+function breakMeteor(m, pts) {
+  m.dead = true;
+  explode(m.x, m.y, [PAL.s, PAL.S, PAL.w], 12, 45);
+  if (pts) addScore(pts);
+  Snd.boom();
+}
+function hitMeteor(m, n) {
+  m.hp -= n; m.flash = 0.06;
+  if (m.hp <= 0) breakMeteor(m, 20); else Snd.hit();
+}
+function clearMeteors() { for (const m of meteors) spark(m.x, m.y); meteors = []; }
+// Dark sector: only the space around the ship is lit; enemy fire still glints faintly.
+function drawDark() {
+  const x = player.alive ? player.x : W / 2, y = player.alive ? player.y : H - 22;
+  const g = cx.createRadialGradient(x, y, 22, x, y, 64);
+  g.addColorStop(0, 'rgba(6,3,20,0)');
+  g.addColorStop(1, 'rgba(6,3,20,0.97)');
+  cx.fillStyle = g;
+  cx.fillRect(-8, -8, W + 16, H + 16);
+  cx.globalAlpha = 0.45;
+  cx.fillStyle = PAL.c;
+  for (const b of eshots) cx.fillRect(Math.round(b.x) - 1, Math.round(b.y) - 1, 2, 3);
+  cx.globalAlpha = 1;
 }
 
 /* ================= mines, splitters, armor ================= */
@@ -1986,6 +2045,7 @@ function pierceHits(s) {
     if (Math.abs(s.x - c.x) <= 5.5 && Math.abs(s.y - c.y) <= 7) loseCaptive(e);
   }
   for (const m of mines) if (!m.dead && Math.abs(s.x - m.x) <= 4 && Math.abs(s.y - m.y) <= 8) { first(); popMine(m, 30); }
+  for (const m of meteors) if (!m.dead && Math.abs(s.x - m.x) <= 5 && Math.abs(s.y - m.y) <= 8) { first(); hitMeteor(m, 2); }
   if (boss && boss.state === 'fight' && !s.bossHit) {
     const b = boss, sp = b.B.spr;
     if (b.parts) {   // a bolt hits the parts in its column once each, then the core if it is exposed
@@ -2090,7 +2150,7 @@ function killEnemy(e) {
   if (moving || mult > 1) popups.push({ text: String(pts), x: e.x, y: e.y - 4, t: 0, c: mult > 1 ? comboColor(mult) : e.type === 'warden' ? PAL.y : PAL.w });
   explode(e.x, e.y, e.T.colors, 14, 60);
   Snd.boom();
-  dropScrap(e.x, e.y, e.bonus ? 1 : e.T.scrap + (moving ? 1 : 0));
+  dropScrap(e.x, e.y, (e.bonus ? 1 : e.T.scrap + (moving ? 1 : 0)) * (G.event === 'fast' ? 2 : 1));
   if (e.bonus) { G.bonusHits++; return; }
   if (e.type === 'splitter') splitInto(e);
   G.killsSinceDrop++;
@@ -2136,6 +2196,8 @@ function nova(dmg = 3, bossDmg = 12) {
   eshots = [];
   for (const m of mines) popMine(m, 0);
   mines = [];
+  for (const m of meteors) breakMeteor(m, 0);
+  meteors = [];
   for (const e of enemies) if (e.state !== 'wait') damageEnemy(e, dmg);
   if (boss) damageBoss(bossDmg);
   Snd.nova();
@@ -2180,6 +2242,7 @@ function respawn() {
   for (const b of eshots) spark(b.x, b.y);
   eshots = [];
   clearMines();
+  clearMeteors();
 }
 function waveClear() {
   if (G.lives <= 0) return;
@@ -2188,14 +2251,16 @@ function waveClear() {
   G.pendingBonus = G.wave % 5 === 3;
   const noHit = !G.hitThisWave;
   if (noHit) mission('nohit');
+  if (G.event) G.extra.push(['SECTOR EVENT', EVENTS[G.event].tag]);
   if (G.waveMult > 1) G.extra.push(['BEST COMBO', 'X' + G.waveMult]);
   if (G.waveGrazes) G.extra.push(['GRAZES', String(G.waveGrazes)]);
   G.clear = { title: 'WAVE ' + G.wave + ' CLEAR', note: noHit ? 'NO-HIT BONUS' : 'WAVE BONUS', pts: noHit ? 500 * G.wave : 0,
-    scrap: 3 + Math.floor(G.wave / 2) + (noHit ? 5 + G.wave : 0), extra: G.extra.slice(), gambled: false, banked: false, busy: false };
+    scrap: (3 + Math.floor(G.wave / 2) + (noHit ? 5 + G.wave : 0)) * (G.event === 'fast' ? 2 : 1), extra: G.extra.slice(), gambled: false, banked: false, busy: false };
   banner('WAVE ' + G.wave + ' CLEAR', noHit ? 'NO-HIT BONUS' : '', 'good', 1.3);
   for (const b of eshots) spark(b.x, b.y);
   eshots = [];
   clearMines();
+  clearMeteors();
   for (const b of scrapBits) b.home = true;
   Snd.jingle();
 }
@@ -2300,7 +2365,7 @@ function updatePlayer(dt) {
   }
 }
 function update(dt) {
-  const et = dt * (G.slowT > 0 ? 0.45 : 1);
+  const et = dt * (G.slowT > 0 ? 0.45 : 1) * (G.event === 'fast' ? 1.3 : 1);
   if (G.slowT > 0) G.slowT = Math.max(0, G.slowT - dt);
   if (G.comboT > 0 && (G.comboT -= dt) <= 0) G.combo = 0;
 
@@ -2341,6 +2406,7 @@ function update(dt) {
       }
     }
     if (!s.dead) for (const m of mines) if (!m.dead && Math.abs(s.x - m.x) <= 3 && Math.abs(s.y - m.y) <= 4) { s.dead = true; G.hits++; popMine(m, 30); break; }
+    if (!s.dead) for (const m of meteors) if (!m.dead && Math.abs(s.x - m.x) <= 4 && Math.abs(s.y - m.y) <= 4.5) { s.dead = true; G.hits++; hitMeteor(m, 1); break; }
     if (!s.dead) for (const e of enemies) {
       if (e.dead || !e.captive) continue;
       const c = captivePos(e);
@@ -2364,6 +2430,7 @@ function update(dt) {
   }
   eshots = eshots.filter(b => !b.dead);
   updateMines(et);
+  updateMeteors(dt, et);
 
   if (player.alive && player.invuln <= 0) {
     for (const e of enemies) {
@@ -2513,6 +2580,7 @@ function drawHudCanvas() {
   const sc = String(Wallet.scrap), sw = sc.length * 4 + 6, sx = Math.round(W / 2 - sw / 2);
   drawSpr(SCRAP_ICON, sx + 2, H - 6);
   txt(sc, sx + 7, H - 8, PAL.a);
+  if (G.event && !boss) txt(EVENTS[G.event].tag, W - 4, 19, EVENTS[G.event].color, 'right');
   const m = comboMult();
   if (G.comboT > 0 && m > 1) {
     txt('X' + m, 4, 19, comboColor(m));
@@ -2575,6 +2643,7 @@ function draw() {
     cx.fillStyle = '#ffffff'; cx.fillRect(x - f, y, 1, 1);
   }
   for (const m of mines) drawSpr(SPR.mine, m.x, m.y, 0, Math.floor(clock * 6 + m.t) % 2 === 0);
+  for (const m of meteors) drawSpr(SPR.meteor, m.x, m.y, Math.round(m.a / (Math.PI / 4)) * (Math.PI / 4), m.flash > 0);
   for (const b of scrapBits) {
     const x = Math.round(b.x), y = Math.round(b.y);
     cx.fillStyle = Math.floor(clock * 8 + b.v) % 2 ? PAL.s : PAL.w;
@@ -2585,6 +2654,7 @@ function draw() {
   for (const p of parts) { cx.fillStyle = p.c; const s = p.t > p.life * 0.6 ? 1 : p.s; cx.fillRect(Math.round(p.x), Math.round(p.y), s, s); }
   for (const r of rings) ringPts(r.x, r.y, r.r, r.c, -1);
   for (const p of popups) if (p.t < 0.6 || Math.floor(clock * 10) % 2) txt(p.text, p.x, p.y - Math.max(0, p.t) * 14, p.c, 'center');
+  if (G.event === 'dark' && inRun()) drawDark();
   cx.setTransform(1, 0, 0, 1, 0, 0);
   drawHudCanvas();
   if (flash > 0) { cx.fillStyle = 'rgba(244,233,216,' + Math.min(flash, 0.7) + ')'; cx.fillRect(0, 0, W, H); }
@@ -2739,11 +2809,12 @@ function resetGame(from) {
     formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
     bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
     scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
-    combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0, missions: from ? rollMissions() : [] });
+    combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0, missions: from ? rollMissions() : [],
+    event: null, lastEvent: 0, meteorT: 0 });
   Object.assign(RUN, { fastFire: 0, spreadStart: false, magnet: false, shipsBought: 0, nextPowers: [] });
   if (from && from.run) Object.assign(RUN, { fastFire: clamp(from.run.fastFire | 0, 0, 2), spreadStart: !!from.run.spreadStart, magnet: !!from.run.magnet, shipsBought: from.run.shipsBought | 0 });
   Object.assign(player, { x: W / 2, y: H - 22, alive: true, invuln: 1.5, cd: 0.2, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: !!(from && from.twin), charge: 0, wings: !!(from && from.wings) });
-  enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; scrapBits = []; boss = null; rescue = null; mines = [];
+  enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; scrapBits = []; boss = null; rescue = null; mines = []; meteors = [];
   if (from) {
     G.score = Math.max(0, from.score | 0);
     G.lives = clamp(from.lives | 0, 1, 5);
@@ -2787,7 +2858,7 @@ function showTitle(panel, hl) {
   Snd.hold(false);
   Snd.stop();
   hideBanners();
-  enemies = []; eshots = []; pshots = []; pickups = []; popups = []; scrapBits = []; boss = null; rescue = null; mines = [];
+  enemies = []; eshots = []; pshots = []; pickups = []; popups = []; scrapBits = []; boss = null; rescue = null; mines = []; meteors = [];
   G.slowT = 0;
   warp = 0;
   refreshWallet();
