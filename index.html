@@ -497,6 +497,21 @@
   .tile.eq::after { content: ""; position: absolute; top: var(--px); right: var(--px); width: calc(var(--px) * 3); height: calc(var(--px) * 3); background: var(--amber); }
   .tile[aria-pressed="true"] { background: var(--bezel); box-shadow: inset 0 0 0 var(--px) var(--rc), 0 0 0 var(--px) var(--ink); }
   .detail { width: 100%; min-height: calc(var(--px) * 22); display: grid; grid-template-columns: 1fr auto; align-items: center; gap: calc(var(--px) * 4); font-size: var(--fs-s); text-align: left; }
+  /* a striped corner marks a patterned item */
+  .tile.pat::before {
+    content: ""; position: absolute; left: var(--px); bottom: var(--px);
+    width: calc(var(--px) * 4); height: calc(var(--px) * 4);
+    background: repeating-linear-gradient(135deg, var(--rc) 0 var(--px), transparent var(--px) calc(var(--px) * 2));
+  }
+  .set-nav { width: 100%; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: calc(var(--px) * 3); font-size: var(--fs-s); letter-spacing: .06em; }
+  .set-nav .nm { text-align: center; }
+
+  /* ---- star map ---- */
+  .map-wrap { width: calc(var(--px) * 168); height: calc(var(--px) * 120); flex: none; box-shadow: 0 0 0 var(--px) var(--bezel); }
+  .map-wrap canvas { image-rendering: pixelated; cursor: pointer; }
+  .map-info { width: 100%; min-height: calc(var(--px) * 34); display: flex; flex-direction: column; gap: var(--px); text-align: left; }
+  .map-top { display: flex; justify-content: space-between; align-items: baseline; gap: calc(var(--px) * 4); }
+  .map-name { margin: 0; font-family: var(--display); font-weight: 400; font-size: calc(var(--px) * 13); line-height: 1; letter-spacing: .04em; }
 
   .wheel-wrap { position: relative; width: calc(var(--px) * 84); height: calc(var(--px) * 84); }
   .wheel-wrap canvas { image-rendering: pixelated; }
@@ -529,7 +544,8 @@
 
     <section class="ov" id="ovTitle" aria-label="Title screen">
       <h1 class="logo"><span class="a">NOVA</span><span class="b">SWARM</span></h1>
-      <p class="tag wallet"><img class="ico" alt="" data-icon="scrap"> <span class="js-scrap">0</span> SCRAP &nbsp;&middot;&nbsp; ALBUM <span class="js-album">0/28</span></p>
+      <p class="tag wallet"><img class="ico" alt="" data-icon="scrap"> <span class="js-scrap">0</span> SCRAP &nbsp;&middot;&nbsp; ALBUM <span class="js-album">0/268</span></p>
+      <p class="tag" id="titleCourse">COURSE: SECTOR 9</p>
       <div class="attract">
         <div class="panel">
           <h2>BEST PILOTS</h2>
@@ -572,6 +588,7 @@
             <dt>PAUSE</dt><dd>P / ESC</dd>
             <dt>SOUND</dt><dd>M</dd>
             <dt>HANGAR</dt><dd>H (TITLE + DEBRIEF)</dd>
+            <dt>STAR MAP</dt><dd>G (TITLE)</dd>
             <dt>BOMB</dt><dd>X / TAP A 2ND FINGER</dd>
             <dt>CHARGE</dt><dd>LET GO OF FIRE 1 SEC</dd>
             <dt>TOUCH</dt><dd>DRAG TO FLY + FIRE</dd>
@@ -590,6 +607,7 @@
       <div class="title-actions">
         <button class="start blink" type="button" id="startBtn">PRESS SPACE TO START</button>
         <button class="btn sm" type="button" id="hangarBtn">HANGAR<span class="kh"> (H)</span></button>
+        <button class="btn sm" type="button" id="mapBtn">MAP<span class="kh"> (G)</span></button>
         <button class="btn sm" type="button" id="dailyBtn">DAILY<span class="kh"> (C)</span></button>
       </div>
     </section>
@@ -616,6 +634,7 @@
         <dt>HIT-MISS RATIO</dt><dd class="hl" id="rRatio">0.0 %</dd>
         <dt>SCRAP EARNED</dt><dd class="hl" id="rScrap">0</dd>
         <dt>MISSIONS DONE</dt><dd id="rMissions">0/3</dd>
+        <dt class="relic-only" hidden>RELICS FOUND</dt><dd class="relic-only" id="rRelics" hidden>0</dd>
         <dt class="daily-only" hidden>DAILY BEST</dt><dd class="hl daily-only" id="rDaily" hidden>0</dd>
       </dl>
       <button class="btn primary" type="button" id="overBtn">CONTINUE</button>
@@ -699,6 +718,7 @@
           <ul class="odds" id="slotOdds"></ul>
         </div>
         <div class="hg-pane" id="hgCrate" role="tabpanel" hidden>
+          <div class="set-nav"><button class="btn sm js-set-prev" type="button" aria-label="Previous set">&lt;</button><span class="nm js-set-name">SECTOR 9</span><button class="btn sm js-set-next" type="button" aria-label="Next set">&gt;</button></div>
           <div class="crate-stage" id="crateStage">
             <img alt="Mystery capsule" id="crateImg">
             <div class="reveal" id="crateReveal" hidden><img alt="" id="rvImg"><span id="rvName"></span><span class="rar" id="rvRar"></span><span class="dimtxt" id="rvNote"></span></div>
@@ -711,13 +731,31 @@
           <p class="fine">DUPLICATES REFUND 5 / 15 / 40 / 100 SCRAP.<br>OR BUY ANY ITEM OUTRIGHT IN THE ALBUM.</p>
         </div>
         <div class="hg-pane" id="hgAlbum" role="tabpanel" hidden>
-          <p class="fine"><span class="js-album">0/28</span> COLLECTED &middot; COSMETIC ONLY</p>
+          <div class="set-nav"><button class="btn sm js-set-prev" type="button" aria-label="Previous set">&lt;</button><span class="nm js-set-name">SECTOR 9</span><button class="btn sm js-set-next" type="button" aria-label="Next set">&gt;</button></div>
           <div class="album" id="albumGrid"></div>
           <div class="detail"><div><span class="nm" id="adName">PICK AN ITEM</span><span class="ds" id="adMeta"></span></div><button class="btn sm" type="button" id="adAct" hidden>EQUIP</button></div>
+          <p class="fine"><span class="js-album">0/268</span> COLLECTED IN ALL SETS &middot; COSMETIC ONLY</p>
         </div>
       </div>
       <p class="fine">SCRAP IS EARNED ONLY BY PLAYING. EVERY GAMBLE IS OPTIONAL AND SHOWS ITS ODDS.</p>
       <button class="btn primary" type="button" id="hgBack">BACK</button>
+    </section>
+
+    <section class="ov solid" id="ovMap" aria-label="Star map" hidden>
+      <div class="hg-head"><h2>STAR MAP</h2><span class="wallet"><img class="ico" alt="" data-icon="scrap"> <span class="js-scrap">0</span> SCRAP</span></div>
+      <div class="map-wrap"><canvas id="mapCv" width="168" height="120" role="img" aria-label="Star map of the nine regions. Use the arrow buttons or keys to pick one."></canvas></div>
+      <div class="map-info" aria-live="polite">
+        <div class="map-top"><h3 class="map-name" id="mpName">SECTOR 9</h3><span class="fine" id="mpSet">SET 0/28</span></div>
+        <p class="fine" id="mpTwist"></p>
+        <p class="fine c-amber" id="mpNote"></p>
+      </div>
+      <div class="row">
+        <button class="btn sm" type="button" id="mpPrev" aria-label="Previous region">&lt;</button>
+        <button class="btn primary sm" type="button" id="mpGo">SET COURSE</button>
+        <button class="btn sm" type="button" id="mpView">VIEW SET</button>
+        <button class="btn sm" type="button" id="mpNext" aria-label="Next region">&gt;</button>
+      </div>
+      <button class="btn" type="button" id="mpBack">BACK<span class="kh"> (ESC)</span></button>
     </section>
 
     <section class="ov dim tight" id="ovWheel" aria-label="Prize wheel" hidden>
@@ -736,7 +774,7 @@
   </div>
 
   <div class="deck">
-    <p class="keys" id="keysHint"><span><kbd>WASD</kbd> MOVE</span> <span><kbd>SPACE</kbd> FIRE</span> <span><kbd>X</kbd> BOMB</span> <span><kbd>P</kbd> PAUSE</span> <span><kbd>M</kbd> SOUND</span> <span><kbd>H</kbd> HANGAR</span></p>
+    <p class="keys" id="keysHint"><span><kbd>WASD</kbd> MOVE</span> <span><kbd>SPACE</kbd> FIRE</span> <span><kbd>X</kbd> BOMB</span> <span><kbd>P</kbd> PAUSE</span> <span><kbd>M</kbd> SOUND</span> <span><kbd>H</kbd> HANGAR</span> <span><kbd>G</kbd> MAP</span></p>
     <div class="deck-btns">
       <button class="btn" type="button" id="soundBtn">SOUND: ON</button>
       <button class="btn" type="button" id="pauseBtn" disabled>PAUSE</button>
@@ -788,6 +826,7 @@ const PAL = {
 
 // Sprites are symmetric: each row lists the left half plus the centre column.
 const mirror = half => half.map(r => r + [...r.slice(0, -1)].reverse().join(''));
+// colorOf gets the pixel's position too, so patterned collectibles can vary by pixel.
 function paint(rows, colorOf) {
   const c = document.createElement('canvas');
   c.width = Math.max(...rows.map(r => r.length));
@@ -796,7 +835,7 @@ function paint(rows, colorOf) {
   rows.forEach((row, y) => {
     for (let x = 0; x < row.length; x++) {
       if (row[x] === '.') continue;
-      g.fillStyle = colorOf(row[x]);
+      g.fillStyle = colorOf(row[x], x, y, c.width, c.height);
       g.fillRect(x, y, 1, 1);
     }
   });
@@ -836,6 +875,24 @@ const AEGIS = [
   ['....c.', '..sscc', '.sSSsk', 'sSSSss', 'sSsSSs', 'wwwwww', '.wSSSS', '..w...'],
   ['....c.', '..sscc', '.sSSsk', 'sSSSss', 'sSsSSs', 'wwwwww', '.wSSSS', '.w....']
 ];
+const SPLITTER = [['.tt..', 'tTtt.', 'tttkw', 'ttttw', '.tTtw', '..tt.', '.t.t.', 't....'], ['.tt..', 'tTtt.', 'tttkw', 'ttttw', '.tTtw', '..tt.', '..tt.', '.t...']];
+const MINER = [['..b..', '.bbbb', 'bBbkb', 'bbbbb', '.bBbb', '..a.a', '..a..', '.....'], ['..b..', '.bbbb', 'bBbkb', 'bbbbb', '.bBbb', '..a.a', '...a.', '..a..']];
+const MOTHER_ROWS = [
+  '..........SSSSSSS', '.......SSSsssssss', '.....SSssssbbbbbb', '...SSsssssbbttttt',
+  '.SSssSsssssssssss', 'SSsSsSsSsSsSsSsSs', 'SSSSSSSSSSSSSSSSS', '..SSS...SSSSSS...'
+];
+const QUEEN_ROWS = [
+  '.........a..a', '.........aaaa', '........vvvvv', '.bb....vvyyvv', 'bbbb...vvkyvv', 'bBbbb.vVvvvvv',
+  'bBBbbbvVVvcvc', 'bBBBbbbvVVvvv', '.bBBBbbbvcccc', '..bBBBbbccCCC', '...bBBbbccccc', '....bbb.cCCCC',
+  '.....b..ccccc', '........cCCCC', '.........cccc', '..........cCC', '...........cc', '............c'
+];
+const MAW_ROWS = [
+  '..........ssss', '........ssssss', '......sssSssss', '....ssSSSaSSss', '..ssSSSSSSSSSS', '.sSSssssssssss',
+  'sSSsSaasSSSSSS', 'sSSsSaasSkkkkk', 'sS.sSSSSkrrrrr', 'aS..SSSSkrryyy', 'a...SSSSkrrrrr', '......SSSkkkkk',
+  '........SSSSSS', '..........S..S'
+];
+// first-frame rows of every foe, for the region trophy cards
+const FOE_ROWS = { drone: DRONE[0], stinger: STINGER[0], warden: WARDEN[0], splitter: SPLITTER[0], miner: MINER[0], aegis: AEGIS[0], queen: QUEEN_ROWS, maw: MAW_ROWS, mother: MOTHER_ROWS };
 const SPR = {
   player: sprite(PLAYER_HALF),
   life: sprite(LIFE_HALF),
@@ -843,29 +900,18 @@ const SPR = {
   stinger: STINGER.map(f => sprite(f)),
   warden: WARDEN.map(f => sprite(f)),
   wardenHurt: WARDEN.map(f => sprite(f, { v: 'c', V: 'C' })),
-  splitter: [['.tt..', 'tTtt.', 'tttkw', 'ttttw', '.tTtw', '..tt.', '.t.t.', 't....'], ['.tt..', 'tTtt.', 'tttkw', 'ttttw', '.tTtw', '..tt.', '..tt.', '.t...']].map(f => sprite(f)),
+  splitter: SPLITTER.map(f => sprite(f)),
   mini: [['.t.', 'ttw', 'tkt', '.t.', 't..'], ['.t.', 'ttw', 'tkt', '.t.', '.t.']].map(f => sprite(f)),
-  miner: [['..b..', '.bbbb', 'bBbkb', 'bbbbb', '.bBbb', '..a.a', '..a..', '.....'], ['..b..', '.bbbb', 'bBbkb', 'bbbbb', '.bBbb', '..a.a', '...a.', '..a..']].map(f => sprite(f)),
+  miner: MINER.map(f => sprite(f)),
   aegis: AEGIS.map(f => sprite(f)),
   aegisHurt: AEGIS.map(f => sprite(f, { s: 'c', S: 'C', w: 's' })),
   mine: sprite(['..c', '.ca', 'cay', '.ca', '..c']),
-  mother: sprite([
-    '..........SSSSSSS', '.......SSSsssssss', '.....SSssssbbbbbb', '...SSsssssbbttttt',
-    '.SSssSsssssssssss', 'SSsSsSsSsSsSsSsSs', 'SSSSSSSSSSSSSSSSS', '..SSS...SSSSSS...'
-  ]),
+  mother: sprite(MOTHER_ROWS),
   turret: sprite(['.SS', 'SsS', 'Sss', '.aa', '..a']),
   gen: sprite(['..b', '.bt', 'bty', '.bt', '..b']),
   core: sprite(['..CC', '.Ccc', 'Ccwy', '.Ccc', '..CC']),
-  queen: sprite([
-    '.........a..a', '.........aaaa', '........vvvvv', '.bb....vvyyvv', 'bbbb...vvkyvv', 'bBbbb.vVvvvvv',
-    'bBBbbbvVVvcvc', 'bBBBbbbvVVvvv', '.bBBBbbbvcccc', '..bBBBbbccCCC', '...bBBbbccccc', '....bbb.cCCCC',
-    '.....b..ccccc', '........cCCCC', '.........cccc', '..........cCC', '...........cc', '............c'
-  ]),
-  maw: sprite([
-    '..........ssss', '........ssssss', '......sssSssss', '....ssSSSaSSss', '..ssSSSSSSSSSS', '.sSSssssssssss',
-    'sSSsSaasSSSSSS', 'sSSsSaasSkkkkk', 'sS.sSSSSkrrrrr', 'aS..SSSSkrryyy', 'a...SSSSkrrrrr', '......SSSkkkkk',
-    '........SSSSSS', '..........S..S'
-  ])
+  queen: sprite(QUEEN_ROWS),
+  maw: sprite(MAW_ROWS)
 };
 
 // 3x5 pixel font for in-canvas labels and score popups
@@ -877,7 +923,8 @@ const FONT = {
   K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010',
   P: '110101110100100', Q: '010101101110011', R: '110101110101101', S: '011100010001110', T: '111010010010010',
   U: '101101101101111', V: '101101101101010', W: '101101111111101', X: '101101010101101', Y: '101101010010010',
-  Z: '111001010100111', '+': '000010111010000', '-': '000000111000000', '!': '010010010000010', ' ': '000000000000000'
+  Z: '111001010100111', '+': '000010111010000', '-': '000000111000000', '!': '010010010000010', ' ': '000000000000000',
+  '<': '001010100010001', '>': '100010001010100'
 };
 function glyphs(g, str, x, y) {
   for (const ch of str) {
@@ -959,8 +1006,8 @@ const BADGE_ART = {
   diamond: ['...b', '..bv', '.bvv', 'bvvw', '.bvv', '..bv', '...b'],
   crown: ['a..a', 'a..a', 'aa.a', 'aaaa', 'aacy', 'aaaa', 'AAAA']
 };
-// 28 cosmetic collectibles. None of them change gameplay.
-const COLLECTION = [
+// The classic set: 28 cosmetic collectibles. None of them change gameplay.
+const CLASSIC = [
   { id: 'paint-slate', kind: 'paint', r: 0, name: 'SLATE', pal: { t: '#9a93c9', T: '#4a4478', b: '#5aa9ff', w: '#f4e9d8' } },
   { id: 'paint-mint', kind: 'paint', r: 0, name: 'MINT', pal: { t: '#9be564', T: '#3f8f3a', b: '#3ee6c1', w: '#f4e9d8' } },
   { id: 'paint-crimson', kind: 'paint', r: 1, name: 'CRIMSON', pal: { t: '#ff5d73', T: '#a3244a', b: '#ffb627', w: '#f4e9d8' } },
@@ -990,7 +1037,544 @@ const COLLECTION = [
   { id: 'trophy-aegis', kind: 'trophy', r: 1, name: 'AEGIS', spr: () => SPR.aegis[0], note: 'ARMORED FROM THE FRONT' },
   { id: 'trophy-mother', kind: 'trophy', r: 2, name: 'MOTHERSHIP', spr: () => SPR.mother, note: 'ALSO EARNED BY BEATING IT' }
 ];
-const byId = id => COLLECTION.find(i => i.id === id);
+
+/* ================= patterns: pixel fills for patterned collectibles ================= */
+// A pattern maps a pixel (x, y) of a w x h sprite to an index into a list of n colors.
+// Animated patterns also take a frame f from 0 to ANIM_FRAMES - 1, and loop seamlessly.
+const ANIM_FRAMES = 12, ANIM_FPS = 10;
+function hash2(x, y) {
+  let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+const mid = w => (w - 1) / 2;
+const PATTERNS = {
+  stripe: (x, y, w, h, n) => y % n,
+  band: (x, y, w, h, n) => (y >> 1) % n,
+  check: (x, y, w, h, n) => (x + y) % n,
+  diag: (x, y, w, h, n) => ((x + y) >> 1) % n,
+  chevron: (x, y, w, h, n) => ((Math.abs(x - mid(w)) + y) >> 1) % n,
+  grad: (x, y, w, h, n) => Math.min(n - 1, Math.floor(y * n / h)),
+  split: (x, y, w, h, n) => x <= mid(w) ? 0 : n - 1,
+  spots: (x, y, w, h, n) => hash2(x >> 1, y >> 1) < 0.35 ? n - 1 : 0,
+  speck: (x, y, w, h, n) => hash2(x, y) < 0.2 ? n - 1 : 0,
+  ring: (x, y, w, h, n) => Math.floor(Math.hypot(x - mid(w), y - mid(h))) % n,
+  scales: (x, y, w, h, n) => ((x + ((y >> 1) & 1)) >> 1) % n,
+  circuit: (x, y, w, h, n) => x % 3 === 1 || y % 3 === 1 ? n - 1 : 0,
+  glitch: (x, y, w, h, n) => Math.floor(hash2(y, x >> 2) * n),
+  marquee: (x, y, w, h, n, f) => ((y - f) % n + n) % n,
+  hazard: (x, y, w, h, n, f) => ((x + y + f) >> 1) % n,
+  aurora: (x, y, w, h, n, f) => clamp(Math.floor((y / h + 0.22 * Math.sin(x * 0.8 + f * TAU / ANIM_FRAMES)) * n), 0, n - 1),
+  pulse: (x, y, w, h, n, f) => Math.floor(Math.hypot(x - mid(w), y - mid(h)) + f * n / ANIM_FRAMES) % n,
+  twinkle: (x, y, w, h, n, f) => (Math.floor(hash2(x, y) * ANIM_FRAMES) + f) % ANIM_FRAMES < 2 ? n - 1 : n > 2 && hash2(y, x) < 0.3 ? 1 : 0,
+  shimmer: (x, y, w, h, n, f) => ((x + y - 2 * f) % 24 + 24) % 24 < 3 ? n - 1 : Math.min(n - 2, Math.floor(y * (n - 1) / h)),
+  prism: (x, y, w, h, n, f) => (x + y + f) % n,
+  static: (x, y, w, h, n, f) => Math.floor(hash2(y + f * 17, (x >> 1) + f * 5) * n)
+};
+const ANIMATED = new Set(['marquee', 'hazard', 'aurora', 'pulse', 'twinkle', 'shimmer', 'prism', 'static']);
+const PATTERN_NAME = {
+  stripe: 'STRIPES', band: 'BANDS', check: 'CHECKERS', diag: 'DIAGONALS', chevron: 'CHEVRONS', grad: 'GRADIENT', split: 'SPLIT',
+  spots: 'SPOTS', speck: 'SPECKLES', ring: 'RINGS', scales: 'SCALES', circuit: 'CIRCUITS', glitch: 'GLITCH',
+  marquee: 'MARQUEE', hazard: 'HAZARD', aurora: 'AURORA', pulse: 'PULSE', twinkle: 'TWINKLE', shimmer: 'SHIMMER', prism: 'PRISM', static: 'STATIC',
+  mix: 'CONFETTI', seq: 'COLOR CYCLE', twin: 'TWIN JETS', spark: 'SPARKLER'
+};
+
+/* ---- color tints: each region recolors its swarm ---- */
+function rgbHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+  if (mx === mn) return [0, 0, l];
+  const d = mx - mn, s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h * 60, s, l];
+}
+function hslRgb(h, s, l) {
+  h = ((h % 360) + 360) % 360 / 360;
+  if (!s) { const v = Math.round(l * 255); return [v, v, v]; }
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const f = t => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+  return [f(h + 1 / 3), f(h), f(h - 1 / 3)].map(v => Math.round(v * 255));
+}
+const rgbHex = rgb => '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join('');
+const PRISM12 = Array.from({ length: 12 }, (_, i) => rgbHex(hslRgb(i * 30, 0.95, 0.64)));
+const PRISM12_DARK = Array.from({ length: 12 }, (_, i) => rgbHex(hslRgb(i * 30, 0.7, 0.38)));
+// A tint pulls every hue part of the way (mix) toward a target hue and scales saturation.
+const tints = {};
+function tintOf(hue, mix, sat = 1) { const key = hue + '/' + mix + '/' + sat; return tints[key] || (tints[key] = { key, hue, mix, sat }); }
+function tintRgb(r, g, b, t) {
+  const [h, s, l] = rgbHsl(r, g, b), d = ((t.hue - h) % 360 + 540) % 360 - 180;
+  return hslRgb(h + d * t.mix, Math.min(1, s * t.sat), l);
+}
+const tintHexCache = new Map();
+function tintHex(hex, t) {
+  if (!t) return hex;
+  const k = t.key + hex;
+  let v = tintHexCache.get(k);
+  if (!v) { const n = parseInt(hex.slice(1), 16); tintHexCache.set(k, v = rgbHex(tintRgb(n >> 16, (n >> 8) & 255, n & 255, t))); }
+  return v;
+}
+function tintSprite(s, t) {
+  const c = document.createElement('canvas');
+  c.width = s.img.width; c.height = s.img.height;
+  const g = c.getContext('2d');
+  g.drawImage(s.img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4) if (p[i + 3]) { const v = tintRgb(p[i], p[i + 1], p[i + 2], t); p[i] = v[0]; p[i + 1] = v[1]; p[i + 2] = v[2]; }
+  g.putImageData(d, 0, 0);
+  return { img: c, hit: s.hit, w: s.w, h: s.h };
+}
+// tinted(sprite | sprite[] | color[], tint), cached per tint
+const tintCache = new Map();
+function tinted(obj, t) {
+  if (!t) return obj;
+  let m = tintCache.get(t.key);
+  if (!m) tintCache.set(t.key, m = new WeakMap());
+  let v = m.get(obj);
+  if (!v) { v = !Array.isArray(obj) ? tintSprite(obj, t) : typeof obj[0] === 'string' ? obj.map(h => tintHex(h, t)) : obj.map(s => tintSprite(s, t)); m.set(obj, v); }
+  return v;
+}
+
+/* ---- region badges, landmarks and trophy cards ---- */
+// Badge shapes: the left half plus the centre column, mirrored like every sprite.
+// 1 = main, 2 = dark, 3 = light, 4 = accent, k = black. A badge pattern repaints the 1 pixels.
+const BADGE_SHAPES = {
+  shield: ['1111', '1333', '1322', '1322', '.122', '..12', '...1'],
+  star: ['...1', '..11', '1111', '.133', '..11', '.11.', '.1..'],
+  flame: ['...1', '..11', '.113', '.133', '1133', '1333', '.111'],
+  snow: ['...1', '.1.1', '..31', '1133', '..31', '.1.1', '...1'],
+  leaf: ['...1', '..12', '.112', '1112', '.112', '..12', '...2'],
+  eye: ['....', '..11', '.133', '134k', '.133', '..11', '....'],
+  gear: ['.1.1', '.111', '1112', '.12k', '1112', '.111', '.1.1'],
+  gem: ['....', '.144', '1433', '.133', '..13', '...1', '....'],
+  heart: ['.11.', '1331', '1333', '.133', '..13', '...1', '....'],
+  orb: ['..11', '.133', '1133', '1111', '1211', '.122', '..11'],
+  anchor: ['...1', '..12', '...1', '...1', '1..1', '.1.1', '..11'],
+  drop: ['...1', '..11', '.113', '1113', '1111', '.122', '..11'],
+  sun: ['1..1', '.111', '.133', '1133', '.133', '.111', '1..1'],
+  crystal: ['...3', '..13', '.113', '.123', '.122', '..12', '...1'],
+  hex: ['..11', '.122', '1233', '1234', '1233', '.122', '..11'],
+  target: ['..11', '.1..', '1..4', '1.44', '1..4', '.1..', '..11'],
+  trident: ['1..1', '1..1', '11.1', '.111', '...1', '...1', '...2'],
+  flower: ['..1.', '.111', '1113', '.134', '1113', '.111', '..1.'],
+  sword: ['...3', '...3', '...3', '...3', '.114', '...2', '...2'],
+  rank: ['1...', '11..', '.11.', '..11', '3...', '33..', '.333'],
+  eclipse: ['..11', '.1kk', '1kkk', '1kkk', '1kkk', '.1kk', '..11'],
+  rocket: ['...1', '..13', '..11', '..11', '.121', '1.14', '...4'],
+  butterfly: ['11..', '1311', '1331', '.112', '1331', '13.2', '11..'],
+  shell: ['..11', '.131', '1313', '1313', '.131', '..11', '...1'],
+  wings: ['1...', '11..', '111.', '1113', '.114', '..11', '...1'],
+  crown: ['1..1', '1..1', '11.1', '1111', '1143', '1111', '2222'],
+  tree: ['..11', '.113', '1113', '.111', '...2', '...2', '.222']
+};
+// A small pixel planet: patterned surface, a shaded lower-right limb, an optional tilted ring, rim glow or rays.
+function planetSprite(p) {
+  const r = p.r || 6, padX = p.ring ? 4 : p.rays ? 2 : 0, padY = p.rays ? 2 : 0;
+  const w = 2 * (r + padX) + 1, h = 2 * (r + padY) + 1, ox = r + padX, oy = r + padY;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d'), n = p.cols.length, pat = PATTERNS[p.pat || 'band'];
+  const dot = (x, y, col) => { g.fillStyle = col; g.fillRect(x, y, 1, 1); };
+  const ring = [];
+  if (p.ring) for (let i = 0; i < 72; i++) { const a = i / 72 * TAU; ring.push([Math.round(ox + Math.cos(a) * (r + 3)), Math.round(oy + Math.sin(a) * 2 - Math.cos(a) * 1.2), Math.sin(a) > 0]); }
+  for (const [x, y, front] of ring) if (!front) dot(x, y, p.ring);
+  for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) {
+    const d2 = x * x + y * y;
+    if (d2 > r * r + r * 0.6) continue;
+    let col = p.cols[pat(x + r, y + r, 2 * r + 1, 2 * r + 1, n, 0)];
+    if (p.edge && d2 > (r - 1) * (r - 1) + (r - 1) * 0.6) col = p.edge;
+    else if (p.shade !== false && x + y > r * 0.85) col = p.dark || col;
+    dot(ox + x, oy + y, col);
+  }
+  for (const [x, y, front] of ring) if (front) dot(x, y, p.ring);
+  if (p.rays) for (let i = 0; i < 8; i++) { const a = i * TAU / 8; dot(Math.round(ox + Math.cos(a) * (r + 2)), Math.round(oy + Math.sin(a) * (r + 2)), p.rays); }
+  return { img: c, hit: c, w, h };
+}
+// Trophy card art: a planet, the region's native creature, or a foe in the region's swarm colors.
+// A card pattern repaints the pixels whose sprite letter is in `on`.
+function cardSprite(reg, c) {
+  if (c.planet) return planetSprite(c.planet);
+  const on = c.on || '1';
+  const fill = base => (ch, x, y, w, h) => c.pat && on.includes(ch) ? c.cols[PATTERNS[c.pat](x, y, w, h, c.cols.length, 0)] : base(ch);
+  if (c.native) return spriteC(reg.native, fill(ch => reg.nativeCols[ch] || PAL[ch]));
+  return spriteC(FOE_ROWS[c.foe || c.boss], fill(ch => tintHex(PAL[ch], reg.tintObj)));
+}
+
+/* ================= regions: eight new sectors on the star map, each with its own 30-item set ================= */
+const mkPaint = (r, name, spec) => ({ kind: 'paint', r, name, paint: spec });
+const mkTrail = (r, name, t) => ({ kind: 'trail', r, name, ...t });
+const mkBadge = (r, name, shape, cols, pat, pcols) => ({ kind: 'badge', r, name, shape, cols, pat, pcols });
+const mkCard = (r, name, card) => ({ kind: 'trophy', r, name, card });
+
+const EMB = { main: '#ff6a3d', lite: '#ffd08a', dark: '#8f2415', acc: '#ffd23f', ash: '#6a5656', soot: '#2a1a1a', glow: '#fff1c2', red: '#e8283c' };
+const FRO = { main: '#8fd8ff', lite: '#e8fbff', dark: '#3a6ea8', ice: '#c8f4ff', indigo: '#5a5fd8', deep: '#1a2a5a', glow: '#ffffff', mint: '#9ff5e0', lilac: '#b28aff' };
+const VOI = { main: '#7a4dd8', lite: '#d8c8ff', dark: '#2a1650', mag: '#ff4df0', deep: '#0e081e', glow: '#f0e8ff', teal: '#4dfff0', grey: '#4a4478' };
+const VER = { main: '#6adf5a', lite: '#d8ffb0', dark: '#1f6b3a', pollen: '#ffe14d', bloom: '#ff7ab8', deep: '#0c2a16', glow: '#f4ffe0', moss: '#9ab83a' };
+const SOL = { main: '#ffcf3d', lite: '#fff7c2', dark: '#c96a12', orange: '#ff8a3d', white: '#ffffff', deep: '#5a2a08', red: '#ff4d3d', sky: '#8ad8ff' };
+const COR = { main: '#3ee6c1', lite: '#c8fff2', dark: '#1f7f8f', coral: '#ff7aa8', sand: '#ffd0a0', deep: '#0a2a3a', glow: '#ffffff', sea: '#3a8aff', clown: '#ff8a3d' };
+const IRO = { main: '#c0c8d8', lite: '#ffffff', dark: '#4a5068', copper: '#e8843a', red: '#ff3b5c', deep: '#1a1c28', hazard: '#ffd23f', rust: '#8a4a2a', gun: '#6a7088' };
+const PRI = { pink: '#ff5de0', lite: '#ffffff', dark: '#6a2ca8', cyan: '#5dfff0', yellow: '#fff27a', deep: '#1a0a33', violet: '#b26bff', orange: '#ff9a3d', lime: '#9be564' };
+
+// Region fields: map = node position on the star map; chart = scrap to chart it early; tint = the swarm's colors;
+// boss = the boss met first (bossName is its local name); events = sector event weights, rolled with evChance
+// from wave evFrom (evStreak allows events in back-to-back waves); mods tweak the swarm (see MOD_DEFAULTS).
+const REGION_DEFS = [
+  { id: 'ember', name: 'EMBER BELT', color: '#ff7a3d', map: [42, 81], chart: 150,
+    twist: 'A BURNING ASTEROID BELT. METEOR SHOWERS IN MOST WAVES, FROM WAVE 2.',
+    bg: '#12060a', neb: ['#1f0810', '#2f100e'], stars: ['#4a2020', '#a0583a', '#ffe0c0'],
+    tint: { hue: 18, mix: 0.55 }, boss: 'maw', bossName: 'MAGMA MAW',
+    events: { meteor: 1 }, evChance: 0.65, evFrom: 2, evStreak: true,
+    pal: { main: EMB.main, dark: EMB.dark, acc: EMB.acc },
+    native: ['4....', '.1...', '..111', '.1133', '11k33', '.1122', '1.122', '.1...'],
+    nativeCols: { 1: EMB.main, 2: EMB.dark, 3: EMB.lite, 4: EMB.acc },
+    items: [
+      mkPaint(0, 'CINDER', { t: EMB.main, T: EMB.dark, b: EMB.acc, w: EMB.lite }),
+      mkPaint(0, 'ASHEN', { t: EMB.ash, T: EMB.soot, b: EMB.main }),
+      mkPaint(0, 'BASALT BANDS', { pat: 'band', t: [EMB.ash, '#8a7474'], T: EMB.soot, b: EMB.main }),
+      mkPaint(1, 'LAVA FLOW', { pat: 'grad', t: [EMB.acc, EMB.main, EMB.red], T: EMB.dark, b: EMB.glow }),
+      mkPaint(1, 'HOT COALS', { pat: 'check', t: [EMB.main, EMB.acc], T: EMB.dark, b: EMB.glow }),
+      mkPaint(2, 'TIGER FLAME', { pat: 'stripe', t: [EMB.main, EMB.soot], T: EMB.dark, b: EMB.acc }),
+      mkPaint(2, 'EMBERSTONE', { pat: 'speck', t: [EMB.soot, EMB.acc], T: '#140a0a', b: EMB.main, w: EMB.main }),
+      mkPaint(3, 'WILDFIRE', { pat: 'marquee', t: [EMB.acc, EMB.main, EMB.red, EMB.main], T: EMB.dark, b: EMB.glow }),
+      mkTrail(0, 'SMOKE', { core: '#c8b8b8', outer: EMB.ash }),
+      mkTrail(0, 'CINDERS', { core: EMB.lite, outer: EMB.main }),
+      mkTrail(0, 'SULFUR', { core: '#fff7a0', outer: '#d8c020' }),
+      mkTrail(1, 'ASH AND EMBER', { mix: [EMB.ash, EMB.main, EMB.acc] }),
+      mkTrail(1, 'SPARKFALL', { core: EMB.glow, outer: EMB.main, spark: EMB.acc }),
+      mkTrail(2, 'TWIN FLAME', { twin: [{ core: EMB.lite, outer: EMB.main }, { core: EMB.glow, outer: EMB.acc }] }),
+      mkTrail(3, 'PHOENIX', { seq: [EMB.red, EMB.main, EMB.acc, EMB.glow], spark: EMB.acc }),
+      mkBadge(0, 'CINDER CREST', 'shield', [EMB.main, EMB.dark, EMB.lite]),
+      mkBadge(0, 'HEARTH FLAME', 'flame', [EMB.red, EMB.dark, EMB.acc]),
+      mkBadge(0, 'ASH CHEVRONS', 'rank', [EMB.ash, EMB.soot, EMB.main]),
+      mkBadge(1, 'MAGMA GEM', 'gem', [EMB.main, EMB.dark, EMB.glow, EMB.acc]),
+      mkBadge(1, 'VOLCANO SUN', 'sun', [EMB.acc, EMB.main, EMB.glow]),
+      mkBadge(2, 'EMBER TRIDENT', 'trident', [EMB.acc, EMB.dark], 'grad', [EMB.main, EMB.red]),
+      mkBadge(2, 'BRIMSTONE ORB', 'orb', [EMB.main, EMB.dark, EMB.glow], 'band', [EMB.soot]),
+      mkCard(0, 'CINDER DRONE', { foe: 'drone' }),
+      mkCard(0, 'CINDER STINGER', { foe: 'stinger' }),
+      mkCard(0, 'MAGMA MITE', { native: true }),
+      mkCard(1, 'CINDER WARDEN', { foe: 'warden' }),
+      mkCard(1, 'TIGER STINGER', { foe: 'stinger', pat: 'stripe', on: 'a', cols: [EMB.acc, EMB.soot] }),
+      mkCard(1, 'CINDERFALL', { planet: { pat: 'band', cols: [EMB.main, EMB.dark, EMB.acc, EMB.dark], dark: '#5a160c' } }),
+      mkCard(2, 'MAGMA MAW', { boss: 'maw', earn: 'boss' }),
+      mkCard(3, 'MOLTEN MITE', { native: true, pat: 'grad', on: '13', cols: [EMB.glow, EMB.acc, '#c9961a'], earn: 'perfect' })
+    ] },
+  { id: 'frost', name: 'FROST REACH', color: '#8fd8ff', map: [24, 53], chart: 200,
+    twist: 'COLD FIRE: ENEMY SHOTS FLY 20% SLOWER BUT COME MORE OFTEN. WATCH FOR CROSSWINDS AND DARK SECTORS.',
+    bg: '#040b18', neb: ['#08162a', '#0e213d'], stars: ['#2a3a6a', '#7aa0d0', '#ffffff'],
+    tint: { hue: 200, mix: 0.55 }, boss: 'queen', bossName: 'RIME QUEEN',
+    events: { wind: 2, dark: 1 }, evChance: 0.35, evFrom: 3, mods: { shotSpeed: 0.8, fireRate: 1.35 },
+    pal: { main: FRO.main, dark: FRO.dark, acc: FRO.lite },
+    native: ['..3..', '...3.', '11..2', '13312', '13432', '13312', '.11.2', '....2'],
+    nativeCols: { 1: FRO.main, 2: FRO.dark, 3: FRO.lite, 4: FRO.indigo },
+    items: [
+      mkPaint(0, 'GLACIER', { t: FRO.main, T: FRO.dark, b: FRO.lite, w: FRO.glow }),
+      mkPaint(0, 'SNOWDRIFT', { t: FRO.lite, T: '#8aa8c8', b: FRO.main }),
+      mkPaint(0, 'FROST SCALES', { pat: 'scales', t: [FRO.main, FRO.ice], T: FRO.dark, b: FRO.glow }),
+      mkPaint(1, 'AURORA DAWN', { pat: 'grad', t: [FRO.mint, FRO.main, FRO.indigo], T: FRO.deep, b: FRO.glow }),
+      mkPaint(1, 'ICE TILE', { pat: 'check', t: [FRO.lite, FRO.main], T: FRO.dark, b: FRO.indigo }),
+      mkPaint(2, 'FLURRY', { pat: 'speck', t: [FRO.dark, FRO.glow], T: FRO.deep, b: FRO.ice }),
+      mkPaint(2, 'CRYSTAL CHEVRON', { pat: 'chevron', t: [FRO.lite, FRO.indigo], T: FRO.deep, b: FRO.main }),
+      mkPaint(3, 'NORTHERN LIGHTS', { pat: 'aurora', t: [FRO.mint, FRO.main, FRO.indigo, FRO.lilac], T: FRO.deep, b: FRO.glow }),
+      mkTrail(0, 'FROSTBITE', { core: FRO.glow, outer: FRO.main }),
+      mkTrail(0, 'SLEET', { core: '#d8e8f8', outer: '#8aa0c0' }),
+      mkTrail(0, 'GLACIAL MINT', { core: '#e8fff8', outer: FRO.mint }),
+      mkTrail(1, 'POLAR MIX', { mix: [FRO.glow, FRO.main, FRO.indigo] }),
+      mkTrail(1, 'SNOWFALL', { core: FRO.glow, outer: FRO.ice, spark: FRO.glow }),
+      mkTrail(2, 'AURORA JETS', { twin: [{ core: '#d8fff0', outer: FRO.mint }, { core: '#ecdcff', outer: FRO.lilac }] }),
+      mkTrail(3, 'BOREALIS', { seq: [FRO.mint, FRO.main, FRO.indigo, FRO.lilac, '#ff8ad8'] }),
+      mkBadge(0, 'SNOWFLAKE', 'snow', [FRO.lite, FRO.dark, FRO.glow]),
+      mkBadge(0, 'ICE CREST', 'shield', [FRO.main, FRO.dark, FRO.glow]),
+      mkBadge(0, 'FROST SHARD', 'crystal', [FRO.main, FRO.indigo, FRO.glow]),
+      mkBadge(1, 'POLAR STAR', 'star', [FRO.glow, FRO.main, FRO.lite]),
+      mkBadge(1, 'ICICLE BLADE', 'sword', [FRO.main, FRO.dark, FRO.glow, FRO.indigo]),
+      mkBadge(2, 'FROZEN HEART', 'heart', [FRO.main, FRO.dark, FRO.glow], 'check', [FRO.lite]),
+      mkBadge(3, 'ETERNAL WINTER', 'hex', [FRO.indigo, FRO.deep, FRO.glow, FRO.mint], 'speck', [FRO.glow]),
+      mkCard(0, 'RIME DRONE', { foe: 'drone' }),
+      mkCard(0, 'RIME SPLITTER', { foe: 'splitter' }),
+      mkCard(0, 'RIME MOTH', { native: true }),
+      mkCard(1, 'RIME WARDEN', { foe: 'warden' }),
+      mkCard(1, 'FROSTED AEGIS', { foe: 'aegis', pat: 'speck', on: 's', cols: ['#9ab8d8', FRO.glow] }),
+      mkCard(1, 'GLACIA', { planet: { pat: 'grad', cols: [FRO.glow, FRO.main, FRO.main, FRO.glow], dark: FRO.dark, ring: FRO.ice } }),
+      mkCard(2, 'RIME QUEEN', { boss: 'queen', earn: 'boss' }),
+      mkCard(2, 'CRYSTAL MOTH', { native: true, pat: 'check', on: '13', cols: [FRO.glow, FRO.ice], earn: 'perfect' })
+    ] },
+  { id: 'void', name: 'VOID HOLLOW', color: '#a07aff', map: [50, 30], chart: 250,
+    twist: 'A STARLESS DEEP. DARK SECTORS IN HALF THE WAVES, FROM WAVE 2.',
+    bg: '#030108', neb: ['#0c0420', '#160830'], stars: ['#1a1030', '#5a4a8a', '#d8c8ff'],
+    tint: { hue: 285, mix: 0.6 }, boss: 'mother', bossName: 'NULL CARRIER',
+    events: { dark: 1 }, evChance: 0.5, evFrom: 2, evStreak: true,
+    pal: { main: VOI.main, dark: VOI.dark, acc: VOI.mag },
+    native: ['..111', '.1233', '12344', '1234k', '12344', '.1233', '..1.1', '.1..1'],
+    nativeCols: { 1: VOI.main, 2: VOI.dark, 3: VOI.lite, 4: VOI.mag },
+    items: [
+      mkPaint(0, 'NIGHTSHADE', { t: VOI.main, T: VOI.dark, b: VOI.mag, w: VOI.lite }),
+      mkPaint(0, 'OBSIDIAN', { t: '#2e2848', T: VOI.deep, b: VOI.teal, w: VOI.lite }),
+      mkPaint(0, 'DUSK BANDS', { pat: 'band', t: [VOI.main, VOI.dark], T: VOI.deep, b: VOI.lite }),
+      mkPaint(1, 'EVENT HORIZON', { pat: 'ring', t: [VOI.deep, VOI.main, VOI.mag], T: VOI.deep, b: VOI.glow }),
+      mkPaint(1, 'STARFIELD', { pat: 'speck', t: [VOI.deep, VOI.lite], T: '#05030c', b: VOI.main, w: VOI.glow }),
+      mkPaint(2, 'VOID SPLIT', { pat: 'split', t: [VOI.deep, VOI.lite], T: [VOI.dark, VOI.main], b: VOI.mag }),
+      mkPaint(2, 'WARP LINES', { pat: 'diag', t: [VOI.main, VOI.teal], T: VOI.dark, b: VOI.glow }),
+      mkPaint(3, 'SINGULARITY', { pat: 'pulse', t: [VOI.deep, VOI.main, VOI.mag, VOI.lite], T: VOI.deep, b: VOI.glow }),
+      mkTrail(0, 'SHADE', { core: VOI.lite, outer: VOI.main }),
+      mkTrail(0, 'NULL', { core: '#8a84b0', outer: VOI.grey }),
+      mkTrail(0, 'VOIDLIGHT', { core: '#e0fffc', outer: VOI.teal }),
+      mkTrail(1, 'DARK MATTER', { mix: [VOI.main, VOI.mag, VOI.grey] }),
+      mkTrail(1, 'STARDUST', { core: VOI.glow, outer: VOI.main, spark: VOI.glow }),
+      mkTrail(2, 'PARALLAX', { twin: [{ core: '#e0fffc', outer: VOI.teal }, { core: '#ffe0fc', outer: VOI.mag }] }),
+      mkTrail(3, 'ECLIPSE', { seq: [VOI.mag, VOI.main, VOI.teal, VOI.lite] }),
+      mkBadge(0, 'BLACK SUN', 'eclipse', [VOI.lite, VOI.main]),
+      mkBadge(0, 'VOID EYE', 'eye', [VOI.main, VOI.dark, VOI.glow, VOI.mag]),
+      mkBadge(0, 'DARK STAR', 'star', [VOI.main, VOI.dark, VOI.lite]),
+      mkBadge(1, 'NULL HEX', 'hex', [VOI.main, VOI.dark, VOI.lite, VOI.mag]),
+      mkBadge(1, 'WARP SIGHT', 'target', [VOI.mag, VOI.dark, VOI.lite, VOI.teal]),
+      mkBadge(2, 'PHANTOM WINGS', 'butterfly', [VOI.main, VOI.dark, VOI.lite, VOI.mag], 'stripe', [VOI.mag]),
+      mkBadge(2, 'ABYSS ORB', 'orb', [VOI.dark, VOI.deep, VOI.lite], 'speck', [VOI.glow]),
+      mkCard(0, 'NULL DRONE', { foe: 'drone' }),
+      mkCard(0, 'NULL MINELAYER', { foe: 'miner' }),
+      mkCard(0, 'HOLLOW EYE', { native: true }),
+      mkCard(1, 'NULL AEGIS', { foe: 'aegis' }),
+      mkCard(1, 'PHASE SPLITTER', { foe: 'splitter', pat: 'diag', on: 't', cols: [VOI.mag, VOI.teal] }),
+      mkCard(1, 'THE DEEP', { planet: { pat: 'band', cols: ['#05030c'], edge: VOI.mag, ring: VOI.teal, shade: false } }),
+      mkCard(2, 'NULL CARRIER', { boss: 'mother', earn: 'boss' }),
+      mkCard(3, 'COSMIC EYE', { native: true, pat: 'speck', on: '12', cols: [VOI.deep, VOI.glow], earn: 'perfect' })
+    ] },
+  { id: 'verdant', name: 'VERDANT NEBULA', color: '#7ae05a', map: [80, 48], chart: 300,
+    twist: 'OVERGROWN: 50% MORE POWER-UPS, BUT THE SWARM FIRES MORE OFTEN. SWARM SURGES ARE COMMON.',
+    bg: '#030d07', neb: ['#061a0c', '#0a2512'], stars: ['#1a3a22', '#5a9a5a', '#f0ffd8'],
+    tint: { hue: 110, mix: 0.5 }, boss: 'queen', bossName: 'BLOOM QUEEN',
+    events: { surge: 2, meteor: 1 }, evChance: 0.35, evFrom: 3, mods: { dropMul: 1.5, fireRate: 1.2 },
+    pal: { main: VER.main, dark: VER.dark, acc: VER.bloom },
+    native: ['...11', '.1141', '11411', '11114', '.2222', '..23k', '..2.2', '.2..2'],
+    nativeCols: { 1: VER.bloom, 2: VER.dark, 3: VER.lite, 4: VER.pollen },
+    items: [
+      mkPaint(0, 'FERN', { t: VER.main, T: VER.dark, b: VER.pollen, w: VER.lite }),
+      mkPaint(0, 'MOSS', { t: VER.moss, T: '#4a5a1a', b: VER.lite }),
+      mkPaint(0, 'VINE WRAP', { pat: 'diag', t: [VER.main, VER.dark], T: VER.deep, b: VER.pollen }),
+      mkPaint(1, 'CHERRY BLOSSOM', { pat: 'spots', t: [VER.lite, VER.bloom], T: VER.main, b: VER.bloom }),
+      mkPaint(1, 'CANOPY', { pat: 'grad', t: [VER.lite, VER.main, VER.dark], T: VER.deep, b: VER.pollen }),
+      mkPaint(2, 'LEAF SCALES', { pat: 'scales', t: [VER.main, VER.moss], T: VER.dark, b: VER.bloom }),
+      mkPaint(2, 'POLLEN DUST', { pat: 'speck', t: [VER.dark, VER.pollen], T: VER.deep, b: VER.bloom }),
+      mkPaint(3, 'FIREFLY GLADE', { pat: 'twinkle', t: [VER.deep, VER.dark, VER.pollen], T: '#061a0c', b: VER.main }),
+      mkTrail(0, 'SAP', { core: '#f0ffd0', outer: VER.main }),
+      mkTrail(0, 'THISTLE', { core: '#ffe0f0', outer: VER.bloom }),
+      mkTrail(0, 'MEADOW', { core: VER.lite, outer: VER.moss }),
+      mkTrail(1, 'BOUQUET', { mix: [VER.bloom, VER.pollen, VER.main, VER.lite] }),
+      mkTrail(1, 'POLLEN', { core: VER.pollen, outer: '#c8a820', spark: VER.glow }),
+      mkTrail(2, 'SEED JETS', { twin: [{ core: '#fff8c0', outer: VER.pollen }, { core: '#ffe0f0', outer: VER.bloom }] }),
+      mkTrail(3, 'EVERBLOOM', { seq: [VER.bloom, VER.pollen, VER.main, VER.lite] }),
+      mkBadge(0, 'LEAF', 'leaf', [VER.main, VER.dark, VER.lite]),
+      mkBadge(0, 'BLOOM', 'flower', [VER.bloom, '#a33a6a', VER.lite, VER.pollen]),
+      mkBadge(0, 'DEWDROP', 'drop', [VER.lite, VER.main, VER.glow]),
+      mkBadge(1, 'GROVE CREST', 'shield', [VER.main, VER.dark, VER.pollen]),
+      mkBadge(1, 'BUTTERFLY', 'butterfly', [VER.bloom, VER.dark, VER.pollen, VER.main]),
+      mkBadge(2, 'VERDANT WINGS', 'wings', [VER.main, VER.dark, VER.lite, VER.pollen], 'diag', [VER.moss]),
+      mkBadge(3, 'ELDER TREE', 'tree', [VER.main, '#6a4a2a', VER.lite], 'speck', [VER.pollen]),
+      mkCard(0, 'BLOOM DRONE', { foe: 'drone' }),
+      mkCard(0, 'BLOOM STINGER', { foe: 'stinger' }),
+      mkCard(0, 'SPORE POD', { native: true }),
+      mkCard(1, 'BLOOM MINELAYER', { foe: 'miner' }),
+      mkCard(1, 'THORN WARDEN', { foe: 'warden', pat: 'spots', on: 'v', cols: [VER.main, VER.bloom] }),
+      mkCard(1, 'EDEN PRIME', { planet: { pat: 'spots', cols: ['#3a8aff', VER.main], dark: '#1a3a8a' } }),
+      mkCard(2, 'BLOOM QUEEN', { boss: 'queen', earn: 'boss' }),
+      mkCard(2, 'GOLDEN SPORE', { native: true, pat: 'grad', on: '14', cols: [VER.glow, VER.pollen, '#c9961a'], earn: 'perfect' })
+    ] },
+  { id: 'solar', name: 'SOLAR CROWN', color: '#ffd23f', map: [106, 23], chart: 350,
+    twist: 'THE SUN IS CLOSE. CROSSWINDS PUSH YOUR SHIP SIDEWAYS IN MOST WAVES, FROM WAVE 2.',
+    bg: '#100903', neb: ['#1c0f04', '#2b1805'], stars: ['#4a3010', '#c09040', '#fff8e0'],
+    tint: { hue: 45, mix: 0.6 }, boss: 'maw', bossName: 'CORONA MAW',
+    events: { wind: 1 }, evChance: 0.65, evFrom: 2, evStreak: true,
+    pal: { main: SOL.main, dark: SOL.dark, acc: SOL.white },
+    native: ['.....1', '....13', '11.133', '111134', '.11133', '...112', '.....2', '.....4'],
+    nativeCols: { 1: SOL.orange, 2: SOL.dark, 3: SOL.main, 4: SOL.white },
+    items: [
+      mkPaint(0, 'SUNBEAM', { t: SOL.main, T: SOL.dark, b: SOL.lite, w: SOL.white }),
+      mkPaint(0, 'AMBER', { t: SOL.orange, T: SOL.deep, b: SOL.main }),
+      mkPaint(0, 'DAYBREAK', { pat: 'grad', t: [SOL.lite, SOL.main, SOL.orange], T: SOL.dark, b: SOL.white }),
+      mkPaint(1, 'SOLAR PANEL', { pat: 'circuit', t: ['#2d4fb3', SOL.sky], T: '#1a2250', b: SOL.main }),
+      mkPaint(1, 'CORONA RINGS', { pat: 'ring', t: [SOL.white, SOL.main, SOL.orange], T: SOL.dark, b: SOL.red }),
+      mkPaint(2, 'SUNSPOT', { pat: 'spots', t: [SOL.main, SOL.deep], T: SOL.dark, b: SOL.red }),
+      mkPaint(2, 'SUNRAY CHEVRON', { pat: 'chevron', t: [SOL.main, SOL.white], T: SOL.dark, b: SOL.orange }),
+      mkPaint(3, 'SOLAR FLARE', { pat: 'shimmer', t: [SOL.main, SOL.orange, SOL.white], T: SOL.dark, b: SOL.red }),
+      mkTrail(0, 'DAYLIGHT', { core: SOL.white, outer: SOL.main }),
+      mkTrail(0, 'MARIGOLD', { core: SOL.lite, outer: SOL.orange }),
+      mkTrail(0, 'COPPER SUN', { core: '#ffd8b0', outer: SOL.dark }),
+      mkTrail(1, 'SUNSHOWER', { mix: [SOL.white, SOL.main, SOL.orange] }),
+      mkTrail(1, 'PROMINENCE', { core: SOL.lite, outer: SOL.red, spark: SOL.main }),
+      mkTrail(2, 'BINARY STAR', { twin: [{ core: SOL.white, outer: SOL.main }, { core: '#e0f4ff', outer: SOL.sky }] }),
+      mkTrail(3, 'SUPERNOVA', { seq: [SOL.white, SOL.main, SOL.orange, SOL.red], spark: SOL.white }),
+      mkBadge(0, 'SUNDISC', 'sun', [SOL.main, SOL.dark, SOL.white]),
+      mkBadge(0, 'DAWN CHEVRONS', 'rank', [SOL.main, SOL.dark, SOL.orange]),
+      mkBadge(0, 'SOLAR GEM', 'gem', [SOL.orange, SOL.dark, SOL.lite, SOL.main]),
+      mkBadge(1, 'CORONA CROWN', 'crown', [SOL.main, SOL.dark, SOL.white, SOL.red]),
+      mkBadge(1, 'FLARE ROCKET', 'rocket', [SOL.white, SOL.dark, SOL.lite, SOL.orange]),
+      mkBadge(2, 'GOLDEN CREST', 'shield', [SOL.main, SOL.dark, SOL.white], 'chevron', [SOL.white]),
+      mkBadge(3, 'ALL-SEEING SUN', 'eye', [SOL.main, SOL.dark, SOL.white, SOL.red], 'ring', [SOL.orange]),
+      mkCard(0, 'SOLAR DRONE', { foe: 'drone' }),
+      mkCard(0, 'SOLAR SPLITTER', { foe: 'splitter' }),
+      mkCard(0, 'FLARE RAY', { native: true }),
+      mkCard(1, 'SOLAR WARDEN', { foe: 'warden' }),
+      mkCard(1, 'SUNSPOT STINGER', { foe: 'stinger', pat: 'spots', on: 'a', cols: [SOL.main, SOL.deep] }),
+      mkCard(1, 'HELIOS', { planet: { r: 5, pat: 'ring', cols: [SOL.white, SOL.white, SOL.lite, SOL.main, SOL.main, SOL.orange], shade: false, rays: SOL.main } }),
+      mkCard(2, 'CORONA MAW', { boss: 'maw', earn: 'boss' }),
+      mkCard(2, 'ECLIPSE RAY', { native: true, pat: 'ring', on: '13', cols: [SOL.white, '#1a0c04'], earn: 'perfect' })
+    ] },
+  { id: 'coral', name: 'CORAL DRIFT', color: '#5aefcf', map: [104, 71], chart: 400,
+    twist: 'TIDES: THE SWARM FORMATION SWAYS FAR WIDER AND FASTER.',
+    bg: '#021016', neb: ['#05191f', '#08252d'], stars: ['#123a44', '#4aa0a8', '#e8fff8'],
+    tint: { hue: 170, mix: 0.5 }, boss: 'mother', bossName: 'REEF CARRIER',
+    events: { meteor: 1, dark: 1, fast: 1 }, evChance: 0.3, evFrom: 4, mods: { sway: 1.8 },
+    pal: { main: COR.main, dark: COR.dark, acc: COR.coral },
+    native: ['..111', '.1333', '13343', '11111', '.2.2.', '.2..2', '2..2.', '.2...'],
+    nativeCols: { 1: COR.coral, 2: COR.main, 3: COR.lite, 4: COR.glow },
+    items: [
+      mkPaint(0, 'LAGOON', { t: COR.main, T: COR.dark, b: COR.coral, w: COR.lite }),
+      mkPaint(0, 'SEAFOAM', { t: COR.lite, T: COR.main, b: COR.sea }),
+      mkPaint(0, 'SANDBAR', { t: COR.sand, T: '#b8845a', b: COR.main }),
+      mkPaint(1, 'CLOWNFISH', { pat: 'band', t: [COR.clown, COR.glow], T: '#8a3a1a', b: '#241616' }),
+      mkPaint(1, 'SHOAL SCALES', { pat: 'scales', t: [COR.main, COR.sea], T: COR.deep, b: COR.lite }),
+      mkPaint(2, 'PEARLESCENT', { pat: 'grad', t: [COR.glow, COR.lite, '#d8c8f0'], T: '#8a8aa8', b: COR.coral }),
+      mkPaint(2, 'CORAL BLOOM', { pat: 'spots', t: [COR.coral, COR.sand], T: '#a33a6a', b: COR.main }),
+      mkPaint(3, 'RIPTIDE', { pat: 'aurora', t: [COR.lite, COR.main, COR.sea, COR.dark], T: COR.deep, b: COR.glow }),
+      mkTrail(0, 'BUBBLES', { core: COR.glow, outer: COR.lite }),
+      mkTrail(0, 'KELP', { core: '#b0e8a0', outer: '#3a8a4a' }),
+      mkTrail(0, 'CORAL', { core: '#ffe0ea', outer: COR.coral }),
+      mkTrail(1, 'TIDEPOOL', { mix: [COR.main, COR.coral, COR.sand] }),
+      mkTrail(1, 'SPINDRIFT', { core: COR.glow, outer: COR.main, spark: COR.glow }),
+      mkTrail(2, 'CURRENT JETS', { twin: [{ core: COR.lite, outer: COR.main }, { core: '#ffe0ea', outer: COR.coral }] }),
+      mkTrail(3, 'LEVIATHAN', { seq: [COR.dark, COR.sea, COR.main, COR.lite] }),
+      mkBadge(0, 'ANCHOR', 'anchor', [COR.lite, COR.dark]),
+      mkBadge(0, 'SEASHELL', 'shell', [COR.sand, '#b8845a', COR.glow]),
+      mkBadge(0, 'DROPLET', 'drop', [COR.main, COR.dark, COR.glow]),
+      mkBadge(1, 'SEA TRIDENT', 'trident', [COR.sand, COR.dark]),
+      mkBadge(1, 'BLACK PEARL', 'orb', ['#4a4478', '#1a1340', '#d8c8ff']),
+      mkBadge(2, 'STARFISH', 'star', [COR.coral, '#a33a6a', COR.lite], 'spots', [COR.sand]),
+      mkBadge(3, 'KRAKEN EYE', 'eye', [COR.sea, COR.deep, COR.glow, COR.coral], 'scales', [COR.main]),
+      mkCard(0, 'REEF DRONE', { foe: 'drone' }),
+      mkCard(0, 'REEF STINGER', { foe: 'stinger' }),
+      mkCard(0, 'STAR JELLY', { native: true }),
+      mkCard(1, 'REEF WARDEN', { foe: 'warden' }),
+      mkCard(1, 'CLOWN SPLITTER', { foe: 'splitter', pat: 'band', on: 't', cols: [COR.clown, COR.glow] }),
+      mkCard(1, 'PELAGIA', { planet: { pat: 'diag', cols: [COR.sea, COR.main], dark: '#1a3a8a', ring: COR.sand } }),
+      mkCard(2, 'REEF CARRIER', { boss: 'mother', earn: 'boss' }),
+      mkCard(2, 'PEARL JELLY', { native: true, pat: 'grad', on: '13', cols: [COR.glow, COR.lite, '#d8c8f0'], earn: 'perfect' })
+    ] },
+  { id: 'iron', name: 'IRON FOUNDRY', color: '#c0c8d8', map: [134, 92], chart: 450,
+    twist: 'ARMORED: AEGIS SHIELD-BEARERS JOIN THE SWARM FROM WAVE 3. DOUBLE TIME IS COMMON.',
+    bg: '#07080d', neb: ['#0f1118', '#171922'], stars: ['#2a2c3a', '#6a7088', '#e8ecf4'],
+    tint: { hue: 25, mix: 0.35, sat: 0.55 }, boss: 'queen', bossName: 'CHROME QUEEN',
+    events: { fast: 2, surge: 1 }, evChance: 0.35, evFrom: 3, mods: { aegisFrom: 3 },
+    pal: { main: IRO.main, dark: IRO.dark, acc: IRO.copper },
+    native: ['.1.11', '.1122', '11234', '.12k4', '11234', '.1122', '2.1.1', '2....'],
+    nativeCols: { 1: IRO.main, 2: IRO.dark, 3: IRO.copper, 4: IRO.red },
+    items: [
+      mkPaint(0, 'GUNMETAL', { t: IRO.gun, T: IRO.deep, b: IRO.copper, w: IRO.lite }),
+      mkPaint(0, 'CHROME', { t: IRO.main, T: IRO.dark, b: '#5aa9ff', w: IRO.lite }),
+      mkPaint(0, 'COPPER', { t: IRO.copper, T: IRO.rust, b: IRO.hazard }),
+      mkPaint(1, 'RIVET PLATE', { pat: 'circuit', t: [IRO.main, IRO.dark], T: IRO.deep, b: IRO.red }),
+      mkPaint(1, 'RUST CAMO', { pat: 'spots', t: [IRO.gun, IRO.rust], T: IRO.deep, b: IRO.copper }),
+      mkPaint(2, 'RACING CHECKER', { pat: 'check', t: [IRO.lite, IRO.deep], T: IRO.dark, b: IRO.red }),
+      mkPaint(2, 'DAMASCUS', { pat: 'diag', t: [IRO.main, IRO.gun], T: IRO.deep, b: IRO.copper }),
+      mkPaint(3, 'HAZARD LIGHTS', { pat: 'hazard', t: [IRO.hazard, IRO.deep], T: IRO.dark, b: IRO.red }),
+      mkTrail(0, 'EXHAUST', { core: '#d8d8e0', outer: IRO.gun }),
+      mkTrail(0, 'WELDER', { core: IRO.lite, outer: '#8ad8ff' }),
+      mkTrail(0, 'RUST', { core: '#ffc8a0', outer: IRO.rust }),
+      mkTrail(1, 'MOLTEN METAL', { mix: [IRO.hazard, IRO.copper, IRO.red] }),
+      mkTrail(1, 'GRINDER', { core: IRO.hazard, outer: IRO.copper, spark: IRO.lite }),
+      mkTrail(2, 'PISTON JETS', { twin: [{ core: '#ffd8b0', outer: IRO.copper }, { core: IRO.lite, outer: IRO.main }] }),
+      mkTrail(3, 'ARC FURNACE', { seq: ['#8ad8ff', IRO.lite, IRO.hazard, IRO.copper], spark: IRO.lite }),
+      mkBadge(0, 'COG', 'gear', [IRO.main, IRO.dark, IRO.lite]),
+      mkBadge(0, 'HEX NUT', 'hex', [IRO.main, IRO.dark, IRO.lite, IRO.deep]),
+      mkBadge(0, 'FOREMAN', 'rank', [IRO.copper, IRO.rust, IRO.hazard]),
+      mkBadge(1, 'IRON CREST', 'shield', [IRO.main, IRO.dark, IRO.lite]),
+      mkBadge(1, 'FORGE ROCKET', 'rocket', [IRO.main, IRO.dark, IRO.lite, IRO.copper]),
+      mkBadge(2, 'HAZARD SIGN', 'target', [IRO.hazard, IRO.deep, IRO.lite, IRO.red], 'diag', [IRO.deep]),
+      mkBadge(2, 'COPPER CROWN', 'crown', [IRO.copper, IRO.rust, IRO.hazard, IRO.red], 'speck', [IRO.lite]),
+      mkCard(0, 'CHROME DRONE', { foe: 'drone' }),
+      mkCard(0, 'CHROME MINELAYER', { foe: 'miner' }),
+      mkCard(0, 'COG CRAWLER', { native: true }),
+      mkCard(1, 'CHROME AEGIS', { foe: 'aegis' }),
+      mkCard(1, 'HAZARD WARDEN', { foe: 'warden', pat: 'diag', on: 'v', cols: [IRO.hazard, IRO.deep] }),
+      mkCard(1, 'ANVIL STATION', { planet: { pat: 'circuit', cols: [IRO.main, IRO.dark], dark: IRO.gun, ring: IRO.copper } }),
+      mkCard(2, 'CHROME QUEEN', { boss: 'queen', earn: 'boss' }),
+      mkCard(3, 'GOLDEN CRAWLER', { native: true, pat: 'grad', on: '13', cols: [IRO.lite, IRO.hazard, '#c9961a'], earn: 'perfect' })
+    ] },
+  { id: 'prism', name: 'PRISM RIFT', color: '#ff7ae8', map: [150, 46], chart: 500,
+    twist: 'RIFT STORMS: A SECTOR EVENT IN MOST WAVES, FROM WAVE 2, AND THE SWARM CHANGES COLOR EVERY WAVE.',
+    bg: '#07031a', neb: ['#1a0830', '#0a1a33'], stars: ['#2a1a4a', '#8a6ac0', '#ffffff'],
+    tint: { hue: 300, mix: 0.55 }, shift: true, boss: 'maw', bossName: 'PRISM MAW',
+    events: { meteor: 1, dark: 1, fast: 1, wind: 1, surge: 1 }, evChance: 0.7, evFrom: 2, evStreak: true,
+    pal: { main: PRI.pink, dark: PRI.dark, acc: PRI.cyan },
+    native: ['....3', '...13', '..133', '.1k34', '11334', '1.133', '..1.3', '.1..2', '....2'],
+    nativeCols: { 1: PRI.violet, 2: PRI.dark, 3: PRI.cyan, 4: PRI.pink },
+    items: [
+      mkPaint(0, 'NEON PINK', { t: PRI.pink, T: PRI.dark, b: PRI.cyan, w: PRI.lite }),
+      mkPaint(0, 'ELECTRIC CYAN', { t: PRI.cyan, T: '#1f8f86', b: PRI.pink }),
+      mkPaint(1, 'SYNTHWAVE', { pat: 'grad', t: [PRI.yellow, PRI.orange, PRI.pink, PRI.violet], T: PRI.deep, b: PRI.cyan }),
+      mkPaint(1, 'GLITCH', { pat: 'glitch', t: [PRI.pink, PRI.cyan, PRI.lite], T: PRI.deep, b: PRI.yellow }),
+      mkPaint(2, 'VAPOR CHECKER', { pat: 'check', t: [PRI.cyan, PRI.pink], T: PRI.deep, b: PRI.yellow }),
+      mkPaint(2, 'KALEIDOSCOPE', { pat: 'ring', t: [PRI.pink, PRI.cyan, PRI.yellow, PRI.violet], T: PRI.deep, b: PRI.lite }),
+      mkPaint(3, 'PRISMATIC', { pat: 'prism', t: PRISM12, T: PRISM12_DARK, b: PRI.lite }),
+      mkPaint(3, 'STATIC', { pat: 'static', t: [PRI.lite, '#9a93c9', '#4a4478', PRI.pink], T: PRI.deep, b: PRI.cyan }),
+      mkTrail(0, 'NEON', { core: '#ffd0f8', outer: PRI.pink }),
+      mkTrail(0, 'LASER LIME', { core: '#f0ffd0', outer: PRI.lime }),
+      mkTrail(0, 'ULTRAVIOLET', { core: '#e8d8ff', outer: PRI.violet }),
+      mkTrail(1, 'CONFETTI', { mix: [PRI.pink, PRI.cyan, PRI.yellow, PRI.violet, PRI.orange] }),
+      mkTrail(1, 'GLITTER', { core: PRI.lite, outer: PRI.cyan, spark: PRI.pink }),
+      mkTrail(2, 'DICHROIC', { twin: [{ core: '#e0fffc', outer: PRI.cyan }, { core: '#ffe0fc', outer: PRI.pink }] }),
+      mkTrail(3, 'SPECTRUM', { seq: PRISM12.filter((c, i) => i % 2 === 0), rate: 10 }),
+      mkBadge(0, 'PRISM', 'crystal', [PRI.cyan, PRI.dark, PRI.lite, PRI.pink]),
+      mkBadge(0, 'NEON STAR', 'star', [PRI.pink, PRI.dark, PRI.lite]),
+      mkBadge(0, 'RIFT EYE', 'eye', [PRI.violet, PRI.deep, PRI.lite, PRI.cyan]),
+      mkBadge(1, 'HOLO HEART', 'heart', [PRI.pink, PRI.dark, PRI.lite], 'diag', [PRI.cyan]),
+      mkBadge(1, 'HEX GRID', 'hex', [PRI.violet, PRI.deep, PRI.lite, PRI.yellow], 'check', [PRI.cyan]),
+      mkBadge(2, 'CHROMA WINGS', 'butterfly', [PRISM12[0], PRI.dark, PRI.lite, PRI.cyan], 'prism', PRISM12.slice(1)),
+      mkBadge(2, 'RIFT CROWN', 'crown', [PRI.violet, PRI.dark, PRI.lite, PRI.pink], 'grad', [PRI.pink, PRI.yellow]),
+      mkCard(0, 'RIFT DRONE', { foe: 'drone' }),
+      mkCard(0, 'RIFT STINGER', { foe: 'stinger' }),
+      mkCard(1, 'PRISM WRAITH', { native: true }),
+      mkCard(1, 'GLITCH SPLITTER', { foe: 'splitter', pat: 'glitch', on: 't', cols: [PRI.pink, PRI.cyan, PRI.yellow] }),
+      mkCard(1, 'THE RIFT', { planet: { pat: 'prism', cols: PRISM12, edge: PRI.lite, shade: false } }),
+      mkCard(2, 'PRISM MAW', { boss: 'maw', earn: 'boss' }),
+      mkCard(2, 'RIFT CARRIER', { boss: 'mother' }),
+      mkCard(3, 'HOLO WRAITH', { native: true, pat: 'prism', on: '13', cols: PRISM12, earn: 'perfect' })
+    ] }
+];
+const MOD_DEFAULTS = { shotSpeed: 1, fireRate: 1, dropMul: 1, sway: 1, aegisFrom: 7 };
+const REGIONS = [
+  { id: 'home', name: 'SECTOR 9', color: '#5aa9ff', map: [16, 99], chart: 0,
+    twist: 'WHERE THE HIVE WAS FIRST SIGHTED. THE CLASSIC SWARM, WITH SECTOR EVENTS FROM WAVE 4.',
+    events: { meteor: 1, dark: 1, fast: 1 }, evChance: 0.3, evFrom: 4, boss: 'queen',
+    pal: { main: '#5aa9ff', dark: '#2d4fb3', acc: '#3ee6c1' }, items: CLASSIC },
+  ...REGION_DEFS
+];
+const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const CARD_NOTE = { foe: 'PART OF THE LOCAL SWARM', native: 'NATIVE LIFE-FORM', planet: 'A LANDMARK OF THE REGION', boss: 'A RARE SIGHTING' };
+for (const reg of REGIONS) {
+  reg.mods = { ...MOD_DEFAULTS, ...reg.mods };
+  reg.relics = reg.id !== 'home';
+  reg.tintObj = reg.tint ? tintOf(reg.tint.hue, reg.tint.mix, reg.tint.sat) : null;
+  if (reg.id === 'home') continue;
+  for (const it of reg.items) {
+    it.id = reg.id + '-' + it.kind + '-' + slug(it.name);
+    if (it.kind === 'paint') { it.pattern = it.paint.pat; it.anim = ANIMATED.has(it.paint.pat); }
+    else if (it.kind === 'trail') it.pattern = it.seq ? 'seq' : it.mix ? 'mix' : it.twin ? 'twin' : it.spark ? 'spark' : undefined;
+    else if (it.kind === 'badge') it.pattern = it.pat;
+    else {
+      const c = it.card;
+      it.pattern = c.pat || (c.planet && c.planet.pat);
+      it.note = c.earn === 'boss' ? 'ALSO EARNED BY BEATING IT HERE' : c.earn === 'perfect' ? 'ALSO EARNED WITH A PERFECT STAGE HERE'
+        : CARD_NOTE[c.foe ? 'foe' : c.native ? 'native' : c.planet ? 'planet' : 'boss'];
+      it.spr = () => it._card || (it._card = cardSprite(reg, c));
+      if (c.earn === 'boss') reg.bossCard = it.id;
+      if (c.earn === 'perfect') reg.perfectCard = it.id;
+    }
+  }
+}
+const REGION = Object.fromEntries(REGIONS.map(r => [r.id, r]));
+const COLLECTION = REGIONS.flatMap(r => r.items);
+const ITEMS = new Map(COLLECTION.map(i => [i.id, i]));
+const byId = id => ITEMS.get(id);
+const setOwned = reg => reg.items.reduce((n, i) => n + (album.owned[i.id] ? 1 : 0), 0);
 
 // Scrap wallet: earned only by playing, saved in this browser.
 const SCRAP_KEY = 'nova-swarm-scrap-v1';
@@ -1026,10 +1610,12 @@ function awardTrophy(id) {
   toast('NEW TROPHY CARD: ' + item.name, RARITY[item.r].color);
   return true;
 }
-function rollItem() {
+// Capsules and relics roll a rarity first, then an item of that rarity from one region's set.
+function rollItem(setId) {
+  const items = (REGION[setId] || REGION.home).items;
   let roll = Math.random() * 100, r = 0;
   while (r < 3 && (roll -= RARITY[r].odds) >= 0) r++;
-  return fpick(COLLECTION.filter(i => i.r === r));
+  return fpick(items.filter(i => i.r === r));
 }
 
 // Run upgrades bought from the title screen wait here until the next run starts.
@@ -1064,24 +1650,69 @@ const stats = (() => {
 })();
 const saveStats = () => store.set(STATS_KEY, stats);
 
+// Charted regions, the course for the next run and the best wave cleared in each, saved in this browser.
+const REGION_KEY = 'nova-swarm-regions-v1';
+const isRegion = id => typeof id === 'string' && Object.prototype.hasOwnProperty.call(REGION, id);
+const regions = (() => {
+  const s = store.get(REGION_KEY, null) || {};
+  const charted = { home: 1 }, best = {};
+  if (s.charted && typeof s.charted === 'object') for (const k in s.charted) if (isRegion(k)) charted[k] = 1;
+  if (s.best && typeof s.best === 'object') for (const k in s.best) if (isRegion(k) && Number.isFinite(s.best[k])) best[k] = Math.max(0, s.best[k] | 0);
+  return { sel: isRegion(s.sel) && charted[s.sel] ? s.sel : 'home', charted, best };
+})();
+const saveRegions = () => store.set(REGION_KEY, regions);
+
 // cosmetics
+// Classic paint jobs swap palette letters; region paint jobs can fill the hull with a pattern.
+function paintColorOf(item, f) {
+  if (!item) return ch => PAL[ch];
+  if (item.pal) return ch => item.pal[ch] || PAL[ch];
+  const p = item.paint;
+  return (ch, x, y, w, h) => {
+    const v = p[ch];
+    return v === undefined ? PAL[ch] : Array.isArray(v) ? v[PATTERNS[p.pat](x, y, w, h, v.length, f)] : v;
+  };
+}
+// Every frame of a paint job on a hull: one, or ANIM_FRAMES for an animated pattern.
 const shipCache = {};
-function shipFor(id, h = runHull()) {
+function shipFrames(id, h) {
   const key = (id || 'standard') + '/' + h;
   if (!shipCache[key]) {
-    const pal = (id && byId(id) && byId(id).pal) || {};
-    const colorOf = ch => pal[ch] || PAL[ch];
-    shipCache[key] = { ship: spriteC(HULLS[h].half, colorOf), life: spriteC(LIFE_HALF, colorOf) };
+    const item = id ? byId(id) : null, frames = [];
+    for (let f = 0; f < (item && item.anim ? ANIM_FRAMES : 1); f++) {
+      const colorOf = paintColorOf(item, f);
+      frames.push({ ship: spriteC(HULLS[h].half, colorOf), life: spriteC(LIFE_HALF, colorOf) });
+    }
+    shipCache[key] = frames;
   }
   return shipCache[key];
 }
-function trailColors(id) {
+const animFrame = () => Math.floor(clock * ANIM_FPS) % ANIM_FRAMES;
+function shipFor(id, h = runHull()) {
+  const fr = shipFrames(id, h);
+  return fr.length > 1 ? fr[animFrame()] : fr[0];
+}
+// Engine colors. side is -1 / 1 for the left / right jet: twin-jet trails differ per side.
+function trailColors(id, side) {
   const t = byId(id === undefined ? album.equip.trail : id);
   if (!t) return { core: PAL.y, outer: PAL.a };
   if (t.rainbow) return { core: '#ffffff', outer: 'hsl(' + Math.floor(clock * 240) % 360 + ',95%,62%)' };
+  if (t.seq) { const n = t.seq.length, i = Math.floor(clock * (t.rate || 6)) % n; return { core: t.seq[(i + 1) % n], outer: t.seq[i] }; }
+  if (t.mix) return { core: fpick(t.mix), outer: fpick(t.mix) };
+  if (t.twin) return t.twin[side > 0 ? 1 : 0];
   return t;
 }
-function badgeSprite(item) { return item._spr || (item._spr = sprite(item.art)); }
+function badgeSprite(item) {
+  if (!item._spr) {
+    if (item.art) item._spr = sprite(item.art);
+    else {
+      const [c1, c2 = PAL.k, c3 = PAL.w, c4 = c3] = item.cols, cols = { 1: c1, 2: c2, 3: c3, 4: c4, k: PAL.k };
+      const fill = item.pat && [c1, ...item.pcols];
+      item._spr = spriteC(BADGE_SHAPES[item.shape], (ch, x, y, w, h) => fill && ch === '1' ? fill[PATTERNS[item.pat](x, y, w, h, fill.length, 0)] : cols[ch]);
+    }
+  }
+  return item._spr;
+}
 function trailSwatch(t) {
   const c = document.createElement('canvas');
   c.width = 7; c.height = 11;
@@ -1090,15 +1721,23 @@ function trailSwatch(t) {
     const x0 = (7 - w) >> 1;
     for (let x = x0; x < x0 + w; x++) {
       const edge = x === x0 || x === x0 + w - 1;
-      g.fillStyle = t.rainbow ? 'hsl(' + y * 33 + ',95%,' + (edge ? 60 : 82) + '%)' : edge ? t.outer : t.core;
+      let col;
+      if (t.rainbow) col = 'hsl(' + y * 33 + ',95%,' + (edge ? 60 : 82) + '%)';
+      else if (t.seq) col = t.seq[(y + (edge ? 1 : 0)) % t.seq.length];
+      else if (t.mix) col = t.mix[Math.floor(hash2(x, y) * t.mix.length)];
+      else { const s = t.twin ? t.twin[x < 3 || (x === 3 && y % 2) ? 0 : 1] : t; col = edge ? s.outer : s.core; }
+      if (t.spark && hash2(x + 9, y + 3) < 0.2) col = t.spark;
+      g.fillStyle = col;
       g.fillRect(x, y, 1, 1);
     }
   });
   return c;
 }
+// Per-frame images of an animated paint job, for the album and capsule previews.
+function frameUrl(item, k) { item._urls = item._urls || []; return item._urls[k] || (item._urls[k] = shipFrames(item.id, 'striker')[k].ship.img.toDataURL()); }
 function itemCanvas(item) {
   if (!item._cv) {
-    item._cv = item.kind === 'paint' ? shipFor(item.id, 'striker').ship.img
+    item._cv = item.kind === 'paint' ? shipFrames(item.id, 'striker')[0].ship.img
       : item.kind === 'trail' ? trailSwatch(item)
       : item.kind === 'badge' ? badgeSprite(item).img
       : item.spr().img;
@@ -1269,19 +1908,27 @@ const G = {
   bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
   scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
   combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0, missions: [],
-  event: null, lastEvent: 0, meteorT: 0
+  event: null, lastEvent: 0, meteorT: 0,
+  region: 'home', relics: 0, relicWave: false, windV: 0, windDir: 1, windT: 0
 };
 const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: false, charge: 0, wings: false };
-let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [], scrapBits = [];
+let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [], scrapBits = [], relicDrops = [];
 let boss = null;
-let shakeAmt = 0, flash = 0, warp = 0, clock = 0;
+let shakeAmt = 0, flash = 0, warp = 0, clock = 0, nebY = 0;
+// the region being flown, and its swarm tint (the Prism Rift shifts it every wave)
+const runReg = () => REGION[G.region];
+function runTint() {
+  const r = runReg();
+  return r.shift ? tintOf((r.tint.hue + Math.max(0, G.wave - 1) * 47) % 360, r.tint.mix, r.tint.sat) : r.tintObj;
+}
+const tcol = colors => tinted(colors, runTint());
 
 const STAR_SPEED = [6, 14, 28];
 const STAR_COL = ['#3a2c7a', '#7c6fc0', '#f4e9d8'];
 const stars = [];
 [36, 22, 10].forEach((n, z) => {
   for (let i = 0; i < n; i++) {
-    const tint = z === 2 && Math.random() < 0.3 ? fpick([PAL.a, PAL.b, PAL.c]) : STAR_COL[z];
+    const tint = z === 2 && Math.random() < 0.3 ? fpick([PAL.a, PAL.b, PAL.c]) : null;   // untinted stars take the region's colors
     stars.push({ x: frand(0, W), y: frand(0, H), z, c: tint, tw: Math.random() < 0.25 });
   }
 });
@@ -1341,7 +1988,7 @@ function waveRows(n) {
   rows.push({ type: 'stinger', count: n === 1 ? 4 : n < 4 ? 6 : 8 });
   if (n >= 6) rows.push({ type: 'miner', count: 6 });
   const dr = n === 1 ? 6 : 8;
-  rows.push(n >= 7 ? { type: 'aegis', count: 6 } : { type: 'drone', count: dr }, { type: n >= 4 ? 'splitter' : 'drone', count: dr });
+  rows.push(n >= runReg().mods.aegisFrom ? { type: 'aegis', count: 6 } : { type: 'drone', count: dr }, { type: n >= 4 ? 'splitter' : 'drone', count: dr });
   return rows;
 }
 function makeEnemy(type, col, row) {
@@ -1362,6 +2009,7 @@ function nextWave() {
   G.waveGrazes = 0;
   G.phase = 'intro';
   G.hitThisWave = false;
+  G.relicWave = false;
   rollEvent();
   if (G.wave % 5 === 0) {
     G.phaseT = 2.6;
@@ -1370,7 +2018,9 @@ function nextWave() {
     Snd.play('boss');
   } else {
     G.phaseT = 1.7;
-    banner('WAVE ' + G.wave, G.event ? EVENTS[G.event].name : G.wave === 1 ? (daily ? 'DAILY CHALLENGE' : 'GET READY') : '', G.event ? 'warn' : '', G.event ? 2 : 1.5);
+    const where = G.region === 'home' ? '' : runReg().name;
+    const first = daily ? 'DAILY CHALLENGE' + (where ? ': ' + where : '') : where || 'GET READY';
+    banner('WAVE ' + G.wave, G.event ? EVENTS[G.event].name : G.wave === 1 ? first : '', G.event ? 'warn' : '', G.event ? 2 : 1.5);
     Snd.jingle();
     Snd.play('main');
   }
@@ -1451,6 +2101,8 @@ function bonusClear() {
   mission('bonus', hits);
   saveStats();
   if (perfect && awardTrophy('trophy-golden')) extra.push(['TROPHY CARD', 'GOLDEN DRONE']);
+  const pc = runReg().perfectCard;
+  if (perfect && pc && awardTrophy(pc)) extra.push(['TROPHY CARD', byId(pc).name]);
   G.clear = { title: perfect ? 'PERFECT!' : 'STAGE CLEAR', note: 'CHALLENGING STAGE', pts: perfect ? 10000 : hits * 100,
     scrap: perfect ? 100 : Math.floor(hits / 4), extra, gambled: false, banked: false, busy: false };
   banner(perfect ? 'PERFECT!' : 'HITS ' + hits + ' OF ' + total, '', 'good', 1.5);
@@ -1552,16 +2204,17 @@ function schedule(dt) {
   if (G.diveT <= 0) {
     let active = 0;
     const ready = [];
+    const surge = G.event === 'surge';   // a swarm surge sends more divers, more often
     for (const e of enemies) { if (e.diving) active++; else if (e.state === 'form') ready.push(e); }
-    if (ready.length && active < Math.min(1 + Math.ceil(n / 2), 6)) {
+    if (ready.length && active < Math.min(1 + Math.ceil(n / 2), 6) + (surge ? 2 : 0)) {
       const cmd = canBeam() && grand() < 0.5 ? ready.find(e => e.type === 'warden' && !e.captive) : null;
       if (cmd) startBeam(cmd); else startDive(pick(ready));
     }
-    G.diveT = rand(0.7, 1.3) * Math.max(0.5, 2.1 - n * 0.13) * (enemies.length <= 5 ? 0.45 : 1);
+    G.diveT = rand(0.7, 1.3) * Math.max(0.5, 2.1 - n * 0.13) * (enemies.length <= 5 ? 0.45 : 1) * (surge ? 0.7 : 1);
   }
   G.fireT -= dt;
   if (G.fireT <= 0) {
-    G.fireT = rand(1.4, 2.8) / (1 + n * 0.12);
+    G.fireT = rand(1.4, 2.8) / (1 + n * 0.12) / runReg().mods.fireRate;
     if (n >= 2) { const f = enemies.filter(e => e.state === 'form'); if (f.length) enemyFire(pick(f), true); }
   }
 }
@@ -1675,15 +2328,31 @@ function dockRescue() {
 const EVENTS = {
   meteor: { name: 'METEOR SHOWER', tag: 'METEORS', color: PAL.s },
   dark: { name: 'DARK SECTOR', tag: 'DARK', color: PAL.v },
-  fast: { name: 'DOUBLE TIME: 2X SCRAP', tag: '2X SPEED', color: PAL.a }
+  fast: { name: 'DOUBLE TIME: 2X SCRAP', tag: '2X SPEED', color: PAL.a },
+  wind: { name: 'CROSSWIND', tag: 'WIND', color: PAL.b },
+  surge: { name: 'SWARM SURGE: +1 SCRAP A KILL', tag: 'SURGE', color: PAL.c }
 };
-// From wave 4, about 3 regular waves in 10 get an event, never two waves in a row.
+// Each region sets which events it gets, how often and from which wave. In Sector 9 about 3 regular
+// waves in 10 get one from wave 4, never two waves in a row; some regions allow back-to-back events.
 function rollEvent() {
   G.event = null;
-  if (G.wave >= 4 && G.wave % 5 !== 0 && G.lastEvent < G.wave - 1 && grand() < 0.3) {
-    G.event = pick(Object.keys(EVENTS));
+  const r = runReg();
+  if (G.wave >= r.evFrom && G.wave % 5 !== 0 && (r.evStreak || G.lastEvent < G.wave - 1) && grand() < r.evChance) {
+    const ks = Object.keys(r.events);
+    let roll = grand() * ks.reduce((a, k) => a + r.events[k], 0);
+    G.event = ks.find(k => (roll -= r.events[k]) < 0) || ks[0];
     G.lastEvent = G.wave;
+    if (G.event === 'wind') { G.windDir = grand() < 0.5 ? -1 : 1; G.windT = rand(2.5, 4.5); }
   }
+}
+// Crosswind: a sideways push on the ship that flips direction every few seconds.
+function updateWind(dt) {
+  let target = 0;
+  if (G.event === 'wind' && G.phase === 'active' && G.lives > 0) {
+    if ((G.windT -= dt) <= 0) { G.windDir = -G.windDir; G.windT = rand(3, 5); }
+    target = G.windDir * 28;
+  }
+  G.windV += (target - G.windV) * Math.min(1, dt * 1.2);
 }
 let meteors = [];
 function updateMeteors(dt, et) {
@@ -1760,7 +2429,7 @@ function deflects(e, s) {
 }
 
 /* ================= shooting ================= */
-function eshot(x, y, vx, vy) { if (player.alive) eshots.push({ x, y, vx, vy }); }
+function eshot(x, y, vx, vy) { const k = runReg().mods.shotSpeed; if (player.alive) eshots.push({ x, y, vx: vx * k, vy: vy * k }); }
 function shootAngle(x, y, a, s) { eshot(x, y, Math.cos(a) * s, Math.sin(a) * s); }
 function aimed(x, y, s, jitter) { shootAngle(x, y, Math.atan2(player.y - y, player.x - x) + rand(-jitter, jitter), s); }
 function fan(x, y, n, spread, s) { for (let i = 0; i < n; i++) shootAngle(x, y, Math.PI / 2 - spread / 2 + spread * i / (n - 1), s); }
@@ -1794,7 +2463,7 @@ function fire() {
 const BOSS_ORDER = ['queen', 'maw', 'mother'];
 function spawnBoss() {
   const k = G.bossCount++;
-  const kind = BOSS_ORDER[k % 3];
+  const kind = BOSS_ORDER[(k + BOSS_ORDER.indexOf(runReg().boss)) % 3];   // each region opens with its own boss
   const B = BOSSES[kind];
   let hp = B.hp + 30 * k;
   G.rows = [];
@@ -1822,7 +2491,7 @@ function damagePart(b, p, n) {
   Snd.bossHit();
   if (p.hp > 0) return;
   const x = b.x + p.dx, y = b.y + p.dy;
-  explode(x, y, b.B.colors, 18, 60);
+  explode(x, y, tcol(b.B.colors), 18, 60);
   addScore(500);
   popups.push({ text: '500', x, y: y + 4, t: 0, c: PAL.y });
   Snd.boom(); shakeIt(2);
@@ -1880,11 +2549,11 @@ function updateBoss(dt) {
     const sp = b.B.spr;
     if (b.boomT <= 0) {
       b.boomT = 0.09;
-      explode(b.x + frand(-sp.w / 2, sp.w / 2), b.y + frand(-sp.h / 2, sp.h / 2), b.B.colors, 10, 50);
+      explode(b.x + frand(-sp.w / 2, sp.w / 2), b.y + frand(-sp.h / 2, sp.h / 2), tcol(b.B.colors), 10, 50);
       Snd.boom(); shakeIt(2);
     }
     if (b.dieT <= 0) {
-      explode(b.x, b.y, b.B.colors, 70, 110);
+      explode(b.x, b.y, tcol(b.B.colors), 70, 110);
       rings.push({ x: b.x, y: b.y, r: 3, v: 140, t: 0, life: 0.6, c: PAL.w });
       flash = reduceMotion ? 0.15 : 0.6;
       shakeIt(6);
@@ -1892,6 +2561,7 @@ function updateBoss(dt) {
       dropPickup(b.x - 12, b.y, true);
       dropPickup(b.x + 12, b.y, true);
       dropScrap(b.x, b.y, 120 + 40 * b.k, true);
+      if (runReg().relics) dropRelic(b.x, b.y);   // bosses in the new regions always drop a relic
       boss = null;
     }
     return;
@@ -1994,8 +2664,10 @@ function killBoss(b) {
   popups.push({ text: String(bonus), x: b.x, y: b.y - 14, t: -0.9, c: PAL.y });
   for (const s of eshots) spark(s.x, s.y);
   eshots = [];
-  for (const e of enemies) if (!e.dead) { e.dead = true; explode(e.x, e.y, e.T.colors, 10, 50); }
+  for (const e of enemies) if (!e.dead) { e.dead = true; explode(e.x, e.y, tcol(e.T.colors), 10, 50); }
   if (awardTrophy('trophy-' + b.kind)) G.extra.push(['TROPHY CARD', b.B.name]);
+  const reg = runReg();
+  if (reg.bossCard && b.kind === reg.boss && awardTrophy(reg.bossCard)) G.extra.push(['TROPHY CARD', reg.bossName]);
   mission('boss');
   G.extra.push(['BOSS SCRAP', '+' + (120 + 40 * b.k)]);
   Snd.bigBoom();
@@ -2166,14 +2838,16 @@ function killEnemy(e) {
   if (moving && !e.bonus) mission('dive');
   if (e.type === 'mini') mission('minis');
   if (moving || mult > 1) popups.push({ text: String(pts), x: e.x, y: e.y - 4, t: 0, c: mult > 1 ? comboColor(mult) : e.type === 'warden' ? PAL.y : PAL.w });
-  explode(e.x, e.y, e.T.colors, 14, 60);
+  explode(e.x, e.y, tcol(e.T.colors), 14, 60);
   Snd.boom();
-  dropScrap(e.x, e.y, (e.bonus ? 1 : e.T.scrap + (moving ? 1 : 0)) * (G.event === 'fast' ? 2 : 1));
+  dropScrap(e.x, e.y, (e.bonus ? 1 : e.T.scrap + (moving ? 1 : 0) + (G.event === 'surge' ? 1 : 0)) * (G.event === 'fast' ? 2 : 1));
   if (e.bonus) { G.bonusHits++; return; }
   if (e.type === 'splitter') splitInto(e);
   G.killsSinceDrop++;
-  const chance = G.killsSinceDrop >= 18 ? 1 : e.T.drop + (moving ? 0.03 : 0);
+  const chance = G.killsSinceDrop >= 18 ? 1 : e.T.drop * runReg().mods.dropMul + (moving ? 0.03 : 0);
   if (grand() < chance) { dropPickup(e.x, e.y); G.killsSinceDrop = 0; }
+  // in the new regions, one kill a wave may shake loose a relic
+  if (runReg().relics && !G.relicWave && grand() < RELIC_CHANCE) { G.relicWave = true; dropRelic(e.x, e.y); }
 }
 function addScore(v) {
   G.score += v;
@@ -2269,6 +2943,7 @@ function waveClear() {
   G.pendingBonus = G.wave % 5 === 3;
   const noHit = !G.hitThisWave;
   if (noHit) mission('nohit');
+  chartProgress();
   if (G.event) G.extra.push(['SECTOR EVENT', EVENTS[G.event].tag]);
   if (G.waveMult > 1) G.extra.push(['BEST COMBO', 'X' + G.waveMult]);
   if (G.waveGrazes) G.extra.push(['GRAZES', String(G.waveGrazes)]);
@@ -2280,7 +2955,19 @@ function waveClear() {
   clearMines();
   clearMeteors();
   for (const b of scrapBits) b.home = true;
+  for (const r of relicDrops) r.home = true;
   Snd.jingle();
+}
+// Clearing a wave records the region's best; clearing wave 5 (its boss) charts the next region on the map.
+function chartProgress() {
+  const r = runReg(), next = REGIONS[REGIONS.indexOf(r) + 1];
+  regions.best[r.id] = Math.max(regions.best[r.id] || 0, G.wave);
+  if (G.wave >= 5 && next && !regions.charted[next.id]) {
+    regions.charted[next.id] = 1;
+    G.extra.push(['REGION CHARTED', next.name]);
+    toast('NEW REGION CHARTED: ' + next.name, next.color);
+  }
+  saveRegions();
 }
 function onWaveStart() {
   if (RUN.spreadStart) player.spreadT = Math.max(player.spreadT, 15);
@@ -2316,6 +3003,37 @@ function updateScrap(dt) {
 function collectScrap(v) { Wallet.add(v); G.scrapRun += v; Snd.coin(); }
 function flushScrap() { for (const b of scrapBits) collectScrap(b.v); scrapBits = []; }
 
+/* ================= relics: collectibles from the region's own set, found in flight ================= */
+// Bosses in the new regions always drop one; otherwise each kill has this chance, at most once a wave.
+const RELIC_CHANCE = 0.02;
+const RELIC_HALF = ['...3', '..31', '.311', '3114', '.112', '..12', '...2'];
+function relicSprite(reg) {
+  return reg._relic || (reg._relic = spriteC(RELIC_HALF, ch => ({ 1: reg.pal.main, 2: reg.pal.dark, 3: '#ffffff', 4: reg.pal.acc })[ch]));
+}
+function dropRelic(x, y) { relicDrops.push({ x: cxk(x), y, t: 0, home: false }); }
+function updateRelics(dt) {
+  for (const r of relicDrops) {
+    r.t += dt;
+    const dx = player.x - r.x, dy = player.y - r.y, d = Math.hypot(dx, dy) || 1;
+    if (r.home && player.alive) { r.x += dx / d * 130 * dt; r.y += dy / d * 130 * dt; }
+    else { r.y += 20 * dt; r.x += Math.sin(r.t * 2.5) * 10 * dt; }
+    if (Math.random() < dt * 6) parts.push({ x: r.x + frand(-4, 4), y: r.y + frand(-4, 4), vx: 0, vy: -8, t: 0, life: 0.3, c: '#ffffff', s: 1 });
+    if (r.y > H + 8) r.dead = true;
+    else if (player.alive && Math.abs(dx) < (player.twin ? 14 : 9) && Math.abs(dy) < 9) { r.dead = true; openRelic(); }
+  }
+  relicDrops = relicDrops.filter(r => !r.dead);
+}
+// The item is picked when the relic is caught; a duplicate refunds scrap like a capsule.
+function openRelic() {
+  const item = rollItem(G.region), res = grantItem(item);
+  G.relics++;
+  (G.clear ? G.clear.extra : G.extra).push(['RELIC', item.name]);
+  toast('RELIC: ' + item.name + (res.isNew ? ' (NEW!)' : ' · +' + res.refund + ' SCRAP'), RARITY[item.r].color);
+  rings.push({ x: player.x, y: player.y, r: 3, v: 70, t: 0, life: 0.35, c: RARITY[item.r].color });
+  Snd.fanfare(item.r);
+}
+function flushRelics() { const n = relicDrops.length; relicDrops = []; for (let i = 0; i < n; i++) openRelic(); }
+
 /* ================= effects ================= */
 function explode(x, y, colors, n, spd) {
   for (let i = 0; i < n && parts.length < 700; i++) {
@@ -2331,10 +3049,14 @@ function shakeIt(m) { shakeAmt = Math.max(shakeAmt, m); }
 function updateFx(dt) {
   if (state !== 'play') warp += (0 - warp) * Math.min(1, dt * 2.5);
   const k = (1 + warp * 7) * (G.slowT > 0 && state !== 'title' ? 0.4 : 1);
+  const wind = inRun() ? G.windV : 0;   // a crosswind blows the starfield sideways too
   for (const s of stars) {
     s.y += STAR_SPEED[s.z] * k * dt;
+    s.x += wind * 0.35 * (s.z + 1) * dt;
+    if (s.x < 0) s.x += W; else if (s.x >= W) s.x -= W;
     if (s.y > H) { s.y -= H + 4; s.x = frand(0, W); }
   }
+  nebY = (nebY + 3 * k * dt) % H;
   for (const p of parts) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 2.2; p.vy *= 1 - dt * 2.2; }
   parts = parts.filter(p => p.t < p.life);
   for (const r of rings) { r.t += dt; r.r += r.v * dt; }
@@ -2358,6 +3080,7 @@ function updatePlayer(dt) {
   player.y += my * hullStat().vspeed * dt;
   if (touch.id !== null) { player.x += touch.dx; player.y += touch.dy; }
   touch.dx = touch.dy = 0;
+  player.x += G.windV * dt;
   const edge = player.twin ? 7 + TWIN_DX : 7;
   player.x = clamp(player.x, edge, W - edge);
   if (player.wings) updateWings(dt);
@@ -2365,8 +3088,12 @@ function updatePlayer(dt) {
   G.trailT += dt;
   if (G.trailT > 0.04) {
     G.trailT = 0;
-    const tc = trailColors();
-    for (const sx of shipXs()) for (const ox of [-2, 2]) parts.push({ x: sx + ox, y: player.y + 8, vx: frand(-6, 6), vy: frand(30, 55), t: 0, life: frand(0.15, 0.3), c: Math.random() < 0.5 ? tc.core : tc.outer, s: 1 });
+    const sparkCol = (byId(album.equip.trail) || {}).spark;
+    for (const sx of shipXs()) for (const ox of [-2, 2]) {
+      const tc = trailColors(undefined, ox);
+      parts.push({ x: sx + ox, y: player.y + 8, vx: frand(-6, 6), vy: frand(30, 55), t: 0, life: frand(0.15, 0.3), c: Math.random() < 0.5 ? tc.core : tc.outer, s: 1 });
+      if (sparkCol && Math.random() < 0.15) parts.push({ x: sx + ox, y: player.y + 8, vx: frand(-26, 26), vy: frand(20, 60), t: 0, life: frand(0.2, 0.4), c: sparkCol, s: 1 });
+    }
   }
   player.cd -= dt;
   if (player.invuln > 0) player.invuln -= dt;
@@ -2388,10 +3115,12 @@ function update(dt) {
   if (G.comboT > 0 && (G.comboT -= dt) <= 0) G.combo = 0;
 
   G.formT += et;
-  G.fx = W / 2 + Math.sin(G.formT * 0.55) * 14;
+  const sway = runReg().mods.sway;   // Coral Drift's tides sway the formation wider and faster
+  G.fx = W / 2 + Math.sin(G.formT * 0.55 * sway) * 14 * sway;
   G.breathAmp += ((G.entering === 0 ? 0.06 : 0) - G.breathAmp) * Math.min(1, dt * 1.5);
   G.breath = 1 + Math.sin(G.formT * 1.7) * G.breathAmp;
 
+  updateWind(dt);
   let warpTarget = 0;
   if (G.lives <= 0) { /* game over: the swarm keeps flying, no new waves */ }
   else if (G.phase === 'intro') {
@@ -2470,6 +3199,7 @@ function update(dt) {
   pickups = pickups.filter(p => !p.dead);
   enemies = enemies.filter(e => !e.dead);
   updateScrap(dt);
+  updateRelics(dt);
   updateRescue(dt);
   if (G.powerT > 0 && G.phase === 'active' && player.alive && (G.powerT -= dt) <= 0) RUN.nextPowers.splice(0).forEach(applyPower);
 
@@ -2500,21 +3230,65 @@ function ringPts(x, y, r, c, dash) {
     cx.fillRect(Math.round(x + Math.cos(a) * r), Math.round(y + Math.sin(a) * r), 1, 1);
   }
 }
-function drawStars() {
-  const streak = warp > 0.05;
+// The region on screen: the one being flown, or the course set on the map.
+const viewReg = () => inRun() ? runReg() : REGION[regions.sel];
+function drawStars(reg) {
+  const streak = warp > 0.05, cols = reg.stars || STAR_COL;
   for (const s of stars) {
     if (s.tw && !streak && Math.floor(clock * 3 + s.x) % 5 === 0) continue;
-    cx.fillStyle = s.c;
+    cx.fillStyle = s.c || cols[s.z];
     cx.fillRect(Math.round(s.x), Math.round(s.y), 1, streak ? 1 + Math.round(warp * (s.z + 1) * 3) : 1);
   }
 }
-function drawEnemies() {
+// A region's nebula: dithered pixel clouds from tileable value noise, built once and scrolled behind the stars.
+const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+function nebulaFor(reg) {
+  if (!reg.neb) return null;
+  if (reg._neb) return reg._neb;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d'), img = g.createImageData(W, H), d = img.data, rnd = seeded(hashStr(reg.id + ':nebula'));
+  const layer = cell => {   // wraps vertically so the scroll is seamless
+    const nx = Math.ceil(W / cell) + 1, ny = H / cell, v = Array.from({ length: nx * ny }, rnd);
+    return (x, y) => {
+      const fx = x / cell, fy = y / cell, i = Math.floor(fx), j = Math.floor(fy), tx = fx - i, ty = fy - j;
+      const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty), j0 = (j % ny) * nx, j1 = ((j + 1) % ny) * nx;
+      return lerp(lerp(v[j0 + i], v[j0 + i + 1], sx), lerp(v[j1 + i], v[j1 + i + 1], sx), sy);
+    };
+  };
+  const L = [layer(60), layer(30), layer(15)];
+  const cols = reg.neb.map(h => { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; });
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const n = L[0](x, y) * 0.55 + L[1](x, y) * 0.3 + L[2](x, y) * 0.15 + (BAYER4[(y & 3) * 4 + (x & 3)] / 16 - 0.5) * 0.06;
+    const lv = n > 0.62 ? 1 : n > 0.5 ? 0 : -1;
+    if (lv < 0) continue;
+    const o = (y * W + x) * 4;
+    d[o] = cols[lv][0]; d[o + 1] = cols[lv][1]; d[o + 2] = cols[lv][2]; d[o + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  return (reg._neb = c);
+}
+function drawNebula(reg) {
+  const nb = nebulaFor(reg);
+  if (!nb) return;
+  const y = Math.floor(nebY);
+  cx.drawImage(nb, 0, y - H);
+  cx.drawImage(nb, 0, y);
+}
+function drawEnemies(tint) {
   const q = Math.PI / 8;
   for (const e of enemies) {
     if (e.dead || e.state === 'wait') continue;
     const fr = e.state === 'form' ? Math.floor(clock * 2.2) % 2 : Math.floor(e.anim * 6) % 2;
-    const set = e.hp === 1 && e.T.hurt ? e.T.hurt : e.T.spr;
+    const set = tinted(e.hp === 1 && e.T.hurt ? e.T.hurt : e.T.spr, tint);
     drawSpr(set[fr], e.x, e.y, Math.round(e.a / q) * q, e.flash > 0);
+  }
+}
+function drawRelics() {
+  const reg = runReg(), spr = relicSprite(reg);
+  for (const r of relicDrops) {
+    drawSpr(spr, r.x, r.y + Math.round(Math.sin(r.t * 5)), 0, Math.floor(r.t * 8) % 6 === 0);
+    if (Math.floor(r.t * 4) % 2) ringPts(r.x, r.y, 6, reg.pal.acc, Math.floor(clock * 10) % 3);
   }
 }
 function drawTractor(e) {
@@ -2537,16 +3311,16 @@ function drawCaptives() {
   }
   if (rescue) drawSpr(shipFor(album.equip.paint).ship, rescue.x, rescue.y, rescue.t < 0.6 ? Math.round(Math.PI * (1 - rescue.t / 0.6) / q) * q : 0);
 }
-function drawBoss(b) {
+function drawBoss(b, tint) {
   const flick = b.state === 'dying' && Math.floor(clock * 16) % 2;
-  drawSpr(b.B.spr, b.x, b.y, 0, (b.flash > 0 && !b.parts) || flick);
+  drawSpr(tinted(b.B.spr, tint), b.x, b.y, 0, (b.flash > 0 && !b.parts) || flick);
   if (b.parts) {
     for (const p of b.parts) {
       if (p.hp <= 0) cx.globalAlpha = 0.3;
-      drawSpr(SPR[p.kind], b.x + p.dx, b.y + p.dy, 0, p.hp > 0 && (p.flash > 0 || flick));
+      drawSpr(tinted(SPR[p.kind], tint), b.x + p.dx, b.y + p.dy, 0, p.hp > 0 && (p.flash > 0 || flick));
       cx.globalAlpha = 1;
     }
-    drawSpr(SPR.core, b.x, b.y + b.core.dy, 0, b.core.flash > 0 || flick);
+    drawSpr(tinted(SPR.core, tint), b.x, b.y + b.core.dy, 0, b.core.flash > 0 || flick);
     if (shielded(b) && b.state === 'fight') ringPts(b.x, b.y + b.core.dy, 6.5, Math.floor(clock * 8) % 2 ? PAL.b : PAL.t, Math.floor(clock * 12) % 3);
   }
   if (b.atk === 'laser' && b.sub >= 1) {
@@ -2569,12 +3343,13 @@ function drawBeam(b) {
 function drawPlayer() {
   if (!player.alive || !inRun()) return;
   if (!(player.invuln > 0 && Math.floor(clock * 12) % 2)) {
-    const f = Math.floor(clock * 20) % 3, tc = trailColors(), ship = shipFor(album.equip.paint).ship;
+    const f = Math.floor(clock * 20) % 3, jl = trailColors(undefined, -1), jr = trailColors(undefined, 1), ship = shipFor(album.equip.paint).ship;
     for (const sx of shipXs()) {
       drawSpr(ship, sx, player.y);
       const fx = Math.round(sx) - 5, fy = Math.round(player.y) + 6;
-      cx.fillStyle = tc.core; cx.fillRect(fx + 3, fy, 1, 1); cx.fillRect(fx + 7, fy, 1, 1);
-      if (f) { cx.fillStyle = tc.outer; cx.fillRect(fx + 3, fy + 1, 1, f); cx.fillRect(fx + 7, fy + 1, 1, f); }
+      cx.fillStyle = jl.core; cx.fillRect(fx + 3, fy, 1, 1);
+      cx.fillStyle = jr.core; cx.fillRect(fx + 7, fy, 1, 1);
+      if (f) { cx.fillStyle = jl.outer; cx.fillRect(fx + 3, fy + 1, 1, f); cx.fillStyle = jr.outer; cx.fillRect(fx + 7, fy + 1, 1, f); }
     }
   }
   if (player.wings) for (const w of wingmen) {
@@ -2598,7 +3373,7 @@ function drawHudCanvas() {
   const sc = String(Wallet.scrap), sw = sc.length * 4 + 6, sx = Math.round(W / 2 - sw / 2);
   drawSpr(SCRAP_ICON, sx + 2, H - 6);
   txt(sc, sx + 7, H - 8, PAL.a);
-  if (G.event && !boss) txt(EVENTS[G.event].tag, W - 4, 19, EVENTS[G.event].color, 'right');
+  if (G.event && !boss) txt(G.event === 'wind' ? (G.windDir > 0 ? 'WIND >' : '< WIND') : EVENTS[G.event].tag, W - 4, 19, EVENTS[G.event].color, 'right');
   const m = comboMult();
   if (G.comboT > 0 && m > 1) {
     txt('X' + m, 4, 19, comboColor(m));
@@ -2618,22 +3393,24 @@ function drawHudCanvas() {
     y -= 8;
   }
   if (boss) {
-    const b = boss, x0 = 40, w = 100;
-    txt(b.B.name, W / 2, 19, b.B.bar, 'center');
+    const b = boss, x0 = 40, w = 100, reg = runReg(), bar = tintHex(b.B.bar, runTint());
+    txt(reg.bossName && b.kind === reg.boss ? reg.bossName : b.B.name, W / 2, 19, bar, 'center');
     cx.fillStyle = '#241a52'; cx.fillRect(x0 - 1, 26, w + 2, 4);
-    cx.fillStyle = b.flash > 0 ? '#ffffff' : b.B.bar; cx.fillRect(x0, 27, Math.ceil(w * b.hp / b.max), 2);
+    cx.fillStyle = b.flash > 0 ? '#ffffff' : bar; cx.fillRect(x0, 27, Math.ceil(w * b.hp / b.max), 2);
     cx.fillStyle = PAL.k; cx.fillRect(x0 + Math.round(w / 3), 27, 1, 2); cx.fillRect(x0 + Math.round(w * 2 / 3), 27, 1, 2);
   }
 }
 // The play field shows the ship and HUD only during a run (not on the title or the title's hangar).
-const inRun = () => !(state === 'title' || (state === 'hangar' && hangar.from === 'title'));
+const inRun = () => !(state === 'title' || state === 'map' || (state === 'hangar' && hangarPreRun()));
 function draw() {
+  const reg = viewReg(), tint = inRun() ? runTint() : null;
   cx.setTransform(1, 0, 0, 1, 0, 0);
-  cx.fillStyle = PAL.k;
+  cx.fillStyle = reg.bg || PAL.k;
   cx.fillRect(0, 0, W, H);
   const sh = reduceMotion ? 0 : shakeAmt;
   cx.setTransform(1, 0, 0, 1, sh ? Math.round(frand(-sh, sh)) : 0, sh ? Math.round(frand(-sh, sh)) : 0);
-  drawStars();
+  drawNebula(reg);
+  drawStars(reg);
   if (G.slowT > 0 && state !== 'title' && (G.slowT > 1.5 || Math.floor(clock * 8) % 2)) {
     cx.fillStyle = 'rgba(90,169,255,0.08)';
     cx.fillRect(-8, -8, W + 16, H + 16);
@@ -2641,9 +3418,10 @@ function draw() {
   if (boss) drawBeam(boss);
   for (const e of enemies) if (e.state === 'beam') drawTractor(e);
   for (const p of pickups) { const pw = POWERS[p.kind]; cx.drawImage(Math.floor(p.t * 5) % 2 ? pw.alt : pw.img, Math.round(p.x) - 4, Math.round(p.y) - 4); }
-  drawEnemies();
+  drawRelics();
+  drawEnemies(tint);
   drawCaptives();
-  if (boss) drawBoss(boss);
+  if (boss) drawBoss(boss, tint);
   for (const s of pshots) {
     const x = Math.round(s.x), y = Math.round(s.y);
     if (s.pierce) {
@@ -2714,7 +3492,7 @@ function placeToast() {
 }
 function hideBanners() { ui.bannerT = ui.toastT = 0; $('banner').hidden = true; $('toast').hidden = true; }
 
-const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovHangar', 'ovWheel'];
+const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovHangar', 'ovWheel', 'ovMap'];
 function showOverlay(id) {
   for (const o of OVERLAYS) $(o).hidden = o !== id;
   scr.classList.toggle('paused', id === 'ovPause');   // frozen banners stay out of the pause menu
@@ -2830,6 +3608,8 @@ function dailyBest(day = todayUTC()) {
 }
 let dailyBestNow = 0;
 function seedWave(tag) { if (daily) rng = seeded(hashStr(daily + ':' + tag)); }
+// The day's region, the same for everyone and open whether or not it is charted.
+const dailyRegion = day => REGIONS[Math.floor(seeded(hashStr(day + ':region'))() * REGIONS.length)].id;
 function startDaily() {
   if (state !== 'title') return;
   daily = todayUTC();
@@ -2857,11 +3637,12 @@ function resetGame(from) {
     bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
     scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
     combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0, missions: from ? rollMissions() : [],
-    event: null, lastEvent: 0, meteorT: 0 });
+    event: null, lastEvent: 0, meteorT: 0,
+    region: from && isRegion(from.region) ? from.region : daily ? dailyRegion(daily) : regions.sel, relics: 0, relicWave: false, windV: 0, windDir: 1, windT: 0 });
   Object.assign(RUN, { fastFire: 0, spreadStart: false, magnet: false, shipsBought: 0, nextPowers: [] });
   if (from && from.run) Object.assign(RUN, { fastFire: clamp(from.run.fastFire | 0, 0, 2), spreadStart: !!from.run.spreadStart, magnet: !!from.run.magnet, shipsBought: from.run.shipsBought | 0 });
   Object.assign(player, { x: W / 2, y: H - 22, alive: true, invuln: 1.5, cd: 0.2, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: !!(from && from.twin), charge: 0, wings: !!(from && from.wings) });
-  enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; scrapBits = []; boss = null; rescue = null; mines = []; meteors = [];
+  enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; scrapBits = []; relicDrops = []; boss = null; rescue = null; mines = []; meteors = [];
   if (from) {
     G.score = Math.max(0, from.score | 0);
     G.lives = clamp(from.lives | 0, 1, 5);
@@ -2906,14 +3687,16 @@ function showTitle(panel, hl) {
   daily = null;
   rng = null;
   $('hudHiLbl').textContent = 'HI-SCORE';
-  const db = dailyBest();
-  $('dailyNote').textContent = 'DAILY CHALLENGE: ' + (db ? "TODAY'S BEST " + db : 'NOT PLAYED TODAY');
+  const db = dailyBest(), dr = REGION[dailyRegion(todayUTC())];
+  $('dailyNote').textContent = 'DAILY CHALLENGE' + (dr.id === 'home' ? '' : ' IN ' + dr.name) + ': ' + (db ? "TODAY'S BEST " + db : 'NOT PLAYED TODAY');
   Snd.hold(false);
   Snd.stop();
   hideBanners();
-  enemies = []; eshots = []; pshots = []; pickups = []; popups = []; scrapBits = []; boss = null; rescue = null; mines = []; meteors = [];
+  enemies = []; eshots = []; pshots = []; pickups = []; popups = []; scrapBits = []; relicDrops = []; boss = null; rescue = null; mines = []; meteors = [];
   G.slowT = 0;
+  G.windV = 0;
   warp = 0;
+  renderCourse();
   refreshWallet();
   renderScores(hl);
   if (!nextMissions) nextMissions = rollMissions();
@@ -2933,6 +3716,8 @@ function showGameOver() {
   $('rMissions').textContent = missionsDone();
   rng = null;
   document.querySelectorAll('.daily-only').forEach(el => { el.hidden = !daily; });
+  document.querySelectorAll('.relic-only').forEach(el => { el.hidden = !runReg().relics; });
+  $('rRelics').textContent = G.relics;
   if (daily) endDaily();
   $('rScore').textContent = G.score;
   $('rWave').textContent = G.wave;
@@ -2979,6 +3764,7 @@ function imgOf(url, cls) { const i = document.createElement('img'); i.alt = ''; 
 /* ---- wave debrief + double or nothing ---- */
 function openDebrief() {
   flushScrap();
+  flushRelics();
   if (rescue && player.alive) dockRescue();
   hideBanners();
   keys.clear();
@@ -3118,16 +3904,23 @@ function skipWager() { if (state === 'wager') { G.wager = null; resumeRun(); } }
 
 /* ---- hangar ---- */
 const PANES = ['hgShop', 'hgShips', 'hgSlots', 'hgCrate', 'hgAlbum'];
-const hangar = { from: 'title', pane: 'hgShop', sel: null };
-function openHangar(from) {
+// from: 'title' or 'map' (before a run: upgrades wait for the next run) or 'debrief' (between waves).
+// set: the region whose collectible set the album and capsule panes show.
+const hangar = { from: 'title', pane: 'hgShop', sel: null, set: 'home' };
+const hangarPreRun = () => hangar.from !== 'debrief';
+function openHangar(from, set, pane) {
   if (daily) return;
   if (from === 'debrief') { if (G.clear && G.clear.busy) return; bankClear(); }
   hangar.from = from;
+  hangar.set = set || (from === 'debrief' ? G.region : regions.sel);
+  if (pane) hangar.pane = pane;
   state = 'hangar';
-  $('shopNote').textContent = from === 'title' ? 'UPGRADES APPLY TO YOUR NEXT RUN, THEN EXPIRE' : 'UPGRADES LAST FOR THE REST OF THIS RUN';
-  $('hgBack').innerHTML = (from === 'title' ? 'BACK TO TITLE' : 'BACK TO DEBRIEF') + '<span class="kh"> (ESC)</span>';
-  $('slotMsg').textContent = '3 OF A KIND: THAT POWER-UP ' + (from === 'title' ? 'IN WAVE 1' : 'NEXT WAVE');
+  const pre = hangarPreRun();
+  $('shopNote').textContent = pre ? 'UPGRADES APPLY TO YOUR NEXT RUN, THEN EXPIRE' : 'UPGRADES LAST FOR THE REST OF THIS RUN';
+  $('hgBack').innerHTML = (from === 'map' ? 'BACK TO MAP' : pre ? 'BACK TO TITLE' : 'BACK TO DEBRIEF') + '<span class="kh"> (ESC)</span>';
+  $('slotMsg').textContent = '3 OF A KIND: THAT POWER-UP ' + (pre ? 'IN WAVE 1' : 'NEXT WAVE');
   resetCrate();
+  renderSetNav();
   showPane(hangar.pane);
   refreshWallet();
   showOverlay('ovHangar');
@@ -3135,8 +3928,24 @@ function openHangar(from) {
 }
 function closeHangar() {
   if (state !== 'hangar' || slot.spinning || crate.busy) return;
-  if (hangar.from === 'title') showTitle(0);
+  if (hangar.from === 'map') openMap(hangar.set);
+  else if (hangar.from === 'title') showTitle(0);
   else { state = 'debrief'; renderDebrief(); showOverlay('ovDebrief'); ui.readyAt = clock + 0.4; }
+}
+// The album and capsule panes share one set picker, cycling through every region's set.
+function renderSetNav() {
+  const reg = REGION[hangar.set];
+  document.querySelectorAll('.js-set-name').forEach(el => { el.textContent = reg.name + '  ' + setOwned(reg) + '/' + reg.items.length; el.style.color = reg.color; });
+}
+function shiftSet(d) {
+  if (state !== 'hangar' || crate.busy) return;
+  const i = REGIONS.indexOf(REGION[hangar.set]);
+  hangar.set = REGIONS[(i + d + REGIONS.length) % REGIONS.length].id;
+  hangar.sel = null;
+  Snd.blip();
+  renderSetNav();
+  if (hangar.pane === 'hgAlbum') renderAlbum();
+  if (hangar.pane === 'hgCrate') { resetCrate(); renderCrateOdds(); }
 }
 function showPane(id) {
   if (slot.spinning || crate.busy) return;   // stay on the machine until its result is shown
@@ -3144,7 +3953,7 @@ function showPane(id) {
   for (const pn of PANES) $(pn).hidden = pn !== id;
   document.querySelectorAll('.hg-tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.pane === id)));
   if (id === 'hgShop') renderShop();
-  if (id === 'hgCrate') renderCrateButton();
+  if (id === 'hgCrate') { renderCrateButton(); renderCrateOdds(); }
   if (id === 'hgAlbum') renderAlbum();
   if (id === 'hgShips') renderShips();
   $('slotSpin').disabled = slot.spinning || Wallet.scrap < SLOT_COST;
@@ -3160,7 +3969,7 @@ const SHOP = [
   { id: 'bomb', name: 'SMART BOMB', desc: 'ONE MORE SCREEN-CLEARING BOMB' }
 ];
 function shopOffer(id) {
-  const T = hangar.from === 'title';
+  const T = hangarPreRun();
   switch (id) {
     case 'shield': return (T ? loadout.shield : player.shield) ? { status: 'READY' } : { cost: 30 };
     case 'spread': return (T ? loadout.spreadStart : RUN.spreadStart) ? { status: 'OWNED' } : { cost: 60 };
@@ -3177,7 +3986,7 @@ function shopOffer(id) {
 function buyUpgrade(id) {
   const o = shopOffer(id);
   if (state !== 'hangar' || o.cost == null || !Wallet.spend(o.cost)) { Snd.lose(); return; }
-  const T = hangar.from === 'title';
+  const T = hangarPreRun();
   if (id === 'shield') { if (T) loadout.shield = true; else player.shield = true; }
   else if (id === 'spread') { if (T) loadout.spreadStart = true; else RUN.spreadStart = true; }
   else if (id === 'fast') { if (T) loadout.fastFire++; else RUN.fastFire++; }
@@ -3240,7 +4049,7 @@ function spinSlots() {
   }, 70);
 }
 function paySlots(res) {
-  const [a, b, c] = res, T = hangar.from === 'title';
+  const [a, b, c] = res, T = hangarPreRun();
   if (a === b && b === c) {
     if (a === 'life') {
       const room = T ? 3 + loadout.extraShips < 5 : G.lives < 5;
@@ -3268,13 +4077,17 @@ function revealSlots(out) {
   $('slotSpin').disabled = Wallet.scrap < SLOT_COST;
 }
 
-// mystery capsule: rolls a collectible rarity
+// mystery capsule: rolls a collectible rarity, then an item of it from the chosen set
 const CRATE_COST = 60;
 const crate = { busy: false, last: null };
 function renderCrateButton() {
   const b = $('crateOpen');
   b.disabled = crate.busy || Wallet.scrap < CRATE_COST;
   b.innerHTML = Wallet.scrap < CRATE_COST && !crate.busy ? 'NEED 60 SCRAP' : 'OPEN &middot; 60 SCRAP';
+}
+function renderCrateOdds() {
+  const items = REGION[hangar.set].items;
+  oddsRows($('crateOdds'), RARITY.map((r, i) => ['<span style="color:' + r.color + '">' + r.name + '</span>', r.odds + '%', items.filter(it => it.r === i).length + ' ITEMS']));
 }
 function resetCrate() {
   if (crate.busy) return;
@@ -3293,11 +4106,12 @@ function openCrate() {
   Snd.charge();
   // the item is saved before the shake, so closing the page mid-roll never loses it
   Wallet.held = true;
-  const item = rollItem(), res = grantItem(item);
+  const item = rollItem(hangar.set), res = grantItem(item);
   setTimeout(() => {
     $('crateStage').classList.remove('shake');
     Wallet.held = false;
     refreshWallet();
+    renderSetNav();
     crate.busy = false;
     crate.last = item;
     $('crateImg').hidden = true;
@@ -3324,13 +4138,17 @@ function equipCrateItem() {
 
 // album: every item can also be bought outright, so collecting never requires gambling
 function equipItem(item) { album.equip[item.kind] = item.id; saveAlbum(); Snd.blip(); }
+const patternLabel = item => item.pattern ? 'PATTERN: ' + PATTERN_NAME[item.pattern] + (item.anim ? ' (ANIMATED)' : '') : '';
 function renderAlbum() {
-  const grid = $('albumGrid');
-  if (!grid.children.length) {
-    for (const item of COLLECTION) {
+  const grid = $('albumGrid'), reg = REGION[hangar.set];
+  if (grid.dataset.set !== reg.id) {   // build the tiles of the set on show
+    grid.textContent = '';
+    grid.dataset.set = reg.id;
+    for (const item of reg.items) {
       const b = mkBtn('tile', '', () => { hangar.sel = item.id; renderAlbum(); });
       b.dataset.id = item.id;
       b.style.setProperty('--rc', RARITY[item.r].color);
+      b.classList.toggle('pat', !!item.pattern);
       b.appendChild(imgOf(silhouetteUrl(item)));
       grid.appendChild(b);
     }
@@ -3340,14 +4158,15 @@ function renderAlbum() {
     b.firstChild.src = owned ? itemUrl(item) : silhouetteUrl(item);
     b.classList.toggle('eq', album.equip[item.kind] === item.id);
     b.setAttribute('aria-pressed', String(hangar.sel === item.id));
-    b.setAttribute('aria-label', (owned ? item.name : 'Not collected: ' + item.name) + ', ' + RARITY[item.r].name + ' ' + KIND_NAME[item.kind]);
+    b.setAttribute('aria-label', (owned ? item.name : 'Not collected: ' + item.name) + ', ' + RARITY[item.r].name + ' ' + KIND_NAME[item.kind] + (item.pattern ? ', patterned' : ''));
   }
+  renderSetNav();
   const item = byId(hangar.sel), act = $('adAct');
-  if (!item) { $('adName').textContent = 'PICK AN ITEM'; $('adMeta').textContent = 'AMBER CORNER = EQUIPPED'; act.hidden = true; return; }
+  if (!item) { $('adName').textContent = 'PICK AN ITEM'; $('adName').style.color = ''; $('adMeta').textContent = 'AMBER CORNER = EQUIPPED · STRIPED CORNER = PATTERNED'; act.hidden = true; return; }
   const owned = !!album.owned[item.id], price = RARITY[item.r].price;
   $('adName').textContent = item.name + (owned ? '' : ' (NOT COLLECTED)');
   $('adName').style.color = RARITY[item.r].color;
-  $('adMeta').textContent = RARITY[item.r].name + ' ' + KIND_NAME[item.kind] + (item.note ? ' · ' + item.note : '');
+  $('adMeta').textContent = [RARITY[item.r].name + ' ' + KIND_NAME[item.kind], patternLabel(item), item.note].filter(Boolean).join(' · ');
   act.hidden = owned && item.kind === 'trophy';
   act.disabled = !owned && Wallet.scrap < price;
   act.textContent = !owned ? 'BUY ' + price : album.equip[item.kind] === item.id ? 'UNEQUIP' : 'EQUIP';
@@ -3393,6 +4212,132 @@ function shipAction(id) {
   hulls.sel = id;
   saveHulls();
   renderShips();
+}
+
+/* ---- star map: pick the region for the next run ---- */
+// Regions are charted in map order: clearing wave 5 in one charts the next, or scrap can chart it early.
+const MAP_W = 168, MAP_H = 120;
+const mapView = { i: 0 };
+let mapBg = null;
+function mapBackdrop() {
+  if (mapBg) return mapBg;
+  const c = document.createElement('canvas');
+  c.width = MAP_W; c.height = MAP_H;
+  const g = c.getContext('2d'), rnd = seeded(hashStr('star-map'));
+  g.fillStyle = '#0a0720';
+  g.fillRect(0, 0, MAP_W, MAP_H);
+  for (const r of REGIONS) {   // a dithered haze of each region's nebula around its node
+    const [nx, ny] = r.map;
+    g.fillStyle = r.neb ? r.neb[1] : '#1d1654';
+    for (let y = -13; y <= 13; y++) for (let x = -13; x <= 13; x++) {
+      const d = Math.hypot(x, y) / 13;
+      if (d < 1 && rnd() < (1 - d) * 0.5) g.fillRect(nx + x, ny + y, 1, 1);
+    }
+  }
+  for (let i = 0; i < 110; i++) {
+    const v = rnd();
+    g.fillStyle = v < 0.15 ? '#f4e9d8' : v < 0.5 ? '#7c6fc0' : '#3a2c7a';
+    g.fillRect(Math.floor(rnd() * MAP_W), Math.floor(rnd() * MAP_H), 1, 1);
+  }
+  return (mapBg = c);
+}
+function nodeSprite(reg, open) {
+  const k = open ? '_node' : '_nodeOff';
+  if (reg[k]) return reg[k];
+  const c = document.createElement('canvas');
+  c.width = c.height = 9;
+  const g = c.getContext('2d');
+  for (let y = -4; y <= 4; y++) for (let x = -4; x <= 4; x++) {
+    const d2 = x * x + y * y;
+    if (d2 > 18) continue;
+    g.fillStyle = !open ? (x + y > 2 ? '#241a52' : '#3a2c7a') : x + y < -3 ? '#ffffff' : x + y > 2 ? reg.pal.dark : reg.pal.main;
+    g.fillRect(x + 4, y + 4, 1, 1);
+  }
+  return (reg[k] = c);
+}
+function drawMap() {
+  const g = $('mapCv').getContext('2d'), blink = Math.floor(clock * 4) % 2;
+  g.drawImage(mapBackdrop(), 0, 0);
+  for (let i = 1; i < REGIONS.length; i++) {   // routes, dotted, lit once both ends are charted
+    const a = REGIONS[i - 1].map, b = REGIONS[i].map, lit = regions.charted[REGIONS[i - 1].id] && regions.charted[REGIONS[i].id];
+    const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 3);
+    g.fillStyle = lit ? '#7c6fc0' : '#3a2c7a';
+    for (let k = 2; k < n - 1; k++) g.fillRect(Math.round(lerp(a[0], b[0], k / n)), Math.round(lerp(a[1], b[1], k / n)), 1, 1);
+  }
+  REGIONS.forEach((r, i) => {
+    const [x, y] = r.map, open = !!regions.charted[r.id];
+    g.drawImage(nodeSprite(r, open), x - 4, y - 4);
+    if (!open) { g.fillStyle = '#a79fc9'; g.fillRect(x - 1, y - 1, 3, 3); g.fillStyle = '#3a2c7a'; g.fillRect(x, y, 1, 1); }   // a padlock
+    // how much of the region's set is collected
+    g.fillStyle = '#241a52'; g.fillRect(x - 4, y + 6, 9, 1);
+    g.fillStyle = r.color; g.fillRect(x - 4, y + 6, Math.round(9 * setOwned(r) / r.items.length), 1);
+    if (i === mapView.i) {   // selection brackets: an L in each corner
+      const l = x - 7, rt = x + 7, t = y - 7, b = y + 8;
+      g.fillStyle = blink ? '#f4e9d8' : r.color;
+      g.fillRect(l, t, 2, 1); g.fillRect(l, t, 1, 2); g.fillRect(rt - 1, t, 2, 1); g.fillRect(rt, t, 1, 2);
+      g.fillRect(l, b, 2, 1); g.fillRect(l, b - 1, 1, 2); g.fillRect(rt - 1, b, 2, 1); g.fillRect(rt, b - 1, 1, 2);
+    }
+    if (r.id === regions.sel) g.drawImage(shipFor(album.equip.paint).life.img, x - 3, y - 13 + (Math.floor(clock * 3) % 2));   // your course
+  });
+}
+function renderCourse() {
+  const r = REGION[regions.sel], el = $('titleCourse');
+  el.textContent = 'COURSE: ' + r.name + (r.id === 'home' ? '' : '  ' + setOwned(r) + '/' + r.items.length);
+  el.style.color = r.color;
+}
+function renderMap() {
+  const i = mapView.i, r = REGIONS[i], prev = REGIONS[i - 1], open = !!regions.charted[r.id];
+  $('mpName').textContent = r.name;
+  $('mpName').style.color = r.color;
+  $('mpSet').textContent = 'SET ' + setOwned(r) + '/' + r.items.length;
+  $('mpTwist').textContent = r.twist;
+  const best = regions.best[r.id] ? 'BEST: WAVE ' + regions.best[r.id] + ' CLEARED. ' : '';
+  $('mpNote').textContent = !open
+    ? 'UNCHARTED. CLEAR WAVE 5 IN ' + prev.name + (regions.charted[prev.id] ? ' OR CHART IT FOR ' + r.chart + ' SCRAP.' : ' TO CHART IT.')
+    : best + (r.relics ? 'RELICS FROM THIS SET DROP HERE: EVERY BOSS DROPS ONE.' : 'NO RELICS HERE. THE NEW REGIONS DROP THEM.');
+  const go = $('mpGo');
+  if (open) {
+    const on = regions.sel === r.id;
+    go.textContent = on ? 'ON COURSE' : 'SET COURSE';
+    go.disabled = on;
+    go.setAttribute('aria-label', on ? r.name + ' is your course' : 'Set course for ' + r.name);
+  } else {
+    go.textContent = 'CHART · ' + r.chart + ' SCRAP';
+    go.disabled = !regions.charted[prev.id] || Wallet.scrap < r.chart;
+    go.setAttribute('aria-label', 'Chart ' + r.name + ' for ' + r.chart + ' scrap');
+  }
+  $('mpPrev').disabled = i === 0;
+  $('mpNext').disabled = i === REGIONS.length - 1;
+}
+function openMap(id) {
+  if (state !== 'title' && state !== 'hangar') return;
+  state = 'map';
+  mapView.i = Math.max(0, REGIONS.indexOf(REGION[id || regions.sel]));
+  renderMap();
+  refreshWallet();
+  showOverlay('ovMap');
+  ui.readyAt = clock + 0.3;
+}
+function mapSelect(i) {
+  if (state !== 'map' || i < 0 || i >= REGIONS.length || i === mapView.i) return;
+  mapView.i = i;
+  Snd.tick();
+  renderMap();
+}
+function mapGo() {
+  const r = REGIONS[mapView.i], prev = REGIONS[mapView.i - 1];
+  if (state !== 'map') return;
+  if (regions.charted[r.id]) {
+    if (regions.sel === r.id) return;
+    regions.sel = r.id;
+    Snd.blip();
+  } else {
+    if (!regions.charted[prev.id] || !Wallet.spend(r.chart)) return;
+    regions.charted[r.id] = 1;
+    Snd.fanfare(2);
+  }
+  saveRegions();
+  renderMap();
 }
 
 /* ---- prize wheel: one free spin per game over ---- */
@@ -3468,7 +4413,7 @@ function payWheel(i) {
   if (w.blank) return { msg: 'BLANK. NO PRIZE THIS TIME.', snd: () => Snd.lose() };
   if (w.scrap) { Wallet.add(w.scrap); return { msg: 'YOU WON ' + w.scrap + ' SCRAP!', snd: () => Snd.win() }; }
   if (w.capsule) {
-    const item = rollItem(), res = grantItem(item);
+    const item = rollItem(G.region), res = grantItem(item);
     return { msg: 'CAPSULE: ' + RARITY[item.r].name + ' ' + item.name + '\n' + (res.isNew ? 'NEW! ADDED TO YOUR ALBUM' : 'DUPLICATE: +' + res.refund + ' SCRAP'), snd: () => Snd.fanfare(item.r) };
   }
   if (w.item === 'shield') { loadout.shield = true; saveLoadout(); return { msg: 'YOUR NEXT RUN STARTS\nWITH A SHIELD', snd: () => Snd.win() }; }
@@ -3517,11 +4462,12 @@ addEventListener('keydown', e => {
   const c = e.code;
   if (state === 'entry') { handleEntryKey(e); return; }
   if (MENU_STATES.has(state)) { handleMenuKey(e); return; }
-  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || c === 'KeyX' || ((c === 'KeyH' || c === 'KeyC') && state === 'title')) e.preventDefault();
+  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || c === 'KeyX' || ((c === 'KeyH' || c === 'KeyC' || c === 'KeyG') && state === 'title')) e.preventDefault();
   if (c === 'KeyM') { if (!e.repeat) cycleSound(); return; }
   if (state === 'title') {
     if ((FIRE.has(c) || c === 'Enter') && !e.repeat) startGame();
     else if (c === 'KeyH' && !e.repeat) openHangar('title');
+    else if (c === 'KeyG' && !e.repeat) openMap();
     else if (c === 'KeyC' && !e.repeat) startDaily();
     else if (MOVE[c] === 'l') showPanel(panelIdx - 1);
     else if (MOVE[c] === 'r') showPanel(panelIdx + 1);
@@ -3539,14 +4485,21 @@ addEventListener('keydown', e => {
 });
 // Menus between waves: Space/Enter is the safe default (continue, skip, no bet).
 // A button the player has tabbed to keeps its own Space/Enter behaviour.
-const MENU_STATES = new Set(['debrief', 'wager', 'hangar', 'wheel']);
+const MENU_STATES = new Set(['debrief', 'wager', 'hangar', 'wheel', 'map']);
 function handleMenuKey(e) {
   const c = e.code, a = document.activeElement;
   if (c === 'KeyM') { e.preventDefault(); if (!e.repeat) cycleSound(); return; }
   const confirm = c === 'Space' || c === 'Enter';
   if (confirm && a && a.tagName === 'BUTTON' && !a.disabled && !a.closest('[hidden]')) return;
-  if (confirm || c === 'Escape' || c === 'KeyH' || /^Digit[1-5]$/.test(c)) e.preventDefault();
+  const step = c === 'ArrowLeft' || c === 'ArrowUp' || c === 'KeyA' || c === 'KeyW' ? -1 : c === 'ArrowRight' || c === 'ArrowDown' || c === 'KeyD' || c === 'KeyS' ? 1 : 0;
+  if (confirm || c === 'Escape' || c === 'KeyH' || /^Digit[1-5]$/.test(c) || (state === 'map' && (step || c === 'KeyG')) || (state === 'hangar' && /^Arrow(Left|Right)$/.test(c))) e.preventDefault();
   if (e.repeat || clock < ui.readyAt) return;
+  if (state === 'map') {
+    if (step) mapSelect(mapView.i + step);
+    else if (confirm && regions.charted[REGIONS[mapView.i].id]) mapGo();   // charting spends scrap, so only its button does that
+    else if (c === 'Escape' || c === 'KeyG') showTitle(0);
+    return;
+  }
   if (state === 'debrief') {
     if (reflex.on) { if (confirm || FIRE.has(c)) stopReflex(); }
     else if (confirm) proceedFromDebrief();
@@ -3556,6 +4509,7 @@ function handleMenuKey(e) {
   } else if (state === 'hangar') {
     if (c === 'Escape' || c === 'KeyH') closeHangar();
     else if (/^Digit[1-5]$/.test(c)) showPane(PANES[+c.slice(5) - 1]);
+    else if (/^Arrow(Left|Right)$/.test(c) && (hangar.pane === 'hgAlbum' || hangar.pane === 'hgCrate')) shiftSet(c === 'ArrowLeft' ? -1 : 1);
     else if (confirm && hangar.pane === 'hgSlots') spinSlots();
     else if (confirm && hangar.pane === 'hgCrate') openCrate();
   } else if (state === 'wheel') {
@@ -3609,6 +4563,23 @@ onClick('soundBtn', cycleSound);
 onClick('pauseBtn', () => { if (state === 'play') pause(); else resume(); });
 tabs.forEach(t => t.addEventListener('click', () => showPanel(+t.dataset.i)));
 onClick('hangarBtn', () => openHangar('title'));
+onClick('mapBtn', () => openMap());
+onClick('mpPrev', () => mapSelect(mapView.i - 1));
+onClick('mpNext', () => mapSelect(mapView.i + 1));
+onClick('mpGo', mapGo);
+onClick('mpView', () => { if (state === 'map') openHangar('map', REGIONS[mapView.i].id, 'hgAlbum'); });
+onClick('mpBack', () => { if (state === 'map') showTitle(0); });
+$('mapCv').addEventListener('click', e => {   // pick the nearest node; a second click on it sets the course
+  if (state !== 'map') return;
+  const rc = e.currentTarget.getBoundingClientRect(), x = (e.clientX - rc.left) / rc.width * MAP_W, y = (e.clientY - rc.top) / rc.height * MAP_H;
+  let best = -1, bd = 14;
+  REGIONS.forEach((r, i) => { const d = Math.hypot(r.map[0] - x, r.map[1] - y); if (d < bd) { bd = d; best = i; } });
+  if (best < 0) return;
+  if (best === mapView.i) { if (regions.charted[REGIONS[best].id]) mapGo(); }
+  else mapSelect(best);
+});
+document.querySelectorAll('.js-set-prev').forEach(b => b.addEventListener('click', () => { shiftSet(-1); b.blur(); }));
+document.querySelectorAll('.js-set-next').forEach(b => b.addEventListener('click', () => { shiftSet(1); b.blur(); }));
 onClick('dailyBtn', startDaily);
 onClick('dbNext', proceedFromDebrief);
 onClick('dbHangar', () => openHangar('debrief'));
@@ -3689,7 +4660,6 @@ function setupStatic() {
     ['ANY PAIR', pct(so.pair), SLOT_PAIR + ' SCRAP BACK'],
     ['NO MATCH', pct(so.none), 'NOTHING']
   ]);
-  oddsRows($('crateOdds'), RARITY.map(r => ['<span style="color:' + r.color + '">' + r.name + '</span>', r.odds + '%', COLLECTION.filter(i => RARITY[i.r] === r).length + ' ITEMS']));
   const groups = {};
   for (const w of WHEEL) { const k = w.scrap ? 'SCRAP (10 / 25 / 50 / 100)' : w.name; groups[k] = (groups[k] || 0) + 1; }
   oddsRows($('wheelOdds'), Object.entries(groups).map(([k, n]) => [k, pct(n / WHEEL.length), n + ' SLICE' + (n > 1 ? 'S' : '')]));
@@ -3713,7 +4683,19 @@ function frame(now) {
   if (state === 'play' || state === 'over' || state === 'entry') update(dt);
   else if (state !== 'paused') updateFx(dt);
   draw();
+  if (state === 'map') drawMap();
+  if (state === 'hangar') animatePreviews();
   requestAnimationFrame(frame);
+}
+// An animated paint job plays in the album (when selected) and in the capsule reveal.
+let previewK = -1;
+function animatePreviews() {
+  const k = animFrame();
+  if (k === previewK) return;
+  previewK = k;
+  const sel = hangar.pane === 'hgAlbum' && byId(hangar.sel);
+  if (sel && sel.anim && album.owned[sel.id]) { const img = $('albumGrid').querySelector('.tile[aria-pressed="true"] img'); if (img) img.src = frameUrl(sel, k); }
+  if (hangar.pane === 'hgCrate' && crate.last && crate.last.anim && !$('crateReveal').hidden) $('rvImg').src = frameUrl(crate.last, k);
 }
 
 function start(data) {
@@ -3733,10 +4715,10 @@ function start(data) {
 try {
   window.claude?.hot?.snapshot?.(() => {
     // between waves, resume at the next wave (the pending bonus is banked first)
-    const between = state === 'debrief' || state === 'wager' || (state === 'hangar' && hangar.from !== 'title');
+    const between = state === 'debrief' || state === 'wager' || (state === 'hangar' && !hangarPreRun());
     if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0 || daily) return {};
     if (between) bankClear();
-    return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, twin: player.twin, wings: player.wings, bombs: G.bombs, run: { ...RUN } } };
+    return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, twin: player.twin, wings: player.wings, bombs: G.bombs, region: G.region, run: { ...RUN } } };
   });
 } catch (e) { /* hot reload is optional */ }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
