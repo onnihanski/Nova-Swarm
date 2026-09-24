@@ -897,6 +897,7 @@ const byId = id => COLLECTION.find(i => i.id === id);
 // Scrap wallet: earned only by playing, saved in this browser.
 const SCRAP_KEY = 'nova-swarm-scrap-v1';
 const Wallet = {
+  held: false,
   scrap: Math.max(0, Math.floor(Number(store.get(SCRAP_KEY, 0)) || 0)),
   add(n) { n = Math.floor(n); if (n <= 0) return; this.scrap += n; store.set(SCRAP_KEY, this.scrap); refreshWallet(); },
   spend(n) { if (n > this.scrap) return false; this.scrap -= n; store.set(SCRAP_KEY, this.scrap); refreshWallet(); return true; }
@@ -1009,6 +1010,7 @@ function silhouetteUrl(item) {
   return item._sil;
 }
 function refreshWallet() {
+  if (Wallet.held) return;   // a prize is mid-reveal: it is already saved, the counters wait for the animation
   document.querySelectorAll('.js-scrap').forEach(el => { el.textContent = Wallet.scrap; });
   const a = ownedCount() + '/' + COLLECTION.length;
   document.querySelectorAll('.js-album').forEach(el => { el.textContent = a; });
@@ -2401,6 +2403,7 @@ function closeHangar() {
   else { state = 'debrief'; renderDebrief(); showOverlay('ovDebrief'); ui.readyAt = clock + 0.4; }
 }
 function showPane(id) {
+  if (slot.spinning || crate.busy) return;   // stay on the machine until its result is shown
   hangar.pane = id;
   for (const pn of PANES) $(pn).hidden = pn !== id;
   document.querySelectorAll('.hg-tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.pane === id)));
@@ -2485,37 +2488,43 @@ function spinSlots() {
   document.querySelectorAll('.reel').forEach(r => r.classList.remove('win'));
   $('slotMsg').textContent = 'SPINNING...';
   const res = [weightedSym(), weightedSym(), weightedSym()];
+  // the win is paid before the reels stop, so closing the page mid-spin never loses it
+  Wallet.held = true;
+  const out = paySlots(res);
   const stops = reduceMotion ? [120, 200, 280] : [600, 900, 1200], t0 = performance.now();
   const iv = setInterval(() => {
     const el = performance.now() - t0;
     for (let i = 0; i < 3; i++) setReel(i, el < stops[i] ? pick(SLOT_SYMS).k : res[i]);
     Snd.tick();
-    if (el >= stops[2]) { clearInterval(iv); settleSlots(res); }
+    if (el >= stops[2]) { clearInterval(iv); revealSlots(out); }
   }, 70);
 }
-function settleSlots(res) {
-  slot.spinning = false;
-  const [a, b, c] = res, T = hangar.from === 'title', reels = document.querySelectorAll('.reel');
+function paySlots(res) {
+  const [a, b, c] = res, T = hangar.from === 'title';
   if (a === b && b === c) {
-    reels.forEach(r => r.classList.add('win'));
     if (a === 'life') {
       const room = T ? 3 + loadout.extraShips < 5 : G.lives < 5;
-      if (room) { if (T) loadout.extraShips++; else G.lives++; }
+      if (room) { if (T) { loadout.extraShips++; saveLoadout(); } else G.lives++; }
       else Wallet.add(100);
-      $('slotMsg').textContent = room ? 'JACKPOT! EXTRA SHIP' + (T ? ' FOR YOUR NEXT RUN' : '') : 'JACKPOT! SHIPS ARE MAXED:\n+100 SCRAP INSTEAD';
-      Snd.life();
-    } else {
-      (T ? loadout.powers : RUN.nextPowers).push(a);
-      $('slotMsg').textContent = POWERS[a].name + '!\nREADY ' + (T ? 'IN WAVE 1' : 'NEXT WAVE');
-      Snd.win();
+      return { win: [0, 1, 2], snd: () => Snd.life(), msg: room ? 'JACKPOT! EXTRA SHIP' + (T ? ' FOR YOUR NEXT RUN' : '') : 'JACKPOT! SHIPS ARE MAXED:\n+100 SCRAP INSTEAD' };
     }
-    if (T) saveLoadout();
-  } else if (a === b || b === c || a === c) {
-    reels.forEach((r, i) => { if (res.filter(k => k === res[i]).length === 2) r.classList.add('win'); });
+    if (T) { loadout.powers.push(a); saveLoadout(); } else RUN.nextPowers.push(a);
+    return { win: [0, 1, 2], snd: () => Snd.win(), msg: POWERS[a].name + '!\nREADY ' + (T ? 'IN WAVE 1' : 'NEXT WAVE') };
+  }
+  if (a === b || b === c || a === c) {
     Wallet.add(SLOT_PAIR);
-    $('slotMsg').textContent = 'A PAIR: ' + SLOT_PAIR + ' SCRAP BACK';
-    Snd.blip();
-  } else { $('slotMsg').textContent = 'NO MATCH'; Snd.lose(); }
+    return { win: [0, 1, 2].filter(i => res.filter(k => k === res[i]).length === 2), snd: () => Snd.blip(), msg: 'A PAIR: ' + SLOT_PAIR + ' SCRAP BACK' };
+  }
+  return { win: [], snd: () => Snd.lose(), msg: 'NO MATCH' };
+}
+function revealSlots(out) {
+  slot.spinning = false;
+  Wallet.held = false;
+  refreshWallet();
+  const reels = document.querySelectorAll('.reel');
+  for (const i of out.win) reels[i].classList.add('win');
+  $('slotMsg').textContent = out.msg;
+  out.snd();
   $('slotSpin').disabled = Wallet.scrap < SLOT_COST;
 }
 
@@ -2542,10 +2551,13 @@ function openCrate() {
   renderCrateButton();
   $('crateStage').classList.add('shake');
   Snd.charge();
-  const item = rollItem();
+  // the item is saved before the shake, so closing the page mid-roll never loses it
+  Wallet.held = true;
+  const item = rollItem(), res = grantItem(item);
   setTimeout(() => {
     $('crateStage').classList.remove('shake');
-    const res = grantItem(item);
+    Wallet.held = false;
+    refreshWallet();
     crate.busy = false;
     crate.last = item;
     $('crateImg').hidden = true;
@@ -2676,26 +2688,31 @@ function spinWheel() {
   el.style.transition = 'transform ' + dur + 's cubic-bezier(.12,.7,.15,1)';
   el.style.transform = 'rotate(' + target + 'deg)';
   wheel.rot = target;
+  // the prize is paid as the wheel starts, so closing the page mid-spin never loses it
+  Wallet.held = true;
+  const out = payWheel(i);
   const tick = setInterval(() => Snd.tick(), 120);
-  setTimeout(() => { clearInterval(tick); settleWheel(i); }, dur * 1000 + 120);
+  setTimeout(() => { clearInterval(tick); revealWheel(out); }, dur * 1000 + 120);
 }
-function settleWheel(i) {
+function payWheel(i) {
   const w = WHEEL[i];
-  let msg;
-  if (w.blank) { msg = 'BLANK. NO PRIZE THIS TIME.'; Snd.lose(); }
-  else if (w.scrap) { Wallet.add(w.scrap); msg = 'YOU WON ' + w.scrap + ' SCRAP!'; Snd.win(); }
-  else if (w.capsule) {
+  if (w.blank) return { msg: 'BLANK. NO PRIZE THIS TIME.', snd: () => Snd.lose() };
+  if (w.scrap) { Wallet.add(w.scrap); return { msg: 'YOU WON ' + w.scrap + ' SCRAP!', snd: () => Snd.win() }; }
+  if (w.capsule) {
     const item = rollItem(), res = grantItem(item);
-    msg = 'CAPSULE: ' + RARITY[item.r].name + ' ' + item.name + '\n' + (res.isNew ? 'NEW! ADDED TO YOUR ALBUM' : 'DUPLICATE: +' + res.refund + ' SCRAP');
-    Snd.fanfare(item.r);
-  } else if (w.item === 'shield') { loadout.shield = true; saveLoadout(); msg = 'YOUR NEXT RUN STARTS\nWITH A SHIELD'; Snd.win(); }
-  else {
-    if (3 + loadout.extraShips < 5) { loadout.extraShips++; saveLoadout(); msg = 'YOUR NEXT RUN STARTS\nWITH AN EXTRA SHIP'; }
-    else { Wallet.add(50); msg = 'EXTRA SHIPS MAXED:\n+50 SCRAP INSTEAD'; }
-    Snd.life();
+    return { msg: 'CAPSULE: ' + RARITY[item.r].name + ' ' + item.name + '\n' + (res.isNew ? 'NEW! ADDED TO YOUR ALBUM' : 'DUPLICATE: +' + res.refund + ' SCRAP'), snd: () => Snd.fanfare(item.r) };
   }
+  if (w.item === 'shield') { loadout.shield = true; saveLoadout(); return { msg: 'YOUR NEXT RUN STARTS\nWITH A SHIELD', snd: () => Snd.win() }; }
+  if (3 + loadout.extraShips < 5) { loadout.extraShips++; saveLoadout(); return { msg: 'YOUR NEXT RUN STARTS\nWITH AN EXTRA SHIP', snd: () => Snd.life() }; }
+  Wallet.add(50);
+  return { msg: 'EXTRA SHIPS MAXED:\n+50 SCRAP INSTEAD', snd: () => Snd.life() };
+}
+function revealWheel(out) {
   wheel.spinning = false;
-  $('wheelMsg').textContent = msg;
+  Wallet.held = false;
+  refreshWallet();
+  out.snd();
+  $('wheelMsg').textContent = out.msg;
   $('wheelSpin').innerHTML = 'CONTINUE<span class="kh"> (SPACE)</span>';
   $('wheelSpin').disabled = false;
 }
@@ -2781,7 +2798,11 @@ addEventListener('keyup', e => {
   if (c === 'Space') e.preventDefault();
 });
 addEventListener('blur', () => { keys.clear(); pause(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+// A hidden tab pauses play and silences every screen; the menus come back with their music.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { pause(); Snd.hold(true); }
+  else if (state !== 'paused') Snd.hold(false);
+});
 
 // Touch / mouse: drag anywhere on the screen to fly (relative), ship fires while held
 let U = 2;
