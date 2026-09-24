@@ -520,7 +520,7 @@
 
     <div class="hud" aria-hidden="true">
       <div><span class="lbl">1UP</span><span id="hudScore">0</span></div>
-      <div class="mid"><span class="lbl">HI-SCORE</span><span id="hudHi">30000</span></div>
+      <div class="mid"><span class="lbl" id="hudHiLbl">HI-SCORE</span><span id="hudHi">30000</span></div>
       <div class="right"><span class="lbl">WAVE</span><span id="hudWave">1</span></div>
     </div>
 
@@ -534,6 +534,7 @@
         <div class="panel">
           <h2>BEST PILOTS</h2>
           <ol class="scores" id="scoreList"></ol>
+          <p class="note c-amber" id="dailyNote"></p>
         </div>
         <div class="panel" hidden>
           <h2>SCORE ADVANCE TABLE</h2>
@@ -589,6 +590,7 @@
       <div class="title-actions">
         <button class="start blink" type="button" id="startBtn">PRESS SPACE TO START</button>
         <button class="btn sm" type="button" id="hangarBtn">HANGAR<span class="kh"> (H)</span></button>
+        <button class="btn sm" type="button" id="dailyBtn">DAILY<span class="kh"> (C)</span></button>
       </div>
     </section>
 
@@ -614,6 +616,7 @@
         <dt>HIT-MISS RATIO</dt><dd class="hl" id="rRatio">0.0 %</dd>
         <dt>SCRAP EARNED</dt><dd class="hl" id="rScrap">0</dd>
         <dt>MISSIONS DONE</dt><dd id="rMissions">0/3</dd>
+        <dt class="daily-only" hidden>DAILY BEST</dt><dd class="hl daily-only" id="rDaily" hidden>0</dd>
       </dl>
       <button class="btn primary" type="button" id="overBtn">CONTINUE</button>
     </section>
@@ -755,8 +758,18 @@ cx.imageSmoothingEnabled = false;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const coarse = matchMedia('(pointer: coarse)').matches;
 
-const rand = (a, b) => a + Math.random() * (b - a);
-const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+// Gameplay rolls go through rng(), which the daily challenge seeds per wave; visual effects and gambles use Math.random.
+let rng = Math.random;
+const grand = () => rng();
+const rand = (a, b) => a + grand() * (b - a);
+const pick = arr => arr[Math.floor(grand() * arr.length)];
+const frand = (a, b) => a + Math.random() * (b - a);
+const fpick = arr => arr[Math.floor(Math.random() * arr.length)];
+function hashStr(str) { let h = 2166136261; for (const ch of str) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function seeded(seed) {   // mulberry32
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const lerp = (a, b, t) => a + (b - a) * t;
 const TAU = Math.PI * 2;
@@ -1016,7 +1029,7 @@ function awardTrophy(id) {
 function rollItem() {
   let roll = Math.random() * 100, r = 0;
   while (r < 3 && (roll -= RARITY[r].odds) >= 0) r++;
-  return pick(COLLECTION.filter(i => i.r === r));
+  return fpick(COLLECTION.filter(i => i.r === r));
 }
 
 // Run upgrades bought from the title screen wait here until the next run starts.
@@ -1041,7 +1054,7 @@ const hulls = (() => {
   return { owned, sel: HULLS[h.sel] && owned[h.sel] ? h.sel : 'striker' };
 })();
 const saveHulls = () => store.set(HULL_KEY, hulls);
-const runHull = () => hulls.sel;
+const runHull = () => daily ? 'striker' : hulls.sel;
 const hullStat = () => HULLS[runHull()];
 
 const STATS_KEY = 'nova-swarm-stats-v1';
@@ -1267,8 +1280,8 @@ const STAR_COL = ['#3a2c7a', '#7c6fc0', '#f4e9d8'];
 const stars = [];
 [36, 22, 10].forEach((n, z) => {
   for (let i = 0; i < n; i++) {
-    const tint = z === 2 && Math.random() < 0.3 ? pick([PAL.a, PAL.b, PAL.c]) : STAR_COL[z];
-    stars.push({ x: rand(0, W), y: rand(0, H), z, c: tint, tw: Math.random() < 0.25 });
+    const tint = z === 2 && Math.random() < 0.3 ? fpick([PAL.a, PAL.b, PAL.c]) : STAR_COL[z];
+    stars.push({ x: frand(0, W), y: frand(0, H), z, c: tint, tw: Math.random() < 0.25 });
   }
 });
 
@@ -1341,6 +1354,7 @@ function slotOf(e) {
 }
 function nextWave() {
   G.wave++;
+  seedWave('W' + G.wave);
   mission('wave', G.wave);
   G.extra = [];
   G.waveMult = 1;
@@ -1355,7 +1369,7 @@ function nextWave() {
     Snd.play('boss');
   } else {
     G.phaseT = 1.7;
-    banner('WAVE ' + G.wave, G.event ? EVENTS[G.event].name : G.wave === 1 ? 'GET READY' : '', G.event ? 'warn' : '', G.event ? 2 : 1.5);
+    banner('WAVE ' + G.wave, G.event ? EVENTS[G.event].name : G.wave === 1 ? (daily ? 'DAILY CHALLENGE' : 'GET READY') : '', G.event ? 'warn' : '', G.event ? 2 : 1.5);
     Snd.jingle();
     Snd.play('main');
   }
@@ -1412,6 +1426,7 @@ function spawnBonus() {
   G.bonusTotal = total;
 }
 function startBonusIntro() {
+  seedWave('B' + G.wave);
   G.extra = [];
   G.event = null;
   G.pendingBonus = false;
@@ -1467,7 +1482,7 @@ function startDive(e) {
   }
   followPath(e, pts, after, speed);
   e.diving = true;
-  const shots = e.type === 'miner' ? 0 : e.type === 'warden' || e.type === 'aegis' ? 1 : n >= 4 ? 2 : (n === 1 && Math.random() < 0.5 ? 0 : 1);
+  const shots = e.type === 'miner' ? 0 : e.type === 'warden' || e.type === 'aegis' ? 1 : n >= 4 ? 2 : (n === 1 && grand() < 0.5 ? 0 : 1);
   e.shots = [];
   for (let i = 0; i < shots; i++) e.shots.push(e.path.len * rand(0.22, 0.55));
   e.mines = e.type === 'miner' ? [e.path.len * 0.4, e.path.len * 0.62] : null;
@@ -1485,7 +1500,7 @@ function updateEnemy(e, dt) {
         const keepLast = !e.flight;   // an entry path ends at the enemy's own slot, which is never mirrored
         if (e.mirror) pts = pts.map((p, i) => keepLast && i === pts.length - 1 ? p : { x: W - p.x, y: p.y });
         followPath(e, pts, e.flight ? 'exit' : 'join', e.speed);
-        if (!e.bonus && G.wave >= 3 && Math.random() < Math.min(0.35, G.wave * 0.03)) e.shots = [e.path.len * rand(0.3, 0.5)];
+        if (!e.bonus && G.wave >= 3 && grand() < Math.min(0.35, G.wave * 0.03)) e.shots = [e.path.len * rand(0.3, 0.5)];
       }
       break;
     case 'path': {
@@ -1538,7 +1553,7 @@ function schedule(dt) {
     const ready = [];
     for (const e of enemies) { if (e.diving) active++; else if (e.state === 'form') ready.push(e); }
     if (ready.length && active < Math.min(1 + Math.ceil(n / 2), 6)) {
-      const cmd = canBeam() && Math.random() < 0.5 ? ready.find(e => e.type === 'warden' && !e.captive) : null;
+      const cmd = canBeam() && grand() < 0.5 ? ready.find(e => e.type === 'warden' && !e.captive) : null;
       if (cmd) startBeam(cmd); else startDive(pick(ready));
     }
     G.diveT = rand(0.7, 1.3) * Math.max(0.5, 2.1 - n * 0.13) * (enemies.length <= 5 ? 0.45 : 1);
@@ -1664,7 +1679,7 @@ const EVENTS = {
 // From wave 4, about 3 regular waves in 10 get an event, never two waves in a row.
 function rollEvent() {
   G.event = null;
-  if (G.wave >= 4 && G.wave % 5 !== 0 && G.lastEvent < G.wave - 1 && Math.random() < 0.3) {
+  if (G.wave >= 4 && G.wave % 5 !== 0 && G.lastEvent < G.wave - 1 && grand() < 0.3) {
     G.event = pick(Object.keys(EVENTS));
     G.lastEvent = G.wave;
   }
@@ -1831,7 +1846,7 @@ function hitMother(b, s) {
 function spawnEscort(b) {
   if (!player.alive || enemies.length >= 5) return;
   const e = makeEnemy('drone', 0, 0);
-  const dir = Math.random() < 0.5 ? -1 : 1, px = player.x;
+  const dir = grand() < 0.5 ? -1 : 1, px = player.x;
   followPath(e, [{ x: b.x, y: b.y + 8 }, { x: cxk(b.x + dir * 30), y: b.y + 30 }, { x: cxk(px - dir * 20), y: H * 0.6 },
     { x: cxk(px + dir * 10), y: H * 0.85 }, { x: cxk(px + dir * 40), y: H + 14 }], 'exit', 80 + b.k * 5);
   e.diving = true;
@@ -1863,7 +1878,7 @@ function updateBoss(dt) {
     const sp = b.B.spr;
     if (b.boomT <= 0) {
       b.boomT = 0.09;
-      explode(b.x + rand(-sp.w / 2, sp.w / 2), b.y + rand(-sp.h / 2, sp.h / 2), b.B.colors, 10, 50);
+      explode(b.x + frand(-sp.w / 2, sp.w / 2), b.y + frand(-sp.h / 2, sp.h / 2), b.B.colors, 10, 50);
       Snd.boom(); shakeIt(2);
     }
     if (b.dieT <= 0) {
@@ -1932,7 +1947,7 @@ function updateBoss(dt) {
         if (b.subT <= 0) { b.sub = 2; b.subT = 1.0; Snd.laser(); shakeIt(2); }
       } else {
         if (player.alive && nearestShipDx(b.x) < 5.5 && player.y > b.y) hitPlayer(b.x);
-        if (Math.random() < 0.6) parts.push({ x: b.x + rand(-3, 3), y: H - 2, vx: rand(-40, 40), vy: rand(-60, -20), t: 0, life: 0.3, c: pick([PAL.c, PAL.y, PAL.w]), s: 1 });
+        if (Math.random() < 0.6) parts.push({ x: b.x + frand(-3, 3), y: H - 2, vx: frand(-40, 40), vy: frand(-60, -20), t: 0, life: 0.3, c: fpick([PAL.c, PAL.y, PAL.w]), s: 1 });
         if (b.subT <= 0) endAttack(b, phase);
       }
       break;
@@ -2155,7 +2170,7 @@ function killEnemy(e) {
   if (e.type === 'splitter') splitInto(e);
   G.killsSinceDrop++;
   const chance = G.killsSinceDrop >= 18 ? 1 : e.T.drop + (moving ? 0.03 : 0);
-  if (Math.random() < chance) { dropPickup(e.x, e.y); G.killsSinceDrop = 0; }
+  if (grand() < chance) { dropPickup(e.x, e.y); G.killsSinceDrop = 0; }
 }
 function addScore(v) {
   G.score += v;
@@ -2167,7 +2182,7 @@ function addScore(v) {
 function dropPickup(x, y, force) {
   if (pickups.length >= 3 && !force) return;
   const pool = Object.entries(POWERS).filter(([k]) => !(k === 'life' && G.lives >= 5) && !(k === 'shield' && player.shield) && !(k === 'wing' && player.wings));
-  let r = Math.random() * pool.reduce((s, [, p]) => s + p.weight, 0);
+  let r = grand() * pool.reduce((s, [, p]) => s + p.weight, 0);
   for (const [k, p] of pool) {
     r -= p.weight;
     if (r <= 0) { pickups.push({ kind: k, x: cxk(x), y, t: 0 }); return; }
@@ -2214,7 +2229,7 @@ function hitPlayer(hx) {
   }
   dropWings();
   if (player.twin) {   // the ship nearest the hit is lost; the other flies on
-    const side = hx === undefined ? (Math.random() < 0.5 ? -1 : 1) : hx < player.x ? -1 : 1;
+    const side = hx === undefined ? (grand() < 0.5 ? -1 : 1) : hx < player.x ? -1 : 1;
     player.twin = false;
     G.hitThisWave = true;
     explode(player.x + side * TWIN_DX, player.y, [PAL.t, PAL.w, PAL.a, PAL.b], 24, 70);
@@ -2274,7 +2289,7 @@ function dropScrap(x, y, value, burst) {
   const n = burst ? Math.min(24, value) : Math.min(4, value);
   for (let i = 0; i < n; i++) {
     const v = Math.floor(value / n) + (i < value % n ? 1 : 0);
-    if (v > 0) scrapBits.push({ x: x + rand(-2, 2), y: y + rand(-2, 2), vx: rand(-28, 28), vy: rand(-45, -10), v, t: 0, home: !!burst });
+    if (v > 0) scrapBits.push({ x: x + frand(-2, 2), y: y + frand(-2, 2), vx: frand(-28, 28), vy: frand(-45, -10), v, t: 0, home: !!burst });
   }
 }
 function updateScrap(dt) {
@@ -2301,13 +2316,13 @@ function flushScrap() { for (const b of scrapBits) collectScrap(b.v); scrapBits 
 /* ================= effects ================= */
 function explode(x, y, colors, n, spd) {
   for (let i = 0; i < n && parts.length < 700; i++) {
-    const a = rand(0, TAU), v = rand(spd * 0.2, spd);
-    parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.25, 0.75), c: pick(colors), s: Math.random() < 0.35 ? 2 : 1 });
+    const a = frand(0, TAU), v = frand(spd * 0.2, spd);
+    parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: frand(0.25, 0.75), c: fpick(colors), s: Math.random() < 0.35 ? 2 : 1 });
   }
   rings.push({ x, y, r: 1, v: 60, t: 0, life: 0.22, c: colors[0] });
 }
 function spark(x, y) {
-  for (let i = 0; i < 2; i++) parts.push({ x, y, vx: rand(-30, 30), vy: rand(-30, 30), t: 0, life: 0.3, c: pick([PAL.a, PAL.w]), s: 1 });
+  for (let i = 0; i < 2; i++) parts.push({ x, y, vx: frand(-30, 30), vy: frand(-30, 30), t: 0, life: 0.3, c: fpick([PAL.a, PAL.w]), s: 1 });
 }
 function shakeIt(m) { shakeAmt = Math.max(shakeAmt, m); }
 function updateFx(dt) {
@@ -2315,7 +2330,7 @@ function updateFx(dt) {
   const k = (1 + warp * 7) * (G.slowT > 0 && state !== 'title' ? 0.4 : 1);
   for (const s of stars) {
     s.y += STAR_SPEED[s.z] * k * dt;
-    if (s.y > H) { s.y -= H + 4; s.x = rand(0, W); }
+    if (s.y > H) { s.y -= H + 4; s.x = frand(0, W); }
   }
   for (const p of parts) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 2.2; p.vy *= 1 - dt * 2.2; }
   parts = parts.filter(p => p.t < p.life);
@@ -2348,7 +2363,7 @@ function updatePlayer(dt) {
   if (G.trailT > 0.04) {
     G.trailT = 0;
     const tc = trailColors();
-    for (const sx of shipXs()) for (const ox of [-2, 2]) parts.push({ x: sx + ox, y: player.y + 8, vx: rand(-6, 6), vy: rand(30, 55), t: 0, life: rand(0.15, 0.3), c: Math.random() < 0.5 ? tc.core : tc.outer, s: 1 });
+    for (const sx of shipXs()) for (const ox of [-2, 2]) parts.push({ x: sx + ox, y: player.y + 8, vx: frand(-6, 6), vy: frand(30, 55), t: 0, life: frand(0.15, 0.3), c: Math.random() < 0.5 ? tc.core : tc.outer, s: 1 });
   }
   player.cd -= dt;
   if (player.invuln > 0) player.invuln -= dt;
@@ -2614,7 +2629,7 @@ function draw() {
   cx.fillStyle = PAL.k;
   cx.fillRect(0, 0, W, H);
   const sh = reduceMotion ? 0 : shakeAmt;
-  cx.setTransform(1, 0, 0, 1, sh ? Math.round(rand(-sh, sh)) : 0, sh ? Math.round(rand(-sh, sh)) : 0);
+  cx.setTransform(1, 0, 0, 1, sh ? Math.round(frand(-sh, sh)) : 0, sh ? Math.round(frand(-sh, sh)) : 0);
   drawStars();
   if (G.slowT > 0 && state !== 'title' && (G.slowT > 1.5 || Math.floor(clock * 8) % 2)) {
     cx.fillStyle = 'rgba(90,169,255,0.08)';
@@ -2664,7 +2679,7 @@ function draw() {
 const hudEls = { s: $('hudScore'), hi: $('hudHi'), w: $('hudWave') };
 const hudLast = {};
 function updateHud() {
-  const vals = { s: G.score, hi: Math.max(G.score, scores[0] ? scores[0].score : 0), w: Math.max(G.wave, 1) };
+  const vals = { s: G.score, hi: Math.max(G.score, daily ? dailyBestNow : scores[0] ? scores[0].score : 0), w: Math.max(G.wave, 1) };
   for (const k in vals) if (hudLast[k] !== vals[k]) { hudLast[k] = vals[k]; hudEls[k].textContent = vals[k]; }
 }
 const ui = { bannerT: 0, toastT: 0 };
@@ -2802,6 +2817,35 @@ function handleEntryKey(e) {
   e.preventDefault();
 }
 
+/* ---- daily challenge: the same seeded waves for everyone on a given (UTC) day ---- */
+const DAILY_KEY = 'nova-swarm-daily-v1';
+const todayUTC = () => new Date().toISOString().slice(0, 10);
+let daily = null;   // the day being played, while a daily run is on
+function dailyBest(day = todayUTC()) {
+  const d = store.get(DAILY_KEY, null);
+  return d && d.day === day && Number.isFinite(d.best) ? d.best : 0;
+}
+let dailyBestNow = 0;
+function seedWave(tag) { if (daily) rng = seeded(hashStr(daily + ':' + tag)); }
+function startDaily() {
+  if (state !== 'title') return;
+  daily = todayUTC();
+  dailyBestNow = dailyBest(daily);
+  Snd.unlock();
+  state = 'play';
+  resetGame();                                   // no loadout: everyone starts equal, in a Striker
+  G.missions = rollMissions(seeded(hashStr(daily + ':missions')));
+  $('hudHiLbl').textContent = 'DAILY BEST';
+  showOverlay(null);
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+}
+function endDaily() {
+  const best = dailyBest(daily), fresh = G.score > best;
+  if (fresh) store.set(DAILY_KEY, { day: daily, best: G.score });
+  dailyBestNow = Math.max(best, G.score);
+  $('rDaily').textContent = dailyBestNow + (fresh ? ' NEW!' : '');
+}
+
 /* ---- screen flow ---- */
 function resetGame(from) {
   Object.assign(G, { score: 0, lives: 3, wave: 0, phase: 'intro', phaseT: 0, diveT: 1, fireT: 2, slowT: 0, hitThisWave: false,
@@ -2827,6 +2871,7 @@ function resetGame(from) {
 }
 function startGame() {
   if (state !== 'title') return;
+  daily = null;
   Snd.unlock();
   state = 'play';
   resetGame();
@@ -2855,6 +2900,11 @@ function resume() {
 }
 function showTitle(panel, hl) {
   state = 'title';
+  daily = null;
+  rng = Math.random;
+  $('hudHiLbl').textContent = 'HI-SCORE';
+  const db = dailyBest();
+  $('dailyNote').textContent = 'DAILY CHALLENGE: ' + (db ? "TODAY'S BEST " + db : 'NOT PLAYED TODAY');
   Snd.hold(false);
   Snd.stop();
   hideBanners();
@@ -2878,6 +2928,9 @@ function showGameOver() {
   flushScrap();
   $('rScrap').textContent = G.scrapRun;
   $('rMissions').textContent = missionsDone();
+  rng = Math.random;
+  document.querySelectorAll('.daily-only').forEach(el => { el.hidden = !daily; });
+  if (daily) endDaily();
   $('rScore').textContent = G.score;
   $('rWave').textContent = G.wave;
   $('rShots').textContent = G.shots;
@@ -2894,7 +2947,7 @@ function continueFromOver() {
 }
 function afterWheel() {
   if (state !== 'wheel' || wheel.spinning) return;
-  if (qualifies(G.score)) showEntry();
+  if (!daily && qualifies(G.score)) showEntry();   // daily scores keep their own best, not the table
   else showTitle(0);
 }
 
@@ -2948,7 +3001,8 @@ function renderDebrief() {
     const dd = document.createElement('dd'); dd.textContent = v;
     dl.append(dt, dd);
   }
-  $('dbGamble').hidden = c.gambled || c.banked || (c.pts <= 0 && c.scrap <= 0);
+  $('dbGamble').hidden = !!daily || c.gambled || c.banked || (c.pts <= 0 && c.scrap <= 0);
+  $('dbHangar').hidden = !!daily;
   $('dbNext').disabled = $('dbHangar').disabled = !!c.busy;
 }
 function bankClear() {
@@ -2960,7 +3014,7 @@ function bankClear() {
 }
 function startGamble(kind) {
   const c = G.clear;
-  if (state !== 'debrief' || !c || c.gambled || c.banked || c.busy) return false;
+  if (state !== 'debrief' || daily || !c || c.gambled || c.banked || c.busy) return false;
   c.gambled = true; c.busy = true;
   renderDebrief();
   $('dbGame').hidden = false;
@@ -2987,7 +3041,7 @@ const reflex = { on: false, t: 0, zone: 0, last: 0, raf: 0 };
 const reflexPos = () => { const q = (reflex.t * 0.9) % 2; return q < 1 ? q : 2 - q; };
 function gambleReflex() {
   if (!startGamble('reflex')) return;
-  reflex.zone = rand(0.1, 0.7);
+  reflex.zone = frand(0.1, 0.7);
   $('dbZone').style.left = reflex.zone * 100 + '%';
   $('dbZone').style.width = '20%';
   $('dbMsg').textContent = 'STOP THE NEEDLE IN THE GREEN';
@@ -3015,7 +3069,7 @@ function stopReflex() {
 function proceedFromDebrief() {
   if (state !== 'debrief' || (G.clear && G.clear.busy)) return;
   bankClear();
-  if (G.pendingBonus && Wallet.scrap >= WAGER_STAKES[0]) openWager();
+  if (G.pendingBonus && !daily && Wallet.scrap >= WAGER_STAKES[0]) openWager();
   else resumeRun();
 }
 function resumeRun() {
@@ -3063,6 +3117,7 @@ function skipWager() { if (state === 'wager') { G.wager = null; resumeRun(); } }
 const PANES = ['hgShop', 'hgShips', 'hgSlots', 'hgCrate', 'hgAlbum'];
 const hangar = { from: 'title', pane: 'hgShop', sel: null };
 function openHangar(from) {
+  if (daily) return;
   if (from === 'debrief') { if (G.clear && G.clear.busy) return; bankClear(); }
   hangar.from = from;
   state = 'hangar';
@@ -3176,7 +3231,7 @@ function spinSlots() {
   const stops = reduceMotion ? [120, 200, 280] : [600, 900, 1200], t0 = performance.now();
   const iv = setInterval(() => {
     const el = performance.now() - t0;
-    for (let i = 0; i < 3; i++) setReel(i, el < stops[i] ? pick(SLOT_SYMS).k : res[i]);
+    for (let i = 0; i < 3; i++) setReel(i, el < stops[i] ? fpick(SLOT_SYMS).k : res[i]);
     Snd.tick();
     if (el >= stops[2]) { clearInterval(iv); revealSlots(out); }
   }, 70);
@@ -3394,7 +3449,7 @@ function spinWheel() {
   $('wheelSkip').hidden = true;
   $('wheelMsg').textContent = 'SPINNING...';
   const i = Math.floor(Math.random() * WHEEL.length), seg = 360 / WHEEL.length;
-  const target = wheel.rot + 1800 + (360 - (wheel.rot % 360)) + (360 - (i + 0.5) * seg) % 360 + rand(-seg * 0.35, seg * 0.35);
+  const target = wheel.rot + 1800 + (360 - (wheel.rot % 360)) + (360 - (i + 0.5) * seg) % 360 + frand(-seg * 0.35, seg * 0.35);
   const dur = reduceMotion ? 0.6 : 3.2, el = $('wheel');
   el.style.transition = 'transform ' + dur + 's cubic-bezier(.12,.7,.15,1)';
   el.style.transform = 'rotate(' + target + 'deg)';
@@ -3459,11 +3514,12 @@ addEventListener('keydown', e => {
   const c = e.code;
   if (state === 'entry') { handleEntryKey(e); return; }
   if (MENU_STATES.has(state)) { handleMenuKey(e); return; }
-  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || c === 'KeyX' || (c === 'KeyH' && state === 'title')) e.preventDefault();
+  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || c === 'KeyX' || ((c === 'KeyH' || c === 'KeyC') && state === 'title')) e.preventDefault();
   if (c === 'KeyM') { if (!e.repeat) cycleSound(); return; }
   if (state === 'title') {
     if ((FIRE.has(c) || c === 'Enter') && !e.repeat) startGame();
     else if (c === 'KeyH' && !e.repeat) openHangar('title');
+    else if (c === 'KeyC' && !e.repeat) startDaily();
     else if (MOVE[c] === 'l') showPanel(panelIdx - 1);
     else if (MOVE[c] === 'r') showPanel(panelIdx + 1);
   } else if (state === 'play') {
@@ -3550,6 +3606,7 @@ onClick('soundBtn', cycleSound);
 onClick('pauseBtn', () => { if (state === 'play') pause(); else resume(); });
 tabs.forEach(t => t.addEventListener('click', () => showPanel(+t.dataset.i)));
 onClick('hangarBtn', () => openHangar('title'));
+onClick('dailyBtn', startDaily);
 onClick('dbNext', proceedFromDebrief);
 onClick('dbHangar', () => openHangar('debrief'));
 onClick('dbCoin', gambleCoin);
@@ -3674,7 +3731,7 @@ try {
   window.claude?.hot?.snapshot?.(() => {
     // between waves, resume at the next wave (the pending bonus is banked first)
     const between = state === 'debrief' || state === 'wager' || (state === 'hangar' && hangar.from !== 'title');
-    if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0) return {};
+    if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0 || daily) return {};
     if (between) bankClear();
     return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, twin: player.twin, wings: player.wings, bombs: G.bombs, run: { ...RUN } } };
   });
