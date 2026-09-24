@@ -576,7 +576,7 @@
             <dt>CHARGE</dt><dd>LET GO OF FIRE 1 SEC</dd>
             <dt>TOUCH</dt><dd>DRAG TO FLY + FIRE</dd>
           </dl>
-          <p class="note">EXTRA SHIP AT 20000,<br>THEN EVERY 60000</p>
+          <p class="note">EXTRA SHIP AT 30000,<br>THEN EVERY 100000</p>
         </div>
       </div>
       <div class="tabs" role="group" aria-label="Attract screens">
@@ -759,8 +759,8 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const coarse = matchMedia('(pointer: coarse)').matches;
 
 // Gameplay rolls go through rng(), which the daily challenge seeds per wave; visual effects and gambles use Math.random.
-let rng = Math.random;
-const grand = () => rng();
+let rng = null;   // a seeded generator during a daily run, otherwise plain Math.random
+const grand = () => rng ? rng() : Math.random();
 const rand = (a, b) => a + grand() * (b - a);
 const pick = arr => arr[Math.floor(grand() * arr.length)];
 const frand = (a, b) => a + Math.random() * (b - a);
@@ -900,7 +900,7 @@ const POWERS = {
   shield: { glyph: 'O', color: PAL.t, name: 'SHIELD', desc: 'BLOCKS ONE HIT', weight: 20 },
   warp: { glyph: 'T', color: PAL.v, name: 'TIME WARP', desc: 'SLOWS THE SWARM, 7 SEC', weight: 14 },
   nova: { glyph: 'N', color: PAL.y, name: 'NOVA BLAST', desc: 'WIPES SHOTS, HITS ALL FOES', weight: 10 },
-  wing: { glyph: 'W', color: '#9be564', name: 'WINGMEN', desc: '2 DRONES COPY YOUR SHOTS', weight: 12 },
+  wing: { glyph: 'W', color: '#9be564', name: 'WINGMEN', desc: '2 DRONES ADD SHOTS TO YOURS', weight: 8 },
   life: { glyph: 'heart', color: PAL.c, name: 'EXTRA SHIP', desc: 'ONE MORE LIFE (MAX 5)', weight: 4 }
 };
 function capsule(p, border) {
@@ -1260,10 +1260,11 @@ const Snd = (() => {
 })();
 
 /* ================= world state ================= */
+const EXTRA_FIRST = 30000, EXTRA_EVERY = 100000;   // score thresholds for extra ships
 let state = 'title';                // title | play | paused | over | entry
 const G = {
   score: 0, lives: 3, wave: 0, phase: 'intro', phaseT: 0, diveT: 1, fireT: 2, slowT: 0, hitThisWave: false,
-  shots: 0, hits: 0, nextLife: 20000, bossCount: 0, killsSinceDrop: 0, overT: 0, overReady: false,
+  shots: 0, hits: 0, nextLife: EXTRA_FIRST, bossCount: 0, killsSinceDrop: 0, overT: 0, overReady: false,
   formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
   bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
   scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
@@ -1482,7 +1483,7 @@ function startDive(e) {
   }
   followPath(e, pts, after, speed);
   e.diving = true;
-  const shots = e.type === 'miner' ? 0 : e.type === 'warden' || e.type === 'aegis' ? 1 : n >= 4 ? 2 : (n === 1 && grand() < 0.5 ? 0 : 1);
+  const shots = e.type === 'miner' ? 1 : e.type === 'warden' || e.type === 'aegis' ? 1 : n >= 4 ? 2 : (n === 1 && grand() < 0.5 ? 0 : 1);
   e.shots = [];
   for (let i = 0; i < shots; i++) e.shots.push(e.path.len * rand(0.22, 0.55));
   e.mines = e.type === 'miner' ? [e.path.len * 0.4, e.path.len * 0.62] : null;
@@ -1835,13 +1836,14 @@ function damageCore(b, n) {
   if (c.hp <= 0) killBoss(b);
 }
 // A regular shot: parts first, then the core (or its shield), then the armored hull soaks it up.
+// Returns 'hit' when it did damage, 'blocked' when the shield or hull stopped it, or '' for a miss.
 function hitMother(b, s) {
-  for (const p of b.parts) if (p.hp > 0 && Math.abs(s.x - b.x - p.dx) <= 3 && Math.abs(s.y - b.y - p.dy) <= 3.5) { damagePart(b, p, 1); return true; }
+  for (const p of b.parts) if (p.hp > 0 && Math.abs(s.x - b.x - p.dx) <= 3 && Math.abs(s.y - b.y - p.dy) <= 3.5) { damagePart(b, p, 1); return 'hit'; }
   const cdx = Math.abs(s.x - b.x), cdy = Math.abs(s.y - b.y - b.core.dy);
-  if (shielded(b)) { if (cdx < 7 && cdy < 6) { spark(s.x, s.y); Snd.ting(); return true; } }
-  else if (cdx <= 4 && cdy <= 3.5) { damageCore(b, 1); return true; }
-  if (cdx <= 16 && Math.abs(s.y - b.y) <= 4.5) { spark(s.x, s.y); return true; }
-  return false;
+  if (shielded(b)) { if (cdx < 7 && cdy < 6) { spark(s.x, s.y); Snd.ting(); return 'blocked'; } }
+  else if (cdx <= 4 && cdy <= 3.5) { damageCore(b, 1); return 'hit'; }
+  if (cdx <= 16 && Math.abs(s.y - b.y) <= 4.5) { spark(s.x, s.y); return 'blocked'; }
+  return '';
 }
 function spawnEscort(b) {
   if (!player.alive || enemies.length >= 5) return;
@@ -2010,8 +2012,9 @@ function updateWings(dt) {
     w.y += (player.y + 3 - w.y) * k;
   });
 }
-function wingShots() {
-  if (!player.wings) return;
+let wingTurn = false;
+function wingShots() {   // the drones join every other volley
+  if (!player.wings || (wingTurn = !wingTurn)) return;
   for (const w of wingmen) pshots.push({ x: Math.round(w.x), y: w.y - 4, vx: 0, vy: -230 });
   G.shots += 2;
 }
@@ -2175,7 +2178,7 @@ function killEnemy(e) {
 function addScore(v) {
   G.score += v;
   while (G.score >= G.nextLife) {
-    G.nextLife += 60000;
+    G.nextLife += EXTRA_EVERY;
     if (G.lives < 5) { G.lives++; toast('EXTRA SHIP', PAL.c); Snd.life(); }
   }
 }
@@ -2429,7 +2432,7 @@ function update(dt) {
     }
     if (!s.dead && boss && boss.state === 'fight') {
       const sp = boss.B.spr;
-      if (boss.parts) { if (hitMother(boss, s)) { s.dead = true; G.hits++; } }
+      if (boss.parts) { const r = hitMother(boss, s); if (r) { s.dead = true; if (r === 'hit') G.hits++; } }
       else if (Math.abs(s.x - boss.x) <= sp.w * 0.42 && Math.abs(s.y - boss.y) <= sp.h * 0.4) { s.dead = true; G.hits++; spark(s.x, s.y); damageBoss(1); }
     }
   }
@@ -2849,7 +2852,7 @@ function endDaily() {
 /* ---- screen flow ---- */
 function resetGame(from) {
   Object.assign(G, { score: 0, lives: 3, wave: 0, phase: 'intro', phaseT: 0, diveT: 1, fireT: 2, slowT: 0, hitThisWave: false,
-    shots: 0, hits: 0, nextLife: 20000, bossCount: 0, killsSinceDrop: 0, overT: 0, overReady: false,
+    shots: 0, hits: 0, nextLife: EXTRA_FIRST, bossCount: 0, killsSinceDrop: 0, overT: 0, overReady: false,
     formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
     bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
     scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
@@ -2865,7 +2868,7 @@ function resetGame(from) {
     if (from.bombs !== undefined) G.bombs = clamp(from.bombs | 0, 0, 5);
     G.wave = Math.max(0, (from.wave | 0) - 1);
     G.bossCount = Math.floor(G.wave / 5);
-    while (G.nextLife <= G.score) G.nextLife += 60000;
+    while (G.nextLife <= G.score) G.nextLife += EXTRA_EVERY;
   }
   nextWave();
 }
@@ -2901,7 +2904,7 @@ function resume() {
 function showTitle(panel, hl) {
   state = 'title';
   daily = null;
-  rng = Math.random;
+  rng = null;
   $('hudHiLbl').textContent = 'HI-SCORE';
   const db = dailyBest();
   $('dailyNote').textContent = 'DAILY CHALLENGE: ' + (db ? "TODAY'S BEST " + db : 'NOT PLAYED TODAY');
@@ -2928,7 +2931,7 @@ function showGameOver() {
   flushScrap();
   $('rScrap').textContent = G.scrapRun;
   $('rMissions').textContent = missionsDone();
-  rng = Math.random;
+  rng = null;
   document.querySelectorAll('.daily-only').forEach(el => { el.hidden = !daily; });
   if (daily) endDaily();
   $('rScore').textContent = G.score;
