@@ -161,6 +161,8 @@
   .c-amber { color: var(--amber); }
   .c-violet { color: var(--violet); }
   .c-teal { color: var(--teal); }
+  .c-sky { color: var(--sky); }
+  .c-dim { color: var(--ink-dim); }
   .dimtxt { color: var(--ink-dim); font-size: var(--fs-s); }
 
   .logo {
@@ -528,9 +530,17 @@
             <img alt="" data-spr="drone"><span class="c-coral">DRONE</span><span>50</span><span>100</span>
             <img alt="" data-spr="stinger"><span class="c-amber">STINGER</span><span>80</span><span>160</span>
             <img alt="" data-spr="warden"><span class="c-violet">WARDEN</span><span>150</span><span>400</span>
+            <img alt="" data-spr="splitter"><span class="c-teal">SPLITTER</span><span>100</span><span>200</span>
+            <img alt="" data-spr="miner"><span class="c-sky">MINELAYER</span><span>120</span><span>250</span>
+            <img alt="" data-spr="aegis"><span class="c-dim">AEGIS</span><span>200</span><span>500</span>
           </div>
-          <div class="bosses"><img alt="Hive Queen" data-spr="queen"><img alt="Iron Maw" data-spr="maw"></div>
-          <p class="note">A BOSS GUARDS EVERY 5TH WAVE<br>BONUS STAGE AFTER WAVE 3, 8, 13…<br>WARDENS CAN BEAM UP YOUR SHIP: SHOOT<br>ONE TO WIN IT BACK AS A TWIN FIGHTER</p>
+          <p class="note">SPLITTERS BURST INTO TWO MINIS.<br>MINELAYERS DROP DRIFTING MINES.<br>AEGIS ARMOR STOPS STRAIGHT SHOTS:<br>HIT IT SIDE-ON OR WITH A CHARGE SHOT</p>
+        </div>
+        <div class="panel" hidden>
+          <h2>BOSSES</h2>
+          <div class="bosses" id="bossRow"><img alt="Hive Queen" data-spr="queen"><img alt="Iron Maw" data-spr="maw"></div>
+          <p class="note">A BOSS GUARDS EVERY 5TH WAVE<br>BONUS STAGE AFTER WAVE 3, 8, 13…</p>
+          <p class="note">WARDENS CAN BEAM UP YOUR SHIP: SHOOT<br>ONE TO WIN IT BACK AS A TWIN FIGHTER</p>
         </div>
         <div class="panel" hidden>
           <h2>POWER-UPS</h2>
@@ -554,8 +564,9 @@
       <div class="tabs" role="group" aria-label="Attract screens">
         <button class="tab" type="button" data-i="0" aria-label="Best pilots"></button>
         <button class="tab" type="button" data-i="1" aria-label="Score advance table"></button>
-        <button class="tab" type="button" data-i="2" aria-label="Power-ups"></button>
-        <button class="tab" type="button" data-i="3" aria-label="Controls"></button>
+        <button class="tab" type="button" data-i="2" aria-label="Bosses"></button>
+        <button class="tab" type="button" data-i="3" aria-label="Power-ups"></button>
+        <button class="tab" type="button" data-i="4" aria-label="Controls"></button>
       </div>
       <div class="title-actions">
         <button class="start blink" type="button" id="startBtn">PRESS SPACE TO START</button>
@@ -772,6 +783,11 @@ const WARDEN = [
   ['...v..', '..vvv.', '.vVvvv', 'vvvyvv', 'vvvvvv', 'v.vVVV', 'v.v..v', '..vv..'],
   ['v..v..', 'v.vvv.', 'vvVvvv', '.vvyvv', '..vvvv', '..vVVV', '.v...v', 'v.....']
 ];
+// the white plate along the bottom is the aegis's armor
+const AEGIS = [
+  ['....c.', '..sscc', '.sSSsk', 'sSSSss', 'sSsSSs', 'wwwwww', '.wSSSS', '..w...'],
+  ['....c.', '..sscc', '.sSSsk', 'sSSSss', 'sSsSSs', 'wwwwww', '.wSSSS', '.w....']
+];
 const SPR = {
   player: sprite(PLAYER_HALF),
   life: sprite(LIFE_HALF),
@@ -779,6 +795,12 @@ const SPR = {
   stinger: STINGER.map(f => sprite(f)),
   warden: WARDEN.map(f => sprite(f)),
   wardenHurt: WARDEN.map(f => sprite(f, { v: 'c', V: 'C' })),
+  splitter: [['.tt..', 'tTtt.', 'tttkw', 'ttttw', '.tTtw', '..tt.', '.t.t.', 't....'], ['.tt..', 'tTtt.', 'tttkw', 'ttttw', '.tTtw', '..tt.', '..tt.', '.t...']].map(f => sprite(f)),
+  mini: [['.t.', 'ttw', 'tkt', '.t.', 't..'], ['.t.', 'ttw', 'tkt', '.t.', '.t.']].map(f => sprite(f)),
+  miner: [['..b..', '.bbbb', 'bBbkb', 'bbbbb', '.bBbb', '..a.a', '..a..', '.....'], ['..b..', '.bbbb', 'bBbkb', 'bbbbb', '.bBbb', '..a.a', '...a.', '..a..']].map(f => sprite(f)),
+  aegis: AEGIS.map(f => sprite(f)),
+  aegisHurt: AEGIS.map(f => sprite(f, { s: 'c', S: 'C', w: 's' })),
+  mine: sprite(['..c', '.ca', 'cay', '.ca', '..c']),
   queen: sprite([
     '.........a..a', '.........aaaa', '........vvvvv', '.bb....vvyyvv', 'bbbb...vvkyvv', 'bBbbb.vVvvvvv',
     'bBBbbbvVVvcvc', 'bBBBbbbvVVvvv', '.bBBBbbbvcccc', '..bBBBbbccCCC', '...bBBbbccccc', '....bbb.cCCCC',
@@ -843,7 +865,12 @@ for (const p of Object.values(POWERS)) { p.img = capsule(p, p.color); p.alt = ca
 const ETYPES = {
   drone: { spr: SPR.drone, hp: 1, pts: 50, divePts: 100, colors: [PAL.c, PAL.C, PAL.w], drop: 0.06, scrap: 1 },
   stinger: { spr: SPR.stinger, hp: 1, pts: 80, divePts: 160, colors: [PAL.a, PAL.b, PAL.y], drop: 0.08, scrap: 2 },
-  warden: { spr: SPR.warden, hp: 2, pts: 150, divePts: 400, colors: [PAL.v, PAL.V, PAL.y], drop: 0.16, scrap: 3 }
+  warden: { spr: SPR.warden, hurt: SPR.wardenHurt, hp: 2, pts: 150, divePts: 400, colors: [PAL.v, PAL.V, PAL.y], drop: 0.16, scrap: 3 },
+  // Splitters burst into two minis; minelayers sow mines on their dives; aegis armor stops straight shots from below.
+  splitter: { spr: SPR.splitter, hp: 1, pts: 100, divePts: 200, colors: [PAL.t, PAL.T, PAL.w], drop: 0.08, scrap: 2 },
+  mini: { spr: SPR.mini, hp: 1, pts: 40, divePts: 40, colors: [PAL.t, PAL.w], drop: 0, scrap: 1 },
+  miner: { spr: SPR.miner, hp: 1, pts: 120, divePts: 250, colors: [PAL.b, PAL.B, PAL.a], drop: 0.1, scrap: 2 },
+  aegis: { spr: SPR.aegis, hurt: SPR.aegisHurt, hp: 2, pts: 200, divePts: 500, colors: [PAL.s, PAL.S, PAL.c], drop: 0.14, scrap: 3, armored: true }
 };
 const BOSSES = {
   queen: { name: 'HIVE QUEEN', spr: SPR.queen, hp: 58, pts: 3000, colors: [PAL.v, PAL.c, PAL.b, PAL.a, PAL.y], bar: PAL.v },
@@ -1140,6 +1167,7 @@ const Snd = (() => {
     combo(m) { tone('square', 523 * Math.pow(1.122, m), 0, 0.07, 0.07); tone('square', 784 * Math.pow(1.122, m), 0, 0.09, 0.05, at(0.06)); },
     charged() { tone('square', 1319, 0, 0.06, 0.05); tone('square', 1760, 0, 0.1, 0.05, at(0.06)); },
     pierce() { tone('sawtooth', 1800, 200, 0.25, 0.09); noise(0.2, 0.15, 6000, 1500, 0, 0, 'highpass'); },
+    ting() { if (thr('ting', 60)) tone('square', 2400, 1800, 0.04, 0.04); },
     graze() { if (thr('graze', 70)) tone('triangle', 1700, 2400, 0.035, 0.035); },
     beamPulse(k) { tone('triangle', k % 2 ? 392 : 523, 0, 0.14, 0.05); },
     capture() { tone('square', 180, 1400, 1.1, 0.06); tone('triangle', 90, 700, 1.1, 0.12); },
@@ -1163,7 +1191,7 @@ const G = {
   formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
   bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
   scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
-  combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2
+  combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0
 };
 const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: false, charge: 0, wings: false };
 let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [], scrapBits = [];
@@ -1233,9 +1261,9 @@ function waveRows(n) {
   const wardens = n >= 3 ? Math.min(2 + Math.floor(n / 3) * 2, 8) : 0;
   if (wardens) rows.push({ type: 'warden', count: wardens });
   rows.push({ type: 'stinger', count: n === 1 ? 4 : n < 4 ? 6 : 8 });
-  if (n >= 6) rows.push({ type: 'stinger', count: 8 });
+  if (n >= 6) rows.push({ type: 'miner', count: 6 });
   const dr = n === 1 ? 6 : 8;
-  rows.push({ type: 'drone', count: dr }, { type: 'drone', count: dr });
+  rows.push(n >= 7 ? { type: 'aegis', count: 6 } : { type: 'drone', count: dr }, { type: n >= 4 ? 'splitter' : 'drone', count: dr });
   return rows;
 }
 function makeEnemy(type, col, row) {
@@ -1352,7 +1380,7 @@ function startDive(e) {
   const n = G.wave, dir = e.x < W / 2 ? -1 : 1, px = player.x, x = e.x, y = e.y;
   const lead = [{ x, y }, { x: cxk(x + dir * 10), y: y - 10 }, { x: cxk(x + dir * 18), y: y + 2 }];
   let pts, speed, after = 'wrap';
-  if (e.type === 'drone') {
+  if (e.type === 'drone' || e.type === 'splitter') {
     pts = [...lead, { x: cxk(lerp(x, px, 0.6)), y: H * 0.5 }, { x: cxk(px + rand(-16, 16)), y: H * 0.78 }, { x: cxk(px - dir * 36), y: H + 14 }];
     speed = Math.min(72 + n * 3, 118);
   } else if (e.type === 'stinger') {
@@ -1360,6 +1388,9 @@ function startDive(e) {
     pts = [...lead, { x: cxk(px - z), y: H * 0.34 }, { x: cxk(px + z), y: H * 0.5 }, { x: cxk(px - z), y: H * 0.66 },
       { x: cxk(px + z * 0.6), y: H * 0.82 }, { x: cxk(px), y: H + 14 }];
     speed = Math.min(88 + n * 3, 135);
+  } else if (e.type === 'miner') {   // a wide sweep across the screen, sowing mines
+    pts = [...lead, { x: cxk(px - dir * 50), y: H * 0.36 }, { x: cxk(px + dir * 45), y: H * 0.46 }, { x: cxk(px - dir * 15), y: H * 0.55 }, { x: cxk(px - dir * 40), y: H + 14 }];
+    speed = Math.min(66 + n * 2, 100);
   } else {
     pts = [...lead, { x: cxk(px), y: H * 0.5 }, { x: cxk(px - dir * 30), y: H * 0.7 }, { x: cxk(px - dir * 50), y: H * 0.5 },
       { x: cxk(W / 2 - dir * 30), y: H * 0.3 }, slotOf(e)];
@@ -1368,9 +1399,10 @@ function startDive(e) {
   }
   followPath(e, pts, after, speed);
   e.diving = true;
-  const shots = e.type === 'warden' ? 1 : n >= 4 ? 2 : (n === 1 && Math.random() < 0.5 ? 0 : 1);
+  const shots = e.type === 'miner' ? 0 : e.type === 'warden' || e.type === 'aegis' ? 1 : n >= 4 ? 2 : (n === 1 && Math.random() < 0.5 ? 0 : 1);
   e.shots = [];
   for (let i = 0; i < shots; i++) e.shots.push(e.path.len * rand(0.22, 0.55));
+  e.mines = e.type === 'miner' ? [e.path.len * 0.4, e.path.len * 0.62] : null;
   Snd.dive();
 }
 function updateEnemy(e, dt) {
@@ -1396,6 +1428,7 @@ function updateEnemy(e, dt) {
       if (dx || dy) e.a = Math.atan2(dy, dx) - Math.PI / 2;
       e.x = p.x; e.y = p.y;
       for (const sd of e.shots) if (prev < sd && e.d >= sd) enemyFire(e, false);
+      if (e.mines) for (const md of e.mines) if (prev < md && e.d >= md) layMine(e.x, e.y + 4);
       if (e.d >= e.path.len) {
         if (e.after === 'beam') { e.state = 'beam'; e.beamT = 0; e.pulse = -1; break; }
         e.diving = false;
@@ -1551,6 +1584,41 @@ function dockRescue() {
   player.x = clamp(player.x + side * TWIN_DX, 7 + TWIN_DX, W - 7 - TWIN_DX);
   Snd.life();
   toast('TWIN FIGHTERS!', PAL.t);
+}
+
+/* ================= mines, splitters, armor ================= */
+let mines = [];
+function layMine(x, y) { if (mines.length < 14 && player.alive) mines.push({ x, y, t: 0, vy: 16 }); }
+function popMine(m, pts) {
+  m.dead = true;
+  explode(m.x, m.y, [PAL.c, PAL.a, PAL.y], 8, 40);
+  if (pts) { addScore(pts); G.minesShot++; }
+  Snd.hit();
+}
+function updateMines(et) {
+  for (const m of mines) {
+    m.t += et;
+    m.y += m.vy * et;
+    m.x += Math.sin(m.t * 2 + m.y * 0.05) * 5 * et;
+    if (m.y > H + 6 || m.t > 12) m.dead = true;
+    else if (player.alive && nearestShipDx(m.x) < 5 && Math.abs(m.y - player.y) < 5) { popMine(m, 0); hitPlayer(m.x); }
+  }
+  mines = mines.filter(m => !m.dead);
+}
+function clearMines() { for (const m of mines) spark(m.x, m.y); mines = []; }
+// A splitter bursts into two fast minis that dive at the ship.
+function splitInto(e) {
+  for (const dir of [-1, 1]) {
+    const m = makeEnemy('mini', 0, 0), px = player.x;
+    followPath(m, [{ x: e.x, y: e.y }, { x: cxk(e.x + dir * 18), y: e.y + 16 }, { x: cxk(lerp(e.x, px, 0.6) + dir * 8), y: H * 0.6 }, { x: cxk(px + dir * 20), y: H + 14 }], 'exit', 125);
+    m.diving = true;
+    enemies.push(m);
+  }
+}
+// Aegis armor faces the way it flies (down, in formation): straight shots only hurt it side-on.
+function deflects(e, s) {
+  if (!e.T.armored || s.vx !== 0) return false;
+  return Math.abs(Math.atan2(Math.sin(e.a), Math.cos(e.a))) < 0.5;
 }
 
 /* ================= shooting ================= */
@@ -1784,6 +1852,7 @@ function pierceHits(s) {
     const c = captivePos(e);
     if (Math.abs(s.x - c.x) <= 5.5 && Math.abs(s.y - c.y) <= 7) loseCaptive(e);
   }
+  for (const m of mines) if (!m.dead && Math.abs(s.x - m.x) <= 4 && Math.abs(s.y - m.y) <= 8) { first(); popMine(m, 30); }
   if (boss && boss.state === 'fight' && !s.bossHit) {
     const sp = boss.B.spr;
     if (Math.abs(s.x - boss.x) <= sp.w * 0.42 && Math.abs(s.y - boss.y) <= sp.h * 0.4) { s.bossHit = true; first(); spark(s.x, s.y); damageBoss(4); }
@@ -1834,6 +1903,7 @@ function killEnemy(e) {
   Snd.boom();
   dropScrap(e.x, e.y, e.bonus ? 1 : e.T.scrap + (moving ? 1 : 0));
   if (e.bonus) { G.bonusHits++; return; }
+  if (e.type === 'splitter') splitInto(e);
   G.killsSinceDrop++;
   const chance = G.killsSinceDrop >= 18 ? 1 : e.T.drop + (moving ? 0.03 : 0);
   if (Math.random() < chance) { dropPickup(e.x, e.y); G.killsSinceDrop = 0; }
@@ -1875,6 +1945,8 @@ function nova(dmg = 3, bossDmg = 12) {
   shakeIt(4);
   for (const b of eshots) spark(b.x, b.y);
   eshots = [];
+  for (const m of mines) popMine(m, 0);
+  mines = [];
   for (const e of enemies) if (e.state !== 'wait') damageEnemy(e, dmg);
   if (boss) damageBoss(bossDmg);
   Snd.nova();
@@ -1918,6 +1990,7 @@ function respawn() {
   Object.assign(player, { alive: true, x: W / 2, y: H - 22, invuln: 2.2, cd: 0.3, twin: false, charge: 0, wings: false });
   for (const b of eshots) spark(b.x, b.y);
   eshots = [];
+  clearMines();
 }
 function waveClear() {
   if (G.lives <= 0) return;
@@ -1932,6 +2005,7 @@ function waveClear() {
   banner('WAVE ' + G.wave + ' CLEAR', noHit ? 'NO-HIT BONUS' : '', 'good', 1.3);
   for (const b of eshots) spark(b.x, b.y);
   eshots = [];
+  clearMines();
   for (const b of scrapBits) b.home = true;
   Snd.jingle();
 }
@@ -2070,8 +2144,13 @@ function update(dt) {
     for (const e of enemies) {
       if (e.dead || e.state === 'wait') continue;
       const sp = e.T.spr[0];
-      if (Math.abs(s.x - e.x) <= sp.w / 2 + 0.5 && Math.abs(s.y - e.y) <= sp.h / 2 + 2) { s.dead = true; G.hits++; damageEnemy(e, 1); break; }
+      if (Math.abs(s.x - e.x) <= sp.w / 2 + 0.5 && Math.abs(s.y - e.y) <= sp.h / 2 + 2) {
+        s.dead = true;
+        if (deflects(e, s)) { spark(s.x, s.y); Snd.ting(); break; }
+        G.hits++; damageEnemy(e, 1); break;
+      }
     }
+    if (!s.dead) for (const m of mines) if (!m.dead && Math.abs(s.x - m.x) <= 3 && Math.abs(s.y - m.y) <= 4) { s.dead = true; G.hits++; popMine(m, 30); break; }
     if (!s.dead) for (const e of enemies) {
       if (e.dead || !e.captive) continue;
       const c = captivePos(e);
@@ -2093,6 +2172,7 @@ function update(dt) {
     else if (b.near && !b.grazed) { b.grazed = true; if (player.alive) graze(b); }
   }
   eshots = eshots.filter(b => !b.dead);
+  updateMines(et);
 
   if (player.alive && player.invuln <= 0) {
     for (const e of enemies) {
@@ -2157,7 +2237,7 @@ function drawEnemies() {
   for (const e of enemies) {
     if (e.dead || e.state === 'wait') continue;
     const fr = e.state === 'form' ? Math.floor(clock * 2.2) % 2 : Math.floor(e.anim * 6) % 2;
-    const set = e.type === 'warden' && e.hp === 1 ? SPR.wardenHurt : e.T.spr;
+    const set = e.hp === 1 && e.T.hurt ? e.T.hurt : e.T.spr;
     drawSpr(set[fr], e.x, e.y, Math.round(e.a / q) * q, e.flash > 0);
   }
 }
@@ -2294,6 +2374,7 @@ function draw() {
     cx.fillStyle = f ? PAL.c : PAL.a; cx.fillRect(x - 1, y - 1, 2, 3);
     cx.fillStyle = '#ffffff'; cx.fillRect(x - f, y, 1, 1);
   }
+  for (const m of mines) drawSpr(SPR.mine, m.x, m.y, 0, Math.floor(clock * 6 + m.t) % 2 === 0);
   for (const b of scrapBits) {
     const x = Math.round(b.x), y = Math.round(b.y);
     cx.fillStyle = Math.floor(clock * 8 + b.v) % 2 ? PAL.s : PAL.w;
@@ -2457,11 +2538,11 @@ function resetGame(from) {
     formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
     bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
     scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
-    combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2 });
+    combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0 });
   Object.assign(RUN, { fastFire: 0, spreadStart: false, magnet: false, shipsBought: 0, nextPowers: [] });
   if (from && from.run) Object.assign(RUN, { fastFire: clamp(from.run.fastFire | 0, 0, 2), spreadStart: !!from.run.spreadStart, magnet: !!from.run.magnet, shipsBought: from.run.shipsBought | 0 });
   Object.assign(player, { x: W / 2, y: H - 22, alive: true, invuln: 1.5, cd: 0.2, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: !!(from && from.twin), charge: 0, wings: !!(from && from.wings) });
-  enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; scrapBits = []; boss = null; rescue = null;
+  enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; scrapBits = []; boss = null; rescue = null; mines = [];
   if (from) {
     G.score = Math.max(0, from.score | 0);
     G.lives = clamp(from.lives | 0, 1, 5);
@@ -2501,7 +2582,7 @@ function showTitle(panel, hl) {
   Snd.hold(false);
   Snd.stop();
   hideBanners();
-  enemies = []; eshots = []; pshots = []; pickups = []; popups = []; scrapBits = []; boss = null; rescue = null;
+  enemies = []; eshots = []; pshots = []; pickups = []; popups = []; scrapBits = []; boss = null; rescue = null; mines = [];
   G.slowT = 0;
   warp = 0;
   refreshWallet();
