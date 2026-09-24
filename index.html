@@ -366,6 +366,7 @@
     color: var(--ink-dim);
   }
   .deck .keys { margin: 0; line-height: 1.9; }
+  .deck .keys span { white-space: nowrap; margin-right: 10px; }
   kbd {
     font-family: inherit;
     color: var(--ink);
@@ -543,6 +544,8 @@
             <dt>PAUSE</dt><dd>P / ESC</dd>
             <dt>SOUND</dt><dd>M</dd>
             <dt>HANGAR</dt><dd>H (TITLE + DEBRIEF)</dd>
+            <dt>BOMB</dt><dd>X / TAP A 2ND FINGER</dd>
+            <dt>CHARGE</dt><dd>LET GO OF FIRE 1 SEC</dd>
             <dt>TOUCH</dt><dd>DRAG TO FLY + FIRE</dd>
           </dl>
           <p class="note">EXTRA SHIP AT 20000,<br>THEN EVERY 60000</p>
@@ -693,7 +696,7 @@
   </div>
 
   <div class="deck">
-    <p class="keys" id="keysHint"><kbd>WASD</kbd> MOVE &nbsp;<kbd>SPACE</kbd> FIRE &nbsp;<kbd>P</kbd> PAUSE &nbsp;<kbd>M</kbd> SOUND &nbsp;<kbd>H</kbd> HANGAR</p>
+    <p class="keys" id="keysHint"><span><kbd>WASD</kbd> MOVE</span> <span><kbd>SPACE</kbd> FIRE</span> <span><kbd>X</kbd> BOMB</span> <span><kbd>P</kbd> PAUSE</span> <span><kbd>M</kbd> SOUND</span> <span><kbd>H</kbd> HANGAR</span></p>
     <div class="deck-btns">
       <button class="btn" type="button" id="soundBtn">SOUND: ON</button>
       <button class="btn" type="button" id="pauseBtn" disabled>PAUSE</button>
@@ -849,6 +852,7 @@ const BOSSES = {
 /* ================= scrap, loadout, collection ================= */
 SPR.golden = DRONE.map(f => sprite(f, { c: 'a', C: 'A' }));
 SPR.captive = sprite(PLAYER_HALF, { t: 'c', T: 'C', b: 'a' });
+const BOMB_SPR = sprite(['..y', '.cc', 'ccw', 'ccc', '.cC']);
 const SCRAP_ICON = sprite(['..s', '.sa', 'sa.', '.sa', '..s']);
 const CRATE_SPR = sprite(['...aaaa', '..avvvv', '.avvvvw', '.avvvww', '.avvvvw', 'aaaaaaa', 'AAAAAAy', '.tttttt', '.tTtttt', '.tTtttt', '..tTttt', '...TTTT']);
 const RARITY = [
@@ -937,12 +941,12 @@ function rollItem() {
 
 // Run upgrades bought from the title screen wait here until the next run starts.
 const LOADOUT_KEY = 'nova-swarm-loadout-v1';
-const emptyLoadout = () => ({ shield: false, fastFire: 0, spreadStart: false, magnet: false, extraShips: 0, powers: [] });
+const emptyLoadout = () => ({ shield: false, fastFire: 0, spreadStart: false, magnet: false, extraShips: 0, bombs: 0, powers: [] });
 function loadLoadout() {
   const l = store.get(LOADOUT_KEY, null);
   if (!l || typeof l !== 'object') return emptyLoadout();
   return { shield: !!l.shield, fastFire: clamp(l.fastFire | 0, 0, 2), spreadStart: !!l.spreadStart, magnet: !!l.magnet,
-    extraShips: clamp(l.extraShips | 0, 0, 2), powers: Array.isArray(l.powers) ? l.powers.filter(k => POWERS[k] && k !== 'life').slice(0, 5) : [] };
+    extraShips: clamp(l.extraShips | 0, 0, 2), bombs: clamp(l.bombs | 0, 0, 3), powers: Array.isArray(l.powers) ? l.powers.filter(k => POWERS[k] && k !== 'life').slice(0, 5) : [] };
 }
 let loadout = loadLoadout();
 const saveLoadout = () => store.set(LOADOUT_KEY, loadout);
@@ -1132,6 +1136,8 @@ const Snd = (() => {
     nova() { noise(0.8, 0.5, 300, 6000, 0, 0, 'bandpass'); tone('sine', 110, 30, 0.8, 0.45); tone('square', 1800, 90, 0.6, 0.05); },
     charge() { tone('sawtooth', 120, 880, 0.9, 0.06); },
     combo(m) { tone('square', 523 * Math.pow(1.122, m), 0, 0.07, 0.07); tone('square', 784 * Math.pow(1.122, m), 0, 0.09, 0.05, at(0.06)); },
+    charged() { tone('square', 1319, 0, 0.06, 0.05); tone('square', 1760, 0, 0.1, 0.05, at(0.06)); },
+    pierce() { tone('sawtooth', 1800, 200, 0.25, 0.09); noise(0.2, 0.15, 6000, 1500, 0, 0, 'highpass'); },
     graze() { if (thr('graze', 70)) tone('triangle', 1700, 2400, 0.035, 0.035); },
     beamPulse(k) { tone('triangle', k % 2 ? 392 : 523, 0, 0.14, 0.05); },
     capture() { tone('square', 180, 1400, 1.1, 0.06); tone('triangle', 90, 700, 1.1, 0.12); },
@@ -1155,9 +1161,9 @@ const G = {
   formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
   bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
   scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
-  combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0
+  combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2
 };
-const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: false };
+const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: false, charge: 0 };
 let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [], scrapBits = [];
 let boss = null;
 let shakeAmt = 0, flash = 0, warp = 0, clock = 0;
@@ -1714,6 +1720,49 @@ function damageBoss(n) {
   Snd.bigBoom();
 }
 
+/* ================= smart bombs + charge shot ================= */
+// A smart bomb clears enemy fire and deals 1 damage to everything on screen (6 to a boss).
+function useBomb() {
+  if (state !== 'play' || !player.alive || G.bombs <= 0 || G.lives <= 0) return false;
+  G.bombs--;
+  nova(1, 6);
+  toast('SMART BOMB', PAL.c);
+  return true;
+}
+// Charge builds while the fire button is released; a full charge makes the next shot a piercing bolt.
+const CHARGE_TIME = 1;
+function firePierce() {
+  player.cd = 0.3;
+  const xs = shipXs(), y = player.y - 8;
+  for (const x of xs) pshots.push({ x, y, vx: 0, vy: -320, pierce: true, hit: [] });
+  G.shots += xs.length;
+  rings.push({ x: player.x, y: y, r: 2, v: 50, t: 0, life: 0.2, c: PAL.y });
+  Snd.pierce();
+}
+// A piercing bolt deals 2 damage to everything along its path, once each, and keeps going.
+function pierceHits(s) {
+  const first = () => { if (!s.scored) { s.scored = true; G.hits++; } };
+  for (const e of enemies) {
+    if (e.dead || e.state === 'wait' || s.hit.includes(e)) continue;
+    const sp = e.T.spr[0];
+    if (Math.abs(s.x - e.x) <= sp.w / 2 + 1.5 && Math.abs(s.y - e.y) <= sp.h / 2 + 5) {
+      s.hit.push(e);
+      first();
+      damageEnemy(e, 2);
+      if (e.dead) s.kills = (s.kills || 0) + 1;
+    }
+  }
+  for (const e of enemies) {
+    if (e.dead || !e.captive) continue;
+    const c = captivePos(e);
+    if (Math.abs(s.x - c.x) <= 5.5 && Math.abs(s.y - c.y) <= 7) loseCaptive(e);
+  }
+  if (boss && boss.state === 'fight' && !s.bossHit) {
+    const sp = boss.B.spr;
+    if (Math.abs(s.x - boss.x) <= sp.w * 0.42 && Math.abs(s.y - boss.y) <= sp.h * 0.4) { s.bossHit = true; first(); spark(s.x, s.y); damageBoss(4); }
+  }
+}
+
 /* ================= combo multiplier + graze bonus ================= */
 // Back-to-back kills (each within 1.6s of the last) build a multiplier: x2 at 5 kills, +1 every 4 more, up to x8.
 const COMBO_WINDOW = 1.6;
@@ -1791,14 +1840,15 @@ function applyPower(kind) {
   Snd.power();
   rings.push({ x: player.x, y: player.y, r: 3, v: 60, t: 0, life: 0.3, c: p.color });
 }
-function nova() {
+// Nova Blast (power-up): 3 damage to every enemy, 12 to a boss. A smart bomb is the lighter 1 / 6 version.
+function nova(dmg = 3, bossDmg = 12) {
   rings.push({ x: player.x, y: player.y, r: 2, v: 280, t: 0, life: 0.8, c: PAL.y }, { x: player.x, y: player.y, r: 1, v: 190, t: 0, life: 0.8, c: PAL.w });
   flash = reduceMotion ? 0.15 : 0.45;
   shakeIt(4);
   for (const b of eshots) spark(b.x, b.y);
   eshots = [];
-  for (const e of enemies) if (e.state !== 'wait') damageEnemy(e, 3);
-  if (boss) damageBoss(12);
+  for (const e of enemies) if (e.state !== 'wait') damageEnemy(e, dmg);
+  if (boss) damageBoss(bossDmg);
   Snd.nova();
 }
 function hitPlayer(hx) {
@@ -1836,7 +1886,7 @@ function hitPlayer(hx) {
   else player.respawnT = 1.8;
 }
 function respawn() {
-  Object.assign(player, { alive: true, x: W / 2, y: H - 22, invuln: 2.2, cd: 0.3, twin: false });
+  Object.assign(player, { alive: true, x: W / 2, y: H - 22, invuln: 2.2, cd: 0.3, twin: false, charge: 0 });
   for (const b of eshots) spark(b.x, b.y);
   eshots = [];
 }
@@ -1945,7 +1995,15 @@ function updatePlayer(dt) {
   if (player.invuln > 0) player.invuln -= dt;
   if (player.spreadT > 0) player.spreadT -= dt;
   if (player.rapidT > 0) player.rapidT -= dt;
-  if ((keys.has('f') || touch.id !== null) && player.cd <= 0) fire();
+  const firing = keys.has('f') || touch.id !== null;
+  if (!firing) {
+    const was = player.charge;
+    player.charge = Math.min(1, player.charge + dt / CHARGE_TIME);
+    if (was < 1 && player.charge >= 1) Snd.charged();
+  } else if (player.cd <= 0) {
+    if (player.charge >= 1) firePierce(); else fire();
+    player.charge = 0;
+  }
 }
 function update(dt) {
   const et = dt * (G.slowT > 0 ? 0.45 : 1);
@@ -1978,6 +2036,7 @@ function update(dt) {
   for (const s of pshots) {
     s.x += s.vx * dt; s.y += s.vy * dt;
     if (s.y < -6 || s.x < -4 || s.x > W + 4) { s.dead = true; continue; }
+    if (s.pierce) { pierceHits(s); continue; }
     for (const e of enemies) {
       if (e.dead || e.state === 'wait') continue;
       const sp = e.T.spr[0];
@@ -2123,6 +2182,12 @@ function drawPlayer() {
       if (f) { cx.fillStyle = tc.outer; cx.fillRect(fx + 3, fy + 1, 1, f); cx.fillRect(fx + 7, fy + 1, 1, f); }
     }
   }
+  if (player.charge >= 1) {   // charged: a glint on each nose
+    if (Math.floor(clock * 10) % 2) { cx.fillStyle = PAL.y; for (const sx of shipXs()) cx.fillRect(Math.round(sx) - 1, Math.round(player.y) - 7, 3, 1); }
+  } else if (player.charge > 0.15) {
+    cx.fillStyle = PAL.a;
+    cx.fillRect(Math.round(player.x) - 4, Math.round(player.y) + 9, Math.round(9 * player.charge), 1);
+  }
   if (player.shield) ringPts(player.x, player.y + 0.5, player.twin ? 14.5 : 8.5, Math.floor(clock * 6) % 2 ? PAL.t : PAL.b, Math.floor(clock * 10) % 3);
 }
 function drawHudCanvas() {
@@ -2140,7 +2205,8 @@ function drawHudCanvas() {
     cx.fillStyle = comboColor(m);
     cx.fillRect(4, 25, Math.ceil(11 * G.comboT / COMBO_WINDOW), 1);
   }
-  let y = H - 9;
+  for (let i = 0; i < Math.min(G.bombs, 5); i++) drawSpr(BOMB_SPR, W - 5 - i * 7, H - 6);
+  let y = H - 17;
   for (const [k, t] of [['spread', player.spreadT], ['rapid', player.rapidT], ['warp', G.slowT]]) {
     if (t <= 0) continue;
     if (!(t < 2 && Math.floor(clock * 8) % 2)) {
@@ -2180,6 +2246,11 @@ function draw() {
   if (boss) drawBoss(boss);
   for (const s of pshots) {
     const x = Math.round(s.x), y = Math.round(s.y);
+    if (s.pierce) {
+      cx.fillStyle = Math.floor(clock * 30) % 2 ? PAL.y : PAL.a; cx.fillRect(x - 1, y, 3, 12);
+      cx.fillStyle = '#ffffff'; cx.fillRect(x, y - 2, 1, 14);
+      continue;
+    }
     cx.fillStyle = PAL.a; cx.fillRect(x, y + 2, 1, 3);
     cx.fillStyle = '#ffffff'; cx.fillRect(x, y, 1, 2);
   }
@@ -2352,14 +2423,15 @@ function resetGame(from) {
     formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
     bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
     scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
-    combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0 });
+    combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2 });
   Object.assign(RUN, { fastFire: 0, spreadStart: false, magnet: false, shipsBought: 0, nextPowers: [] });
   if (from && from.run) Object.assign(RUN, { fastFire: clamp(from.run.fastFire | 0, 0, 2), spreadStart: !!from.run.spreadStart, magnet: !!from.run.magnet, shipsBought: from.run.shipsBought | 0 });
-  Object.assign(player, { x: W / 2, y: H - 22, alive: true, invuln: 1.5, cd: 0.2, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: !!(from && from.twin) });
+  Object.assign(player, { x: W / 2, y: H - 22, alive: true, invuln: 1.5, cd: 0.2, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: !!(from && from.twin), charge: 0 });
   enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; scrapBits = []; boss = null; rescue = null;
   if (from) {
     G.score = Math.max(0, from.score | 0);
     G.lives = clamp(from.lives | 0, 1, 5);
+    if (from.bombs !== undefined) G.bombs = clamp(from.bombs | 0, 0, 5);
     G.wave = Math.max(0, (from.wave | 0) - 1);
     G.bossCount = Math.floor(G.wave / 5);
     while (G.nextLife <= G.score) G.nextLife += 60000;
@@ -2631,7 +2703,8 @@ const SHOP = [
   { id: 'spread', name: 'SPREAD START', desc: '15 SEC OF SPREAD SHOT EACH WAVE' },
   { id: 'fast', name: 'FAST FIRE', desc: '+20% FIRE RATE, STACKS TWICE' },
   { id: 'ship', name: 'EXTRA SHIP', desc: 'ONE MORE LIFE (MAX 5)' },
-  { id: 'magnet', name: 'SCRAP MAGNET', desc: 'PULLS SCRAP FROM TWICE AS FAR' }
+  { id: 'magnet', name: 'SCRAP MAGNET', desc: 'PULLS SCRAP FROM TWICE AS FAR' },
+  { id: 'bomb', name: 'SMART BOMB', desc: 'ONE MORE SCREEN-CLEARING BOMB' }
 ];
 function shopOffer(id) {
   const T = hangar.from === 'title';
@@ -2644,6 +2717,7 @@ function shopOffer(id) {
       return lives >= 5 ? { status: 'MAX' } : { cost: 80 + 40 * n };
     }
     case 'magnet': return (T ? loadout.magnet : RUN.magnet) ? { status: 'OWNED' } : { cost: 25 };
+    case 'bomb': return (T ? 2 + loadout.bombs >= 5 : G.bombs >= 5) ? { status: 'MAX' } : { cost: 40 };
   }
   return { status: '-' };
 }
@@ -2656,6 +2730,7 @@ function buyUpgrade(id) {
   else if (id === 'fast') { if (T) loadout.fastFire++; else RUN.fastFire++; }
   else if (id === 'ship') { if (T) loadout.extraShips++; else { G.lives++; RUN.shipsBought++; } }
   else if (id === 'magnet') { if (T) loadout.magnet = true; else RUN.magnet = true; }
+  else if (id === 'bomb') { if (T) loadout.bombs++; else G.bombs++; }
   if (T) saveLoadout();
   Snd.power();
   renderShop();
@@ -2938,6 +3013,7 @@ function applyLoadout() {
   if (l.fastFire) got.push('FAST FIRE ' + l.fastFire);
   if (l.spreadStart) got.push('SPREAD START');
   if (l.magnet) got.push('MAGNET');
+  if (l.bombs) { G.bombs = Math.min(5, G.bombs + l.bombs); got.push('+' + l.bombs + ' BOMB' + (l.bombs > 1 ? 'S' : '')); }
   if (l.powers.length) got.push(l.powers.length + ' BONUS POWER' + (l.powers.length > 1 ? 'S' : ''));
   loadout = emptyLoadout();
   saveLoadout();
@@ -2959,7 +3035,7 @@ addEventListener('keydown', e => {
   const c = e.code;
   if (state === 'entry') { handleEntryKey(e); return; }
   if (MENU_STATES.has(state)) { handleMenuKey(e); return; }
-  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || (c === 'KeyH' && state === 'title')) e.preventDefault();
+  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || c === 'KeyX' || (c === 'KeyH' && state === 'title')) e.preventDefault();
   if (c === 'KeyM') { if (!e.repeat) cycleSound(); return; }
   if (state === 'title') {
     if ((FIRE.has(c) || c === 'Enter') && !e.repeat) startGame();
@@ -2970,6 +3046,7 @@ addEventListener('keydown', e => {
     if (MOVE[c]) keys.add(MOVE[c]);
     if (FIRE.has(c)) keys.add('f');
     if ((c === 'KeyP' || c === 'Escape') && !e.repeat) pause();
+    if (c === 'KeyX' && !e.repeat) useBomb();
   } else if (state === 'paused') {
     if (!e.repeat && (c === 'KeyP' || c === 'Escape' || c === 'Enter' || FIRE.has(c))) resume();
     else if (c === 'KeyQ') showTitle(0);
@@ -3022,6 +3099,7 @@ const touch = { id: null, lx: 0, ly: 0, dx: 0, dy: 0 };
 document.addEventListener('pointerdown', () => Snd.unlock(), true);
 scr.addEventListener('pointerdown', e => {
   if (state !== 'play' || e.target.closest('button')) return;
+  if (touch.id !== null && e.pointerId !== touch.id) { useBomb(); e.preventDefault(); return; }   // a second finger drops a bomb
   touch.id = e.pointerId; touch.lx = e.clientX; touch.ly = e.clientY; touch.dx = touch.dy = 0;
   try { scr.setPointerCapture(e.pointerId); } catch (err) { /* capture optional */ }
   e.preventDefault();
@@ -3138,7 +3216,7 @@ function setupStatic() {
   if (coarse) {
     root.classList.add('coarse');
     $('startBtn').textContent = 'TAP TO START';
-    $('keysHint').textContent = 'DRAG ON THE SCREEN TO FLY. YOUR SHIP FIRES WHILE YOU HOLD.';
+    $('keysHint').textContent = 'DRAG ON THE SCREEN TO FLY. YOUR SHIP FIRES WHILE YOU HOLD. LIFT YOUR FINGER TO CHARGE A PIERCING SHOT. TAP A SECOND FINGER FOR A SMART BOMB.';
     $('entryHint').innerHTML = 'TAP THE ARROWS TO PICK LETTERS';
   }
 }
@@ -3174,7 +3252,7 @@ try {
     const between = state === 'debrief' || state === 'wager' || (state === 'hangar' && hangar.from !== 'title');
     if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0) return {};
     if (between) bankClear();
-    return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, twin: player.twin, run: { ...RUN } } };
+    return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, twin: player.twin, bombs: G.bombs, run: { ...RUN } } };
   });
 } catch (e) { /* hot reload is optional */ }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
