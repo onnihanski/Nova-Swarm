@@ -19,6 +19,7 @@ Open `index.html` in any modern browser. Everything lives in that one file: the 
 ## What's in it
 
 - **Three enemy types.** Drones swoop, Stingers zig-zag, and Wardens take two hits and fire 3-way spreads. Diving enemies are worth double or more.
+- **Tractor beams.** From wave 3, a Warden can swoop down and beam your ship up. It never takes your last ship, and a shield repels the beam. Shoot that Warden to free your ship (+1,000). The freed ship docks beside you and you fly twin fighters with double shots; a hit knocks out one ship, not a life. Shoot the captured ship itself and it's gone for good.
 - **Bosses every 5th wave**, alternating between two. Each fight opens with a supply drop (a shield, or rapid fire if you're already shielded):
   - **Hive Queen:** fan volleys, aimed streams, summoned escorts, and a spiral barrage below 1/3 health.
   - **Iron Maw:** a telegraphed laser beam, twin cannons, and bullet rings.

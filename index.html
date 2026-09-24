@@ -529,7 +529,7 @@
             <img alt="" data-spr="warden"><span class="c-violet">WARDEN</span><span>150</span><span>400</span>
           </div>
           <div class="bosses"><img alt="Hive Queen" data-spr="queen"><img alt="Iron Maw" data-spr="maw"></div>
-          <p class="note">A BOSS GUARDS EVERY 5TH WAVE<br>BONUS STAGE AFTER WAVE 3, 8, 13…</p>
+          <p class="note">A BOSS GUARDS EVERY 5TH WAVE<br>BONUS STAGE AFTER WAVE 3, 8, 13…<br>WARDENS CAN BEAM UP YOUR SHIP: SHOOT<br>ONE TO WIN IT BACK AS A TWIN FIGHTER</p>
         </div>
         <div class="panel" hidden>
           <h2>POWER-UPS</h2>
@@ -848,6 +848,7 @@ const BOSSES = {
 
 /* ================= scrap, loadout, collection ================= */
 SPR.golden = DRONE.map(f => sprite(f, { c: 'a', C: 'A' }));
+SPR.captive = sprite(PLAYER_HALF, { t: 'c', T: 'C', b: 'a' });
 const SCRAP_ICON = sprite(['..s', '.sa', 'sa.', '.sa', '..s']);
 const CRATE_SPR = sprite(['...aaaa', '..avvvv', '.avvvvw', '.avvvww', '.avvvvw', 'aaaaaaa', 'AAAAAAy', '.tttttt', '.tTtttt', '.tTtttt', '..tTttt', '...TTTT']);
 const RARITY = [
@@ -1130,6 +1131,8 @@ const Snd = (() => {
     jingle() { seq([392, 523, 659, 784], 0.08, 'square', 0.1, 0.08); },
     nova() { noise(0.8, 0.5, 300, 6000, 0, 0, 'bandpass'); tone('sine', 110, 30, 0.8, 0.45); tone('square', 1800, 90, 0.6, 0.05); },
     charge() { tone('sawtooth', 120, 880, 0.9, 0.06); },
+    beamPulse(k) { tone('triangle', k % 2 ? 392 : 523, 0, 0.14, 0.05); },
+    capture() { tone('square', 180, 1400, 1.1, 0.06); tone('triangle', 90, 700, 1.1, 0.12); },
     laser() { noise(1.0, 0.25, 900, 700, 0, 0, 'bandpass'); tone('square', 70, 60, 1.0, 0.1); },
     bossHit() { if (thr('bhit', 70)) tone('square', 180, 120, 0.05, 0.08); },
     blip() { tone('square', 880, 0, 0.05, 0.07); },
@@ -1149,9 +1152,9 @@ const G = {
   shots: 0, hits: 0, nextLife: 20000, bossCount: 0, killsSinceDrop: 0, overT: 0, overReady: false,
   formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
   bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
-  scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0
+  scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0
 };
-const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: false, spreadT: 0, rapidT: 0, respawnT: 0 };
+const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: false };
 let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [], scrapBits = [];
 let boss = null;
 let shakeAmt = 0, flash = 0, warp = 0, clock = 0;
@@ -1274,6 +1277,7 @@ function spawnWave() {
   G.entering = total;
   G.diveT = 1.0;
   G.fireT = 2;
+  G.beamT = rand(1.5, 3);   // a short breather after the formation lands, then wardens may beam
 }
 // Challenging stage: 5 squads of 8 fly through without shooting; each squad is 4 + 4 mirrored.
 const BONUS_FLIGHTS = [
@@ -1380,6 +1384,7 @@ function updateEnemy(e, dt) {
       e.x = p.x; e.y = p.y;
       for (const sd of e.shots) if (prev < sd && e.d >= sd) enemyFire(e, false);
       if (e.d >= e.path.len) {
+        if (e.after === 'beam') { e.state = 'beam'; e.beamT = 0; e.pulse = -1; break; }
         e.diving = false;
         if (e.after === 'exit') { e.dead = true; break; }
         if (e.after === 'wrap') { const s = slotOf(e); e.x = s.x; e.y = -12; e.a = 0; }
@@ -1403,17 +1408,25 @@ function updateEnemy(e, dt) {
       e.a = turnToward(e.a, 0, dt * 8);
       break;
     }
+    case 'beam':
+      updateBeam(e, dt);
+      break;
   }
+  if (e.captive) updateCaptive(e, dt);
 }
 function schedule(dt) {
   if (!player.alive) return;
   const n = G.wave;
   G.diveT -= dt;
+  if (G.beamT > 0) G.beamT -= dt;
   if (G.diveT <= 0) {
     let active = 0;
     const ready = [];
     for (const e of enemies) { if (e.diving) active++; else if (e.state === 'form') ready.push(e); }
-    if (ready.length && active < Math.min(1 + Math.ceil(n / 2), 6)) startDive(pick(ready));
+    if (ready.length && active < Math.min(1 + Math.ceil(n / 2), 6)) {
+      const cmd = canBeam() && Math.random() < 0.5 ? ready.find(e => e.type === 'warden' && !e.captive) : null;
+      if (cmd) startBeam(cmd); else startDive(pick(ready));
+    }
     G.diveT = rand(0.7, 1.3) * Math.max(0.5, 2.1 - n * 0.13) * (enemies.length <= 5 ? 0.45 : 1);
   }
   G.fireT -= dt;
@@ -1421,6 +1434,108 @@ function schedule(dt) {
     G.fireT = rand(1.4, 2.8) / (1 + n * 0.12);
     if (n >= 2) { const f = enemies.filter(e => e.state === 'form'); if (f.length) enemyFire(pick(f), true); }
   }
+}
+
+/* ================= tractor beam: wardens capture ships, a rescue gives twin fighters ================= */
+const BEAM_Y = 118, BEAM_WAIT = 0.4, BEAM_GROW = 0.7, BEAM_END = 3.4, TWIN_DX = 6;
+let rescue = null;   // a freed fighter flying down to dock beside the player
+const shipXs = () => player.twin ? [player.x - TWIN_DX, player.x + TWIN_DX] : [player.x];
+const nearestShipDx = x => player.twin ? Math.min(Math.abs(player.x - TWIN_DX - x), Math.abs(player.x + TWIN_DX - x)) : Math.abs(player.x - x);
+// Never on your last ship, never while flying twin, one beam or captive at a time.
+function canBeam() {
+  return G.wave >= 3 && !G.bonus && !boss && G.beamT <= 0 && player.alive && !player.twin && G.lives >= 2 && !rescue
+    && !enemies.some(e => e.state === 'beam' || e.captive);
+}
+function startBeam(e) {
+  const x = clamp(player.x, 24, W - 24), side = e.x < W / 2 ? -1 : 1;
+  followPath(e, [{ x: e.x, y: e.y }, { x: cxk(e.x + side * 12), y: e.y - 8 }, { x: lerp(e.x, x, 0.5), y: 84 }, { x, y: BEAM_Y }], 'beam', 90);
+  e.diving = true;
+  e.shots = [];
+  G.beamT = 10;
+  Snd.dive();
+}
+const beamTop = e => e.y + 6;
+const beamBottom = e => beamTop(e) + (H - beamTop(e)) * clamp((e.beamT - BEAM_WAIT) / BEAM_GROW, 0, 1);
+const beamHalf = (e, y) => 1.5 + (y - beamTop(e)) * 0.1;
+function updateBeam(e, dt) {
+  const was = e.beamT;
+  e.beamT += dt;
+  e.a = turnToward(e.a, 0, dt * 8);
+  const held = e.captive && e.captive.held;
+  if (was <= BEAM_WAIT && e.beamT > BEAM_WAIT) toast('TRACTOR BEAM!', PAL.b);
+  if (e.beamT > BEAM_WAIT && !held) { const k = Math.floor(e.beamT / 0.16); if (k !== e.pulse) { e.pulse = k; Snd.beamPulse(k); } }
+  if (!e.captive && e.beamT < BEAM_END && player.alive && player.invuln <= 0 && !player.twin && G.lives >= 2
+    && beamBottom(e) >= player.y - 4 && Math.abs(player.x - e.x) < beamHalf(e, player.y)) {
+    if (player.shield) {   // a shield repels the beam (and is used up)
+      player.shield = false; player.invuln = 1.2;
+      Snd.shieldBreak();
+      explode(player.x, player.y, [PAL.t, PAL.b, PAL.w], 12, 50);
+      e.beamT = BEAM_END;
+    } else capturePlayer(e);
+  }
+  if (e.captive ? e.captive.held : e.beamT >= BEAM_END) { e.state = 'join'; e.diving = false; }
+}
+function capturePlayer(e) {
+  e.captive = { x: player.x, y: player.y, x0: player.x, y0: player.y, t: 0, held: false };
+  player.alive = false;
+  player.spreadT = 0; player.rapidT = 0;
+  player.respawnT = 3;
+  G.hitThisWave = true;
+  G.lives--;
+  if (G.lives <= 0) G.overT = 2.2;
+  ui.toastT = 0; $('toast').hidden = true;
+  banner('FIGHTER CAPTURED', 'SHOOT THE WARDEN TO WIN IT BACK', 'warn', 2.2);
+  Snd.capture();
+}
+function updateCaptive(e, dt) {
+  const c = e.captive;
+  if (c.held) return;
+  c.t += dt;
+  const k = Math.min(1, c.t / 1.2), q = k * k * (3 - 2 * k);
+  c.x = lerp(c.x0, e.x, q);
+  c.y = lerp(c.y0, e.y - 10, q);
+  if (k >= 1) c.held = true;
+}
+// A held captive trails its warden, 10px behind it.
+function captivePos(e) {
+  const c = e.captive;
+  return c.held ? { x: e.x + Math.sin(e.a) * 10, y: e.y - Math.cos(e.a) * 10 } : { x: c.x, y: c.y };
+}
+function releaseCaptive(e) {
+  const p = captivePos(e);
+  e.captive = null;
+  rescue = { x: p.x, y: p.y, t: 0, side: 1 };
+  addScore(1000);
+  popups.push({ text: '1000', x: p.x, y: p.y - 6, t: -0.6, c: PAL.t });
+  G.extra.push(['FIGHTER RESCUED', '+1000']);
+  toast('FIGHTER RESCUED!', PAL.t);
+}
+function loseCaptive(e) {
+  const p = captivePos(e);
+  e.captive = null;
+  explode(p.x, p.y, [PAL.c, PAL.C, PAL.w], 16, 60);
+  Snd.boom();
+  toast('FIGHTER LOST', PAL.c);
+}
+function updateRescue(dt) {
+  if (!rescue) return;
+  if (G.lives <= 0) { rescue = null; return; }
+  const r = rescue;
+  r.t += dt;
+  const px = player.alive ? player.x : W / 2, py = player.alive ? player.y : H - 22;
+  r.side = px + 2 * TWIN_DX > W - 7 ? -1 : 1;   // dock on whichever side has room
+  const tx = px + r.side * 2 * TWIN_DX, ty = py, dx = tx - r.x, dy = ty - r.y, d = Math.hypot(dx, dy), step = 110 * dt;
+  if (d <= step + 0.5) { r.x = tx; r.y = ty; if (player.alive) dockRescue(); }
+  else { r.x += dx / d * step; r.y += dy / d * step; }
+}
+function dockRescue() {
+  const side = rescue.side;
+  rescue = null;
+  if (player.twin || !player.alive) return;
+  player.twin = true;
+  player.x = clamp(player.x + side * TWIN_DX, 7 + TWIN_DX, W - 7 - TWIN_DX);
+  Snd.life();
+  toast('TWIN FIGHTERS!', PAL.t);
 }
 
 /* ================= shooting ================= */
@@ -1439,11 +1554,11 @@ function enemyFire(e, formation) {
 }
 function fire() {
   player.cd = (player.rapidT > 0 ? 0.1 : 0.2) * (1 - 0.2 * RUN.fastFire);
-  const x = player.x, y = player.y - 7;
-  pshots.push({ x, y, vx: 0, vy: -230 });
-  G.shots++;
+  const xs = shipXs(), y = player.y - 7;
+  for (const x of xs) pshots.push({ x, y, vx: 0, vy: -230 });
+  G.shots += xs.length;
   if (player.spreadT > 0) {
-    pshots.push({ x: x - 2, y: y + 2, vx: -45, vy: -222 }, { x: x + 2, y: y + 2, vx: 45, vy: -222 });
+    pshots.push({ x: xs[0] - 2, y: y + 2, vx: -45, vy: -222 }, { x: xs[xs.length - 1] + 2, y: y + 2, vx: 45, vy: -222 });
     G.shots += 2;
   }
   Snd.shoot();
@@ -1562,7 +1677,7 @@ function updateBoss(dt) {
       } else if (b.sub === 1) {
         if (b.subT <= 0) { b.sub = 2; b.subT = 1.0; Snd.laser(); shakeIt(2); }
       } else {
-        if (player.alive && Math.abs(player.x - b.x) < 5.5 && player.y > b.y) hitPlayer();
+        if (player.alive && nearestShipDx(b.x) < 5.5 && player.y > b.y) hitPlayer(b.x);
         if (Math.random() < 0.6) parts.push({ x: b.x + rand(-3, 3), y: H - 2, vx: rand(-40, 40), vy: rand(-60, -20), t: 0, life: 0.3, c: pick([PAL.c, PAL.y, PAL.w]), s: 1 });
         if (b.subT <= 0) endAttack(b, phase);
       }
@@ -1604,8 +1719,9 @@ function killEnemy(e) {
   if (e.dead) return;
   e.dead = true;
   if (e.entering) { e.entering = false; G.entering--; }
-  const moving = e.state === 'path' || e.state === 'join';
+  const moving = e.state === 'path' || e.state === 'join' || e.state === 'beam';
   const pts = e.bonus ? 100 : moving ? e.T.divePts : e.T.pts;
+  if (e.captive) releaseCaptive(e);
   addScore(pts);
   if (moving) popups.push({ text: String(pts), x: e.x, y: e.y - 4, t: 0, c: e.type === 'warden' ? PAL.y : PAL.w });
   explode(e.x, e.y, e.T.colors, 14, 60);
@@ -1655,13 +1771,25 @@ function nova() {
   if (boss) damageBoss(12);
   Snd.nova();
 }
-function hitPlayer() {
+function hitPlayer(hx) {
   if (!player.alive || player.invuln > 0) return;
   if (player.shield) {
     player.shield = false; player.invuln = 1.2;
     Snd.shieldBreak();
     explode(player.x, player.y, [PAL.t, PAL.b, PAL.w], 12, 50);
     shakeIt(2);
+    return;
+  }
+  if (player.twin) {   // the ship nearest the hit is lost; the other flies on
+    const side = hx === undefined ? (Math.random() < 0.5 ? -1 : 1) : hx < player.x ? -1 : 1;
+    player.twin = false;
+    G.hitThisWave = true;
+    explode(player.x + side * TWIN_DX, player.y, [PAL.t, PAL.w, PAL.a, PAL.b], 24, 70);
+    player.x -= side * TWIN_DX;
+    player.invuln = 1.2;
+    shakeIt(4);
+    Snd.die();
+    toast('TWIN LOST', PAL.c);
     return;
   }
   player.alive = false;
@@ -1677,7 +1805,7 @@ function hitPlayer() {
   else player.respawnT = 1.8;
 }
 function respawn() {
-  Object.assign(player, { alive: true, x: W / 2, y: H - 22, invuln: 2.2, cd: 0.3 });
+  Object.assign(player, { alive: true, x: W / 2, y: H - 22, invuln: 2.2, cd: 0.3, twin: false });
   for (const b of eshots) spark(b.x, b.y);
   eshots = [];
 }
@@ -1721,7 +1849,7 @@ function updateScrap(dt) {
       b.vx *= 1 - dt * 1.5;
     }
     b.x += b.vx * dt; b.y += b.vy * dt;
-    if (player.alive && d < 7) { b.dead = true; collectScrap(b.v); }
+    if (player.alive && d < (player.twin ? 12 : 7)) { b.dead = true; collectScrap(b.v); }
     else if (b.y > H + 4) b.dead = true;
   }
   scrapBits = scrapBits.filter(b => !b.dead);
@@ -1771,13 +1899,14 @@ function updatePlayer(dt) {
   player.y += my * 80 * dt;
   if (touch.id !== null) { player.x += touch.dx; player.y += touch.dy; }
   touch.dx = touch.dy = 0;
-  player.x = clamp(player.x, 7, W - 7);
+  const edge = player.twin ? 7 + TWIN_DX : 7;
+  player.x = clamp(player.x, edge, W - edge);
   player.y = clamp(player.y, H * 0.55, H - 14);
   G.trailT += dt;
   if (G.trailT > 0.04) {
     G.trailT = 0;
     const tc = trailColors();
-    for (const ox of [-2, 2]) parts.push({ x: player.x + ox, y: player.y + 8, vx: rand(-6, 6), vy: rand(30, 55), t: 0, life: rand(0.15, 0.3), c: Math.random() < 0.5 ? tc.core : tc.outer, s: 1 });
+    for (const sx of shipXs()) for (const ox of [-2, 2]) parts.push({ x: sx + ox, y: player.y + 8, vx: rand(-6, 6), vy: rand(30, 55), t: 0, life: rand(0.15, 0.3), c: Math.random() < 0.5 ? tc.core : tc.outer, s: 1 });
   }
   player.cd -= dt;
   if (player.invuln > 0) player.invuln -= dt;
@@ -1820,6 +1949,11 @@ function update(dt) {
       const sp = e.T.spr[0];
       if (Math.abs(s.x - e.x) <= sp.w / 2 + 0.5 && Math.abs(s.y - e.y) <= sp.h / 2 + 2) { s.dead = true; G.hits++; damageEnemy(e, 1); break; }
     }
+    if (!s.dead) for (const e of enemies) {
+      if (e.dead || !e.captive) continue;
+      const c = captivePos(e);
+      if (Math.abs(s.x - c.x) <= 5.5 && Math.abs(s.y - c.y) <= 6) { s.dead = true; loseCaptive(e); break; }
+    }
     if (!s.dead && boss && boss.state === 'fight') {
       const sp = boss.B.spr;
       if (Math.abs(s.x - boss.x) <= sp.w * 0.42 && Math.abs(s.y - boss.y) <= sp.h * 0.4) { s.dead = true; G.hits++; spark(s.x, s.y); damageBoss(1); }
@@ -1830,7 +1964,7 @@ function update(dt) {
   for (const b of eshots) {
     b.x += b.vx * et; b.y += b.vy * et;
     if (b.y > H + 4 || b.y < -8 || b.x < -4 || b.x > W + 4) { b.dead = true; continue; }
-    if (player.alive && Math.abs(b.x - player.x) < 3.5 && Math.abs(b.y - player.y) < 4.5) { b.dead = true; hitPlayer(); }
+    if (player.alive && nearestShipDx(b.x) < 3.5 && Math.abs(b.y - player.y) < 4.5) { b.dead = true; hitPlayer(b.x); }
   }
   eshots = eshots.filter(b => !b.dead);
 
@@ -1838,9 +1972,9 @@ function update(dt) {
     for (const e of enemies) {
       if (e.dead || e.state === 'wait') continue;
       const sp = e.T.spr[0];
-      if (Math.abs(e.x - player.x) < sp.w / 2 + 2 && Math.abs(e.y - player.y) < sp.h / 2 + 3) { killEnemy(e); hitPlayer(); break; }
+      if (nearestShipDx(e.x) < sp.w / 2 + 2 && Math.abs(e.y - player.y) < sp.h / 2 + 3) { killEnemy(e); hitPlayer(e.x); break; }
     }
-    if (boss && boss.state === 'fight' && Math.abs(boss.x - player.x) < boss.B.spr.w * 0.4 && Math.abs(boss.y - player.y) < boss.B.spr.h * 0.45) hitPlayer();
+    if (boss && boss.state === 'fight' && nearestShipDx(boss.x) < boss.B.spr.w * 0.4 && Math.abs(boss.y - player.y) < boss.B.spr.h * 0.45) hitPlayer(boss.x);
   }
   enemies = enemies.filter(e => !e.dead);
 
@@ -1849,11 +1983,12 @@ function update(dt) {
     p.y += 24 * dt;
     p.x += Math.sin(p.t * 3) * 8 * dt;
     if (p.y > H + 8) p.dead = true;
-    else if (player.alive && Math.abs(p.x - player.x) < 8 && Math.abs(p.y - player.y) < 8) { p.dead = true; applyPower(p.kind); }
+    else if (player.alive && Math.abs(p.x - player.x) < (player.twin ? 14 : 8) && Math.abs(p.y - player.y) < 8) { p.dead = true; applyPower(p.kind); }
   }
   pickups = pickups.filter(p => !p.dead);
   enemies = enemies.filter(e => !e.dead);
   updateScrap(dt);
+  updateRescue(dt);
   if (G.powerT > 0 && G.phase === 'active' && player.alive && (G.powerT -= dt) <= 0) RUN.nextPowers.splice(0).forEach(applyPower);
 
   if (G.lives > 0 && G.phase === 'active' && !boss && enemies.length === 0) { if (G.bonus) bonusClear(); else waveClear(); }
@@ -1900,6 +2035,26 @@ function drawEnemies() {
     drawSpr(set[fr], e.x, e.y, Math.round(e.a / q) * q, e.flash > 0);
   }
 }
+function drawTractor(e) {
+  if (e.beamT <= BEAM_WAIT || (e.captive && e.captive.held)) return;
+  const top = Math.round(beamTop(e)), bot = Math.round(beamBottom(e)), x = Math.round(e.x), sh = Math.floor(clock * 24);
+  for (let y = top; y < bot; y++) {
+    const band = ((y - sh) % 6 + 6) % 6;
+    if (band > 3) continue;
+    const hw = Math.round(beamHalf(e, y));
+    cx.fillStyle = band < 2 ? PAL.b : PAL.t;
+    cx.fillRect(x - hw, y, hw * 2 + 1, 1);
+  }
+}
+function drawCaptives() {
+  const q = Math.PI / 8;
+  for (const e of enemies) {
+    if (e.dead || !e.captive) continue;
+    const p = captivePos(e), a = e.captive.held ? e.a + Math.PI : e.captive.t * 12;
+    drawSpr(SPR.captive, p.x, p.y, Math.round(a / q) * q);
+  }
+  if (rescue) drawSpr(shipFor(album.equip.paint).ship, rescue.x, rescue.y, rescue.t < 0.6 ? Math.round(Math.PI * (1 - rescue.t / 0.6) / q) * q : 0);
+}
 function drawBoss(b) {
   const flick = b.state === 'dying' && Math.floor(clock * 16) % 2;
   drawSpr(b.B.spr, b.x, b.y, 0, b.flash > 0 || flick);
@@ -1923,12 +2078,15 @@ function drawBeam(b) {
 function drawPlayer() {
   if (!player.alive || !inRun()) return;
   if (!(player.invuln > 0 && Math.floor(clock * 12) % 2)) {
-    drawSpr(shipFor(album.equip.paint).ship, player.x, player.y);
-    const fx = Math.round(player.x) - 5, fy = Math.round(player.y) + 6, f = Math.floor(clock * 20) % 3, tc = trailColors();
-    cx.fillStyle = tc.core; cx.fillRect(fx + 3, fy, 1, 1); cx.fillRect(fx + 7, fy, 1, 1);
-    if (f) { cx.fillStyle = tc.outer; cx.fillRect(fx + 3, fy + 1, 1, f); cx.fillRect(fx + 7, fy + 1, 1, f); }
+    const f = Math.floor(clock * 20) % 3, tc = trailColors(), ship = shipFor(album.equip.paint).ship;
+    for (const sx of shipXs()) {
+      drawSpr(ship, sx, player.y);
+      const fx = Math.round(sx) - 5, fy = Math.round(player.y) + 6;
+      cx.fillStyle = tc.core; cx.fillRect(fx + 3, fy, 1, 1); cx.fillRect(fx + 7, fy, 1, 1);
+      if (f) { cx.fillStyle = tc.outer; cx.fillRect(fx + 3, fy + 1, 1, f); cx.fillRect(fx + 7, fy + 1, 1, f); }
+    }
   }
-  if (player.shield) ringPts(player.x, player.y + 0.5, 8.5, Math.floor(clock * 6) % 2 ? PAL.t : PAL.b, Math.floor(clock * 10) % 3);
+  if (player.shield) ringPts(player.x, player.y + 0.5, player.twin ? 14.5 : 8.5, Math.floor(clock * 6) % 2 ? PAL.t : PAL.b, Math.floor(clock * 10) % 3);
 }
 function drawHudCanvas() {
   if (!inRun()) return;
@@ -1972,8 +2130,10 @@ function draw() {
     cx.fillRect(-8, -8, W + 16, H + 16);
   }
   if (boss) drawBeam(boss);
+  for (const e of enemies) if (e.state === 'beam') drawTractor(e);
   for (const p of pickups) { const pw = POWERS[p.kind]; cx.drawImage(Math.floor(p.t * 5) % 2 ? pw.alt : pw.img, Math.round(p.x) - 4, Math.round(p.y) - 4); }
   drawEnemies();
+  drawCaptives();
   if (boss) drawBoss(boss);
   for (const s of pshots) {
     const x = Math.round(s.x), y = Math.round(s.y);
@@ -2020,6 +2180,7 @@ function banner(title, sub, cls, dur) {
   $('bannerSub').textContent = sub || '';
   el.hidden = false;
   ui.bannerT = dur;
+  placeToast();
 }
 function toast(text, color) {
   const el = $('toast');
@@ -2027,6 +2188,12 @@ function toast(text, color) {
   el.style.color = color;
   el.hidden = false;
   ui.toastT = 1.3;
+  placeToast();
+}
+// A toast shown with a banner sits just under it rather than on top of it.
+function placeToast() {
+  const b = $('banner');
+  $('toast').style.top = b.hidden ? '' : (b.offsetTop + b.offsetHeight + 4 * U) + 'px';
 }
 function hideBanners() { ui.bannerT = ui.toastT = 0; $('banner').hidden = true; $('toast').hidden = true; }
 
@@ -2141,11 +2308,11 @@ function resetGame(from) {
     shots: 0, hits: 0, nextLife: 20000, bossCount: 0, killsSinceDrop: 0, overT: 0, overReady: false,
     formT: 0, fx: W / 2, breath: 1, breathAmp: 0, entering: 0, rows: [],
     bonus: false, pendingBonus: false, bonusHits: 0, bonusTotal: 0,
-    scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0 });
+    scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0 });
   Object.assign(RUN, { fastFire: 0, spreadStart: false, magnet: false, shipsBought: 0, nextPowers: [] });
   if (from && from.run) Object.assign(RUN, { fastFire: clamp(from.run.fastFire | 0, 0, 2), spreadStart: !!from.run.spreadStart, magnet: !!from.run.magnet, shipsBought: from.run.shipsBought | 0 });
-  Object.assign(player, { x: W / 2, y: H - 22, alive: true, invuln: 1.5, cd: 0.2, shield: false, spreadT: 0, rapidT: 0, respawnT: 0 });
-  enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; scrapBits = []; boss = null;
+  Object.assign(player, { x: W / 2, y: H - 22, alive: true, invuln: 1.5, cd: 0.2, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: !!(from && from.twin) });
+  enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; scrapBits = []; boss = null; rescue = null;
   if (from) {
     G.score = Math.max(0, from.score | 0);
     G.lives = clamp(from.lives | 0, 1, 5);
@@ -2184,7 +2351,7 @@ function showTitle(panel, hl) {
   Snd.hold(false);
   Snd.stop();
   hideBanners();
-  enemies = []; eshots = []; pshots = []; pickups = []; popups = []; scrapBits = []; boss = null;
+  enemies = []; eshots = []; pshots = []; pickups = []; popups = []; scrapBits = []; boss = null; rescue = null;
   G.slowT = 0;
   warp = 0;
   refreshWallet();
@@ -2246,6 +2413,7 @@ function imgOf(url, cls) { const i = document.createElement('img'); i.alt = ''; 
 /* ---- wave debrief + double or nothing ---- */
 function openDebrief() {
   flushScrap();
+  if (rescue && player.alive) dockRescue();
   hideBanners();
   keys.clear();
   touch.id = null;
@@ -2962,7 +3130,7 @@ try {
     const between = state === 'debrief' || state === 'wager' || (state === 'hangar' && hangar.from !== 'title');
     if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0) return {};
     if (between) bankClear();
-    return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, run: { ...RUN } } };
+    return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, twin: player.twin, run: { ...RUN } } };
   });
 } catch (e) { /* hot reload is optional */ }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
