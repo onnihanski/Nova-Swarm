@@ -471,7 +471,7 @@
   .reveal img { width: calc(var(--px) * 24); height: auto; image-rendering: pixelated; }
   .reveal .rar { letter-spacing: .1em; }
 
-  .album { width: 100%; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: calc(var(--px) * 2); }
+  .album { width: 100%; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: calc(var(--px) * 2); }
   .tile {
     position: relative;
     aspect-ratio: 1; max-width: 100%; min-width: 0;
@@ -517,7 +517,7 @@
 
     <section class="ov" id="ovTitle" aria-label="Title screen">
       <h1 class="logo"><span class="a">NOVA</span><span class="b">SWARM</span></h1>
-      <p class="tag wallet"><img class="ico" alt="" data-icon="scrap"> <span class="js-scrap">0</span> SCRAP &nbsp;&middot;&nbsp; ALBUM <span class="js-album">0/24</span></p>
+      <p class="tag wallet"><img class="ico" alt="" data-icon="scrap"> <span class="js-scrap">0</span> SCRAP &nbsp;&middot;&nbsp; ALBUM <span class="js-album">0/28</span></p>
       <div class="attract">
         <div class="panel">
           <h2>BEST PILOTS</h2>
@@ -538,8 +538,8 @@
         </div>
         <div class="panel" hidden>
           <h2>BOSSES</h2>
-          <div class="bosses" id="bossRow"><img alt="Hive Queen" data-spr="queen"><img alt="Iron Maw" data-spr="maw"></div>
-          <p class="note">A BOSS GUARDS EVERY 5TH WAVE<br>BONUS STAGE AFTER WAVE 3, 8, 13…</p>
+          <div class="bosses" id="bossRow"><img alt="Hive Queen" data-spr="queen"><img alt="Iron Maw" data-spr="maw"><img alt="Mothership" data-spr="mother"></div>
+          <p class="note">A BOSS GUARDS EVERY 5TH WAVE. THE<br>MOTHERSHIP'S CORE IS SHIELDED UNTIL<br>BOTH GENERATORS ARE DOWN.<br>BONUS STAGE AFTER WAVE 3, 8, 13…</p>
           <p class="note">WARDENS CAN BEAM UP YOUR SHIP: SHOOT<br>ONE TO WIN IT BACK AS A TWIN FIGHTER</p>
         </div>
         <div class="panel" hidden>
@@ -682,7 +682,7 @@
           <p class="fine">DUPLICATES REFUND 5 / 15 / 40 / 100 SCRAP.<br>OR BUY ANY ITEM OUTRIGHT IN THE ALBUM.</p>
         </div>
         <div class="hg-pane" id="hgAlbum" role="tabpanel" hidden>
-          <p class="fine"><span class="js-album">0/24</span> COLLECTED &middot; COSMETIC ONLY</p>
+          <p class="fine"><span class="js-album">0/28</span> COLLECTED &middot; COSMETIC ONLY</p>
           <div class="album" id="albumGrid"></div>
           <div class="detail"><div><span class="nm" id="adName">PICK AN ITEM</span><span class="ds" id="adMeta"></span></div><button class="btn sm" type="button" id="adAct" hidden>EQUIP</button></div>
         </div>
@@ -801,6 +801,13 @@ const SPR = {
   aegis: AEGIS.map(f => sprite(f)),
   aegisHurt: AEGIS.map(f => sprite(f, { s: 'c', S: 'C', w: 's' })),
   mine: sprite(['..c', '.ca', 'cay', '.ca', '..c']),
+  mother: sprite([
+    '..........SSSSSSS', '.......SSSsssssss', '.....SSssssbbbbbb', '...SSsssssbbttttt',
+    '.SSssSsssssssssss', 'SSsSsSsSsSsSsSsSs', 'SSSSSSSSSSSSSSSSS', '..SSS...SSSSSS...'
+  ]),
+  turret: sprite(['.SS', 'SsS', 'Sss', '.aa', '..a']),
+  gen: sprite(['..b', '.bt', 'bty', '.bt', '..b']),
+  core: sprite(['..CC', '.Ccc', 'Ccwy', '.Ccc', '..CC']),
   queen: sprite([
     '.........a..a', '.........aaaa', '........vvvvv', '.bb....vvyyvv', 'bbbb...vvkyvv', 'bBbbb.vVvvvvv',
     'bBBbbbvVVvcvc', 'bBBBbbbvVVvvv', '.bBBBbbbvcccc', '..bBBBbbccCCC', '...bBBbbccccc', '....bbb.cCCCC',
@@ -874,7 +881,9 @@ const ETYPES = {
 };
 const BOSSES = {
   queen: { name: 'HIVE QUEEN', spr: SPR.queen, hp: 58, pts: 3000, colors: [PAL.v, PAL.c, PAL.b, PAL.a, PAL.y], bar: PAL.v },
-  maw: { name: 'IRON MAW', spr: SPR.maw, hp: 80, pts: 4000, colors: [PAL.s, PAL.S, PAL.a, PAL.r, PAL.y], bar: PAL.a }
+  maw: { name: 'IRON MAW', spr: SPR.maw, hp: 80, pts: 4000, colors: [PAL.s, PAL.S, PAL.a, PAL.r, PAL.y], bar: PAL.a },
+  // Mothership: hp is its core; the turrets and shield generators have their own (see spawnBoss).
+  mother: { name: 'MOTHERSHIP', spr: SPR.mother, hp: 40, pts: 5000, colors: [PAL.s, PAL.S, PAL.b, PAL.t, PAL.c, PAL.y], bar: PAL.t }
 };
 
 /* ================= scrap, loadout, collection ================= */
@@ -899,7 +908,7 @@ const BADGE_ART = {
   diamond: ['...b', '..bv', '.bvv', 'bvvw', '.bvv', '..bv', '...b'],
   crown: ['a..a', 'a..a', 'aa.a', 'aaaa', 'aacy', 'aaaa', 'AAAA']
 };
-// 24 cosmetic collectibles. None of them change gameplay.
+// 28 cosmetic collectibles. None of them change gameplay.
 const COLLECTION = [
   { id: 'paint-slate', kind: 'paint', r: 0, name: 'SLATE', pal: { t: '#9a93c9', T: '#4a4478', b: '#5aa9ff', w: '#f4e9d8' } },
   { id: 'paint-mint', kind: 'paint', r: 0, name: 'MINT', pal: { t: '#9be564', T: '#3f8f3a', b: '#3ee6c1', w: '#f4e9d8' } },
@@ -924,7 +933,11 @@ const COLLECTION = [
   { id: 'trophy-warden', kind: 'trophy', r: 1, name: 'WARDEN', spr: () => SPR.warden[0], note: 'ARMORED, FIRES SPREADS' },
   { id: 'trophy-queen', kind: 'trophy', r: 2, name: 'HIVE QUEEN', spr: () => SPR.queen, note: 'ALSO EARNED BY BEATING HER' },
   { id: 'trophy-maw', kind: 'trophy', r: 2, name: 'IRON MAW', spr: () => SPR.maw, note: 'ALSO EARNED BY BEATING IT' },
-  { id: 'trophy-golden', kind: 'trophy', r: 3, name: 'GOLDEN DRONE', spr: () => SPR.golden[0], note: 'ALSO EARNED WITH A PERFECT STAGE' }
+  { id: 'trophy-golden', kind: 'trophy', r: 3, name: 'GOLDEN DRONE', spr: () => SPR.golden[0], note: 'ALSO EARNED WITH A PERFECT STAGE' },
+  { id: 'trophy-splitter', kind: 'trophy', r: 0, name: 'SPLITTER', spr: () => SPR.splitter[0], note: 'ONE BECOMES TWO' },
+  { id: 'trophy-miner', kind: 'trophy', r: 1, name: 'MINELAYER', spr: () => SPR.miner[0], note: 'SOWS DRIFTING MINES' },
+  { id: 'trophy-aegis', kind: 'trophy', r: 1, name: 'AEGIS', spr: () => SPR.aegis[0], note: 'ARMORED FROM THE FRONT' },
+  { id: 'trophy-mother', kind: 'trophy', r: 2, name: 'MOTHERSHIP', spr: () => SPR.mother, note: 'ALSO EARNED BY BEATING IT' }
 ];
 const byId = id => COLLECTION.find(i => i.id === id);
 
@@ -1649,18 +1662,59 @@ function fire() {
 }
 
 /* ================= boss ================= */
+const BOSS_ORDER = ['queen', 'maw', 'mother'];
 function spawnBoss() {
   const k = G.bossCount++;
-  const kind = k % 2 ? 'maw' : 'queen';
+  const kind = BOSS_ORDER[k % 3];
   const B = BOSSES[kind];
-  const hp = B.hp + 30 * k;
+  let hp = B.hp + 30 * k;
   G.rows = [];
   boss = { kind, B, k, x: W / 2, y: -16, hp, max: hp, t: 0, state: 'enter', atk: null, atkT: 1.2, sub: 0, subT: 0, spin: 0, flash: 0, last: '', dieT: 0, boomT: 0 };
+  if (kind === 'mother') {   // hp / max track the total of every part, for the health bar
+    const part = (kind, dx, dy, hp) => ({ kind, dx, dy, hp, max: hp, flash: 0 });
+    boss.parts = [part('turret', -14, 5, 10 + 3 * k), part('turret', 14, 5, 10 + 3 * k), part('gen', -7, 6, 8 + 2 * k), part('gen', 7, 6, 8 + 2 * k)];
+    boss.core = part('core', 0, 7, B.hp + 20 * k);
+    hp = boss.core.hp + boss.parts.reduce((a, p) => a + p.hp, 0);
+    boss.hp = boss.max = hp;
+  }
 }
 const ATTACKS = {
   queen: [['fan', 'stream', 'spawn'], ['fan2', 'stream', 'spawn', 'fan'], ['spiral', 'fan2', 'stream', 'spawn']],
-  maw: [['laser', 'cannons', 'cannons'], ['laser', 'cannons', 'ring'], ['laser', 'ring', 'cannons', 'laser']]
+  maw: [['laser', 'cannons', 'cannons'], ['laser', 'cannons', 'ring'], ['laser', 'ring', 'cannons', 'laser']],
+  mother: [['volley', 'rain', 'launch'], ['volley', 'burst', 'rain', 'launch'], ['burst', 'volley', 'burst', 'rain']]
 };
+/* ---- Mothership parts ---- */
+const shielded = b => b.parts.some(p => p.kind === 'gen' && p.hp > 0);
+const aliveParts = (b, kind) => b.parts.filter(p => p.hp > 0 && (!kind || p.kind === kind));
+function damagePart(b, p, n) {
+  const d = Math.min(n, p.hp);
+  if (d <= 0) return;
+  p.hp -= d; b.hp -= d; p.flash = b.flash = 0.06;
+  Snd.bossHit();
+  if (p.hp > 0) return;
+  const x = b.x + p.dx, y = b.y + p.dy;
+  explode(x, y, b.B.colors, 18, 60);
+  addScore(500);
+  popups.push({ text: '500', x, y: y + 4, t: 0, c: PAL.y });
+  Snd.boom(); shakeIt(2);
+  if (p.kind === 'gen' && !shielded(b)) { toast('CORE EXPOSED!', PAL.y); Snd.power(); }
+}
+function damageCore(b, n) {
+  const c = b.core, d = Math.min(n, c.hp);
+  if (d <= 0) return;
+  c.hp -= d; b.hp -= d; c.flash = b.flash = 0.06;
+  Snd.bossHit();
+  if (c.hp <= 0) killBoss(b);
+}
+// A regular shot: parts first, then the core (or its shield), then the armored hull soaks it up.
+function hitMother(b, s) {
+  for (const p of b.parts) if (p.hp > 0 && Math.abs(s.x - b.x - p.dx) <= 3 && Math.abs(s.y - b.y - p.dy) <= 3.5) { damagePart(b, p, 1); return true; }
+  const cdx = Math.abs(s.x - b.x), cdy = Math.abs(s.y - b.y - b.core.dy);
+  if (shielded(b)) { if (cdx < 7 && cdy < 6) { spark(s.x, s.y); Snd.ting(); return true; } }
+  else if (cdx <= 4 && cdy <= 3.5) { damageCore(b, 1); return true; }
+  if (cdx <= 16 && Math.abs(s.y - b.y) <= 4.5) { spark(s.x, s.y); return true; }
+  return false;
+}
 function spawnEscort(b) {
   if (!player.alive || enemies.length >= 5) return;
   const e = makeEnemy('drone', 0, 0);
@@ -1681,9 +1735,10 @@ function updateBoss(dt) {
   b.t += dt;
   if (b.flash > 0) b.flash -= dt;
   if (b.state === 'enter') {
+    const top = b.kind === 'mother' ? 46 : 54;
     b.y += 22 * dt;
-    if (b.y >= 54) {
-      b.y = 54; b.state = 'fight'; b.t = 0;
+    if (b.y >= top) {
+      b.y = top; b.state = 'fight'; b.t = 0;
       // supply drop as the fight starts: a shield, or rapid fire if one is already up
       pickups.push({ kind: player.shield ? 'rapid' : 'shield', x: cxk(player.x), y: 70, t: 0 });
       toast('SUPPLY DROP', PAL.t);
@@ -1712,10 +1767,11 @@ function updateBoss(dt) {
     return;
   }
   const ratio = b.hp / b.max;
-  const phase = ratio > 0.66 ? 1 : ratio > 0.33 ? 2 : 3;
+  const phase = b.kind === 'mother' ? (shielded(b) ? 1 : b.core.hp / b.core.max > 0.5 ? 2 : 3) : ratio > 0.66 ? 1 : ratio > 0.33 ? 2 : 3;
+  if (b.parts) for (const p of b.parts.concat(b.core)) if (p.flash > 0) p.flash -= dt;
   if (b.atk !== 'laser') {
-    const tx = b.kind === 'queen' ? W / 2 + Math.sin(b.t * 0.7) * 44 : W / 2 + Math.sin(b.t * 0.5) * 56;
-    const ty = b.kind === 'queen' ? 54 + Math.sin(b.t * 1.6) * 8 : 50 + Math.sin(b.t * 0.9) * 4;
+    const tx = b.kind === 'queen' ? W / 2 + Math.sin(b.t * 0.7) * 44 : b.kind === 'mother' ? W / 2 + Math.sin(b.t * 0.45) * 40 : W / 2 + Math.sin(b.t * 0.5) * 56;
+    const ty = b.kind === 'queen' ? 54 + Math.sin(b.t * 1.6) * 8 : b.kind === 'mother' ? 46 + Math.sin(b.t * 1.2) * 3 : 50 + Math.sin(b.t * 0.9) * 4;
     b.x += (tx - b.x) * Math.min(1, dt * 3);
     b.y += (ty - b.y) * Math.min(1, dt * 3);
   }
@@ -1725,6 +1781,7 @@ function updateBoss(dt) {
       const opts = ATTACKS[b.kind][phase - 1];
       const fresh = opts.filter(o => o !== b.last);
       b.atk = pick(fresh.length ? fresh : opts);
+      if (b.atk === 'volley' && !aliveParts(b, 'turret').length) b.atk = shielded(b) ? 'rain' : 'burst';
       b.sub = 0;
       b.subT = b.atk === 'laser' ? 0.9 : 0;
     }
@@ -1772,14 +1829,35 @@ function updateBoss(dt) {
     case 'ring':
       if (b.subT <= 0) { ringShot(b.x, b.y + 2, 14, spd - 10, b.sub * Math.PI / 14); b.sub++; b.subT = 0.35; if (b.sub >= (phase === 3 ? 2 : 1)) endAttack(b, phase); }
       break;
+    case 'volley':   // each live turret fires three aimed shots
+      if (b.subT <= 0) { for (const p of aliveParts(b, 'turret')) aimed(b.x + p.dx, b.y + p.dy + 3, spd + 8, 0.07); b.sub++; b.subT = 0.24; if (b.sub >= 3) endAttack(b, phase); }
+      break;
+    case 'rain':     // drops a line of drifting mines
+      if (b.subT <= 0) { layMine(b.x + (b.sub - 1) * 12, b.y + 8); b.sub++; b.subT = 0.22; if (b.sub >= 3) endAttack(b, phase); }
+      break;
+    case 'launch':
+      if (b.subT <= 0) { spawnEscort(b); b.sub++; b.subT = 0.35; if (b.sub >= 2) endAttack(b, phase); }
+      break;
+    case 'burst':    // the exposed core fires rings
+      if (b.subT <= 0) { ringShot(b.x, b.y + b.core.dy, 12, spd - 12, b.sub * 0.26); b.sub++; b.subT = 0.4; if (b.sub >= (phase === 3 ? 2 : 1)) endAttack(b, phase); }
+      break;
   }
 }
+// Blast damage (Nova, bombs, piercing bolts): the Mothership takes it on every live part, and its core once exposed.
 function damageBoss(n) {
   const b = boss;
   if (!b || b.state !== 'fight') return;
+  if (b.kind === 'mother') {
+    for (const p of aliveParts(b)) damagePart(b, p, n);
+    if (!shielded(b)) damageCore(b, n);
+    return;
+  }
   b.hp -= n; b.flash = 0.06;
   Snd.bossHit();
   if (b.hp > 0) return;
+  killBoss(b);
+}
+function killBoss(b) {
   b.hp = 0; b.state = 'dying'; b.dieT = 1.8; b.boomT = 0; b.atk = null;
   const bonus = b.B.pts + 2000 * b.k;
   addScore(bonus);
@@ -1787,7 +1865,7 @@ function damageBoss(n) {
   for (const s of eshots) spark(s.x, s.y);
   eshots = [];
   for (const e of enemies) if (!e.dead) { e.dead = true; explode(e.x, e.y, e.T.colors, 10, 50); }
-  if (awardTrophy(b.kind === 'queen' ? 'trophy-queen' : 'trophy-maw')) G.extra.push(['TROPHY CARD', b.B.name]);
+  if (awardTrophy('trophy-' + b.kind)) G.extra.push(['TROPHY CARD', b.B.name]);
   G.extra.push(['BOSS SCRAP', '+' + (120 + 40 * b.k)]);
   Snd.bigBoom();
 }
@@ -1854,8 +1932,12 @@ function pierceHits(s) {
   }
   for (const m of mines) if (!m.dead && Math.abs(s.x - m.x) <= 4 && Math.abs(s.y - m.y) <= 8) { first(); popMine(m, 30); }
   if (boss && boss.state === 'fight' && !s.bossHit) {
-    const sp = boss.B.spr;
-    if (Math.abs(s.x - boss.x) <= sp.w * 0.42 && Math.abs(s.y - boss.y) <= sp.h * 0.4) { s.bossHit = true; first(); spark(s.x, s.y); damageBoss(4); }
+    const b = boss, sp = b.B.spr;
+    if (b.parts) {   // a bolt hits the parts in its column once each, then the core if it is exposed
+      s.bossParts = s.bossParts || [];
+      for (const p of b.parts) if (p.hp > 0 && !s.bossParts.includes(p) && Math.abs(s.x - b.x - p.dx) <= 3.5 && Math.abs(s.y - b.y - p.dy) <= 8) { s.bossParts.push(p); first(); damagePart(b, p, 4); }
+      if (!shielded(b) && Math.abs(s.x - b.x) <= 4.5 && Math.abs(s.y - b.y - b.core.dy) <= 8) { s.bossHit = true; first(); damageCore(b, 4); }
+    } else if (Math.abs(s.x - b.x) <= sp.w * 0.42 && Math.abs(s.y - b.y) <= sp.h * 0.4) { s.bossHit = true; first(); spark(s.x, s.y); damageBoss(4); }
   }
 }
 
@@ -2158,7 +2240,8 @@ function update(dt) {
     }
     if (!s.dead && boss && boss.state === 'fight') {
       const sp = boss.B.spr;
-      if (Math.abs(s.x - boss.x) <= sp.w * 0.42 && Math.abs(s.y - boss.y) <= sp.h * 0.4) { s.dead = true; G.hits++; spark(s.x, s.y); damageBoss(1); }
+      if (boss.parts) { if (hitMother(boss, s)) { s.dead = true; G.hits++; } }
+      else if (Math.abs(s.x - boss.x) <= sp.w * 0.42 && Math.abs(s.y - boss.y) <= sp.h * 0.4) { s.dead = true; G.hits++; spark(s.x, s.y); damageBoss(1); }
     }
   }
   pshots = pshots.filter(s => !s.dead);
@@ -2263,7 +2346,16 @@ function drawCaptives() {
 }
 function drawBoss(b) {
   const flick = b.state === 'dying' && Math.floor(clock * 16) % 2;
-  drawSpr(b.B.spr, b.x, b.y, 0, b.flash > 0 || flick);
+  drawSpr(b.B.spr, b.x, b.y, 0, (b.flash > 0 && !b.parts) || flick);
+  if (b.parts) {
+    for (const p of b.parts) {
+      if (p.hp <= 0) cx.globalAlpha = 0.3;
+      drawSpr(SPR[p.kind], b.x + p.dx, b.y + p.dy, 0, p.hp > 0 && (p.flash > 0 || flick));
+      cx.globalAlpha = 1;
+    }
+    drawSpr(SPR.core, b.x, b.y + b.core.dy, 0, b.core.flash > 0 || flick);
+    if (shielded(b) && b.state === 'fight') ringPts(b.x, b.y + b.core.dy, 6.5, Math.floor(clock * 8) % 2 ? PAL.b : PAL.t, Math.floor(clock * 12) % 3);
+  }
   if (b.atk === 'laser' && b.sub >= 1) {
     cx.fillStyle = Math.floor(clock * 20) % 2 ? PAL.y : PAL.w;
     cx.fillRect(Math.round(b.x) - 2, Math.round(b.y) + 2, 5, 2);
