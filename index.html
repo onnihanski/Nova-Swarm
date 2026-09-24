@@ -184,7 +184,7 @@
   }
   .tag { font-size: var(--fs-s); color: var(--ink-dim); letter-spacing: .08em; }
 
-  .attract { width: 100%; height: calc(var(--px) * 116); overflow: hidden; display: flex; }
+  .attract { width: 100%; height: calc(var(--px) * 128); overflow: hidden; display: flex; }
   .panel { width: 100%; display: flex; flex-direction: column; align-items: center; gap: calc(var(--px) * 3); }
   .panel h2 { font-size: var(--fs-s); font-weight: 400; color: var(--coral); letter-spacing: .14em; }
   .note { font-size: var(--fs-s); color: var(--ink-dim); }
@@ -229,7 +229,7 @@
     list-style: none;
     margin: 0; padding: 0;
     display: grid;
-    gap: calc(var(--px) * 2);
+    gap: calc(var(--px) * 1.5);
     font-size: var(--fs-s);
     text-align: left;
   }
@@ -823,6 +823,7 @@ const POWERS = {
   shield: { glyph: 'O', color: PAL.t, name: 'SHIELD', desc: 'BLOCKS ONE HIT', weight: 20 },
   warp: { glyph: 'T', color: PAL.v, name: 'TIME WARP', desc: 'SLOWS THE SWARM, 7 SEC', weight: 14 },
   nova: { glyph: 'N', color: PAL.y, name: 'NOVA BLAST', desc: 'WIPES SHOTS, HITS ALL FOES', weight: 10 },
+  wing: { glyph: 'W', color: '#9be564', name: 'WINGMEN', desc: '2 DRONES COPY YOUR SHOTS', weight: 12 },
   life: { glyph: 'heart', color: PAL.c, name: 'EXTRA SHIP', desc: 'ONE MORE LIFE (MAX 5)', weight: 4 }
 };
 function capsule(p, border) {
@@ -853,6 +854,7 @@ const BOSSES = {
 SPR.golden = DRONE.map(f => sprite(f, { c: 'a', C: 'A' }));
 SPR.captive = sprite(PLAYER_HALF, { t: 'c', T: 'C', b: 'a' });
 const BOMB_SPR = sprite(['..y', '.cc', 'ccw', 'ccc', '.cC']);
+const WING_SPR = spriteC(['..w', '.gg', 'ggG', 'g.G'], ch => ({ w: PAL.w, g: '#9be564', G: '#3f8f3a' })[ch]);
 const SCRAP_ICON = sprite(['..s', '.sa', 'sa.', '.sa', '..s']);
 const CRATE_SPR = sprite(['...aaaa', '..avvvv', '.avvvvw', '.avvvww', '.avvvvw', 'aaaaaaa', 'AAAAAAy', '.tttttt', '.tTtttt', '.tTtttt', '..tTttt', '...TTTT']);
 const RARITY = [
@@ -1163,7 +1165,7 @@ const G = {
   scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
   combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2
 };
-const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: false, charge: 0 };
+const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: false, charge: 0, wings: false };
 let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [], scrapBits = [];
 let boss = null;
 let shakeAmt = 0, flash = 0, warp = 0, clock = 0;
@@ -1494,6 +1496,7 @@ function capturePlayer(e) {
   G.hitThisWave = true;
   G.lives--;
   breakCombo();
+  dropWings();
   if (G.lives <= 0) G.overT = 2.2;
   ui.toastT = 0; $('toast').hidden = true;
   banner('FIGHTER CAPTURED', 'SHOOT THE WARDEN TO WIN IT BACK', 'warn', 2.2);
@@ -1573,6 +1576,7 @@ function fire() {
     pshots.push({ x: xs[0] - 2, y: y + 2, vx: -45, vy: -222 }, { x: xs[xs.length - 1] + 2, y: y + 2, vx: 45, vy: -222 });
     G.shots += 2;
   }
+  wingShots();
   Snd.shoot();
 }
 
@@ -1720,6 +1724,28 @@ function damageBoss(n) {
   Snd.bigBoom();
 }
 
+/* ================= wingmen: two drones that copy your shots until you are hit ================= */
+const wingmen = [{ x: W / 2, y: H - 20 }, { x: W / 2, y: H - 20 }];
+const wingOffset = () => player.twin ? TWIN_DX + 11 : 12;
+function placeWings() { wingmen.forEach((w, i) => { w.x = player.x + (i ? 1 : -1) * wingOffset(); w.y = player.y + 3; }); }
+function updateWings(dt) {
+  const k = Math.min(1, dt * 12);
+  wingmen.forEach((w, i) => {
+    w.x += (clamp(player.x + (i ? 1 : -1) * wingOffset(), 3, W - 3) - w.x) * k;
+    w.y += (player.y + 3 - w.y) * k;
+  });
+}
+function wingShots() {
+  if (!player.wings) return;
+  for (const w of wingmen) pshots.push({ x: Math.round(w.x), y: w.y - 4, vx: 0, vy: -230 });
+  G.shots += 2;
+}
+function dropWings() {
+  if (!player.wings) return;
+  player.wings = false;
+  for (const w of wingmen) explode(w.x, w.y, ['#9be564', PAL.w], 8, 40);
+}
+
 /* ================= smart bombs + charge shot ================= */
 // A smart bomb clears enemy fire and deals 1 damage to everything on screen (6 to a boss).
 function useBomb() {
@@ -1736,6 +1762,7 @@ function firePierce() {
   const xs = shipXs(), y = player.y - 8;
   for (const x of xs) pshots.push({ x, y, vx: 0, vy: -320, pierce: true, hit: [] });
   G.shots += xs.length;
+  wingShots();
   rings.push({ x: player.x, y: y, r: 2, v: 50, t: 0, life: 0.2, c: PAL.y });
   Snd.pierce();
 }
@@ -1820,7 +1847,7 @@ function addScore(v) {
 }
 function dropPickup(x, y, force) {
   if (pickups.length >= 3 && !force) return;
-  const pool = Object.entries(POWERS).filter(([k]) => !(k === 'life' && G.lives >= 5) && !(k === 'shield' && player.shield));
+  const pool = Object.entries(POWERS).filter(([k]) => !(k === 'life' && G.lives >= 5) && !(k === 'shield' && player.shield) && !(k === 'wing' && player.wings));
   let r = Math.random() * pool.reduce((s, [, p]) => s + p.weight, 0);
   for (const [k, p] of pool) {
     r -= p.weight;
@@ -1834,6 +1861,7 @@ function applyPower(kind) {
   else if (kind === 'shield') player.shield = true;
   else if (kind === 'warp') G.slowT = 7;
   else if (kind === 'nova') nova();
+  else if (kind === 'wing') { if (!player.wings) placeWings(); player.wings = true; }
   else if (kind === 'life') G.lives = Math.min(G.lives + 1, 5);
   addScore(50);
   toast(p.name, p.color);
@@ -1861,6 +1889,7 @@ function hitPlayer(hx) {
     shakeIt(2);
     return;
   }
+  dropWings();
   if (player.twin) {   // the ship nearest the hit is lost; the other flies on
     const side = hx === undefined ? (Math.random() < 0.5 ? -1 : 1) : hx < player.x ? -1 : 1;
     player.twin = false;
@@ -1886,7 +1915,7 @@ function hitPlayer(hx) {
   else player.respawnT = 1.8;
 }
 function respawn() {
-  Object.assign(player, { alive: true, x: W / 2, y: H - 22, invuln: 2.2, cd: 0.3, twin: false, charge: 0 });
+  Object.assign(player, { alive: true, x: W / 2, y: H - 22, invuln: 2.2, cd: 0.3, twin: false, charge: 0, wings: false });
   for (const b of eshots) spark(b.x, b.y);
   eshots = [];
 }
@@ -1984,6 +2013,7 @@ function updatePlayer(dt) {
   touch.dx = touch.dy = 0;
   const edge = player.twin ? 7 + TWIN_DX : 7;
   player.x = clamp(player.x, edge, W - edge);
+  if (player.wings) updateWings(dt);
   player.y = clamp(player.y, H * 0.55, H - 14);
   G.trailT += dt;
   if (G.trailT > 0.04) {
@@ -2181,6 +2211,10 @@ function drawPlayer() {
       cx.fillStyle = tc.core; cx.fillRect(fx + 3, fy, 1, 1); cx.fillRect(fx + 7, fy, 1, 1);
       if (f) { cx.fillStyle = tc.outer; cx.fillRect(fx + 3, fy + 1, 1, f); cx.fillRect(fx + 7, fy + 1, 1, f); }
     }
+  }
+  if (player.wings) for (const w of wingmen) {
+    drawSpr(WING_SPR, w.x, w.y);
+    if (Math.floor(clock * 20) % 2) { cx.fillStyle = trailColors().core; cx.fillRect(Math.round(w.x), Math.round(w.y) + 3, 1, 1); }
   }
   if (player.charge >= 1) {   // charged: a glint on each nose
     if (Math.floor(clock * 10) % 2) { cx.fillStyle = PAL.y; for (const sx of shipXs()) cx.fillRect(Math.round(sx) - 1, Math.round(player.y) - 7, 3, 1); }
@@ -2426,7 +2460,7 @@ function resetGame(from) {
     combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2 });
   Object.assign(RUN, { fastFire: 0, spreadStart: false, magnet: false, shipsBought: 0, nextPowers: [] });
   if (from && from.run) Object.assign(RUN, { fastFire: clamp(from.run.fastFire | 0, 0, 2), spreadStart: !!from.run.spreadStart, magnet: !!from.run.magnet, shipsBought: from.run.shipsBought | 0 });
-  Object.assign(player, { x: W / 2, y: H - 22, alive: true, invuln: 1.5, cd: 0.2, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: !!(from && from.twin), charge: 0 });
+  Object.assign(player, { x: W / 2, y: H - 22, alive: true, invuln: 1.5, cd: 0.2, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: !!(from && from.twin), charge: 0, wings: !!(from && from.wings) });
   enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; scrapBits = []; boss = null; rescue = null;
   if (from) {
     G.score = Math.max(0, from.score | 0);
@@ -3252,7 +3286,7 @@ try {
     const between = state === 'debrief' || state === 'wager' || (state === 'hangar' && hangar.from !== 'title');
     if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0) return {};
     if (between) bankClear();
-    return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, twin: player.twin, bombs: G.bombs, run: { ...RUN } } };
+    return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, twin: player.twin, wings: player.wings, bombs: G.bombs, run: { ...RUN } } };
   });
 } catch (e) { /* hot reload is optional */ }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
