@@ -8,17 +8,19 @@ The hive has reached Sector 9. Enemies fly in along swooping paths, lock into fo
 
 Play it online at **https://onnihanski.github.io/Sum-Sum/** (GitHub Pages), or open `index.html` in any modern browser. Everything lives in that one file: the pixel sprites are drawn in code and the chiptune music and sound effects are synthesized with WebAudio. The two pixel fonts load from Google Fonts, and the game falls back to a monospace font when offline.
 
-| Action | Keyboard | Touch |
-| --- | --- | --- |
-| Move | WASD (arrow keys also work) | Drag anywhere on the screen |
-| Fire | Space / Z (hold for auto-fire) | Fires automatically while your finger is down |
-| Charge shot | Let go of fire for a second; your next shot pierces | Lift your finger for a second |
-| Smart bomb | X | Tap with a second finger |
-| Pause | P / Esc | Pause button under the screen |
-| Sound | M (cycles on / SFX only / off) | Sound button under the screen |
-| Hangar | H (title screen and between waves) | Hangar button |
-| Star map | G (title screen) | Map button |
-| Daily challenge | C (title screen) | Daily button |
+| Action | Keyboard | Gamepad | Touch |
+| --- | --- | --- | --- |
+| Move | WASD (arrow keys also work) | Left stick (analog) or D-pad | Drag anywhere on the screen |
+| Fire | Space / Z (hold for auto-fire) | A (hold for auto-fire) | Fires automatically while your finger is down |
+| Charge shot | Let go of fire for a second; your next shot pierces | Let go of A for a second | Lift your finger for a second |
+| Smart bomb | X | B or X | Tap with a second finger |
+| Pause | P / Esc | Start | Pause button under the screen |
+| Sound | M (cycles on / SFX only / off) | Back / Select | Sound button under the screen |
+| Options | O (title and pause screens) | Options button | Options button |
+| Hangar | H (title screen and between waves) | Hangar button | Hangar button |
+| Star map | G (title screen) | Map button | Map button |
+| Daily challenge | C (title screen) | Daily button | Daily button |
+| Menus | Tab, arrow keys, Space / Enter, Esc | D-pad or left stick moves focus, A picks, B goes back, LB / RB flip tabs | Tap |
 
 ## What's in it
 
@@ -49,7 +51,20 @@ Play it online at **https://onnihanski.github.io/Sum-Sum/** (GitHub Pages), or o
 - **Daily challenge:** the same seeded region, waves, events, drops and missions for everyone on a given (UTC) day. The day's region is open even if you haven't charted it yet. Everyone flies a Striker with no loadout, hangar, gambles or wager. The day's best score is kept separately from the top-10 table.
 - **Top 10 table** with 3-letter initials, saved in your browser's local storage.
 - **Chiptune soundtrack** with separate boss and bonus-stage themes, generated live with no audio files.
-- **CRT scanlines**, screen shake, and pixel explosions. All motion effects respect the reduced-motion setting.
+- **CRT scanlines**, screen shake, and pixel explosions. All motion effects respect the reduced-motion setting, and the options screen can tune them (see below).
+
+## Gamepad and options
+
+- **Gamepad:** any controller with the standard mapping works through the browser's Gamepad API. Press a button once so the browser sees it. The game toasts CONTROLLER CONNECTED and CONTROLLER DISCONNECTED, and pauses if the pad drops out mid-run. The left stick has a deadzone and analog speed, and the D-pad moves at full speed. A fires (hold to auto-fire; let go for a second to charge), B or X drops a smart bomb, Start pauses, Back / Select cycles the sound. RB is kept free for a later hull ability.
+- **Menus from the pad:** every screen works without a keyboard: title and its tabs, hangar, album, star map, debrief, wager, prize wheel, initials entry, pause, game over and options. The D-pad or stick moves a bright focus ring between the buttons, A presses the focused one, B goes back like Esc, Start takes the screen's safe default (start, next wave, no bet, resume), and LB / RB flip the title panels and hangar tabs. On the initials screen the D-pad picks letters. While a pad is in use, the on-screen hints name pad buttons; they switch back when you touch the keyboard, mouse or screen.
+- **Rumble:** pads that support it buzz when your ship is hit, on a smart bomb and when a boss dies.
+- **Options screen:** press O on the title or pause screen, or use the Options button. Everything is saved in your browser, and Reset Defaults puts it all back.
+  - **Sound, music and SFX:** M and the Sound row cycle on / SFX only / off. Music and SFX set how loud each is when it is on, from 0 to 10. A muted row is dimmed, so it is clear what M is doing. Your old sound setting carries over.
+  - **Screen shake:** on, reduced (half) or off.
+  - **Flashes:** full, or reduced to dim the white flashes from bombs, Nova Blasts, boss kills and ship losses.
+  - **Hi-contrast shots:** draws enemy bullets and mines with a dark halo, a white edge and a hot core, so they stand out on every region's backdrop, in Dark Sector waves and in the Prism Rift.
+  - **Pad rumble:** on or off.
+  - Shake and flashes start from your device's reduced-motion setting (off and reduced when it is on) until you pick a value; a choice you make overrides it.
 
 ## Regions and the star map
 
