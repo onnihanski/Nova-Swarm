@@ -2870,7 +2870,7 @@ const REC_NUMS = ['runs', 'dailies', 'score', 'best', 'time', 'waves', 'bestWave
   'perfects', 'bestBonus', 'rescues', 'bombs', 'pierce', 'missions', 'relics', 'scrap', 'flawless', 'twinBosses'];
 const REC_MAPS = { kills: ETYPES, bosses: BOSSES, bossRegions: REGION, hullBest: HULLS };
 const emptyRec = () => {
-  const r = { medals: {}, seen: {}, legacy: false };
+  const r = { medals: {}, seen: {}, legacy: false, lastDaily: '' };
   for (const k of REC_NUMS) r[k] = 0;
   for (const k in REC_MAPS) r[k] = {};
   return r;
@@ -2882,6 +2882,7 @@ function loadRec() {
   for (const k in REC_MAPS) if (s[k] && typeof s[k] === 'object') for (const id in s[k]) if (Object.prototype.hasOwnProperty.call(REC_MAPS[k], id) && Number.isFinite(s[k][id]) && s[k][id] > 0) r[k][id] = Math.floor(s[k][id]);
   for (const k of ['medals', 'seen']) if (s[k] && typeof s[k] === 'object') for (const id in s[k]) if (/^[a-z0-9-]{1,24}$/.test(id) && s[k][id] >= 1 && s[k][id] <= 3) r[k][id] = s[k][id] | 0;
   r.legacy = s.legacy === true;
+  if (typeof s.lastDaily === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s.lastDaily)) r.lastDaily = s.lastDaily;
   return r;
 }
 const record = loadRec();
@@ -3037,7 +3038,8 @@ const Rec = {
       recMax(record, 'waves', recSum(regions.best));
       recMax(record, 'runs', real.length);
       recMax(record, 'scrap', Wallet.scrap);
-      recMax(record, 'dailies', store.get(DAILY_KEY, null) ? 1 : 0);
+      const dy = store.get(DAILY_KEY, null);
+      if (dy) { recMax(record, 'dailies', 1); if (typeof dy.day === 'string') record.lastDaily = dy.day; }
       recMax(record, 'perfects', stats.bonus.filter(h => h >= 40).length);
       recMax(record, 'bestBonus', Math.max(0, ...stats.bonus));
       for (const r of REGIONS) {   // each region opens with its own boss and rotates through the three
@@ -3062,7 +3064,8 @@ const Rec = {
     }
     tickMedalToast(dt);
   },
-  runStart() { record.runs++; if (daily) record.dailies++; this.run = { grazes: 0, noHit: 0 }; this.chk = 0; },
+  // dailies counts days played, so replaying one day's challenge counts once
+  runStart() { record.runs++; if (daily && record.lastDaily !== daily) { record.dailies++; record.lastDaily = daily; } this.run = { grazes: 0, noHit: 0 }; this.chk = 0; },
   time(dt) { record.time += dt; },
   earn(n) { if (!recPaying) record.scrap += n; },
   score(v) { record.score += v; recMax(record, 'best', G.score); },
