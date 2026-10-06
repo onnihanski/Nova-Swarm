@@ -849,7 +849,7 @@ function spriteC(half, colorOf) {
 function sprite(half, remap = {}) { return spriteC(half, ch => PAL[remap[ch] || ch]); }
 const PLAYER_HALF = ['.....w', '.....w', '....tb', '....tb', '...ttb', 't..tbb', 't.tttt', 'tttTtw', 'ttTTtt', 'tT.tt.', 't..T..'];
 // Four hulls. Stats: movement speed (px/s), fire cooldown factor; the Bulwark fires two bolts per ship and starts every life shielded;
-// the Lancer charges its piercing bolt twice as fast and hits harder (pierce: damage to foes / to a boss). Each hull has one signature ability (see hull abilities).
+// the Lancer charges its piercing bolt faster and hits foes harder (pierce: damage to foes / to a boss). Each hull has one signature ability (see hull abilities).
 const HULLS = {
   striker: { name: 'STRIKER', price: 0, speed: 95, vspeed: 80, cd: 1, desc: 'BALANCED ALL-ROUNDER', stats: 'SPEED 2 FIRE 2', ability: 'overdrive',
     half: PLAYER_HALF },
@@ -857,7 +857,7 @@ const HULLS = {
     half: ['.....w', '....tw', '....tb', '...ttb', '...tTb', '..ttbb', '.ttTtt', 'ttTTtw', 'tT.Ttt', 't...t.', '......'] },
   bulwark: { name: 'BULWARK', price: 400, speed: 74, vspeed: 64, cd: 1.1, shieldStart: true, wide: true, desc: 'SHIELD EACH LIFE, TWIN BOLTS', stats: 'SPEED 1 FIRE 3', ability: 'barrier',
     half: ['....ww', '...ttb', '..tttb', '.ttTtb', 'tttTbb', 'tTTTtt', 'tTttTt', 'tTTTtw', 'ttTTtt', 'tT.tt.', 'tt.TT.'] },
-  lancer: { name: 'LANCER', price: 500, speed: 88, vspeed: 72, cd: 1.5, chargeTime: 0.5, pierce: [3, 5], ability: 'lance', desc: 'SLOW SHOTS, FAST HARD CHARGE SHOT', stats: 'SPEED 2 FIRE 1 CHARGE 3',
+  lancer: { name: 'LANCER', price: 500, speed: 88, vspeed: 72, cd: 1.5, chargeTime: 0.7, pierce: [3, 4], ability: 'lance', desc: 'SLOW SHOTS, FAST HARD CHARGE SHOT', stats: 'SPEED 2 FIRE 1 CHARGE 3',
     half: ['.....w', '.....w', '.....t', '....tb', '....tb', '...tTb', 't..tTb', 'tt.tTt', 'tTtTtw', 'tT.tt.', 't..T..'] }
 };
 const LIFE_HALF = ['...w', '..tb', '.ttb', 'tttt', 'tTtt', 't..T'];
@@ -2727,7 +2727,7 @@ function useBomb() {
 }
 // Charge builds while the fire button is released; a full charge makes the next shot a piercing bolt.
 const CHARGE_TIME = 1;
-const pierceDmg = () => hullStat().pierce || [2, 4];   // damage to foes / to a boss; the Lancer hits harder
+const pierceDmg = () => hullStat().pierce || [2, 4];   // damage to foes / to a boss; the Lancer hits foes harder
 function firePierce() {
   player.cd = 0.3;
   const xs = shipXs(), y = player.y - 8;
