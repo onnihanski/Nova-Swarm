@@ -14,6 +14,7 @@ Play it online at **https://onnihanski.github.io/Sum-Sum/** (GitHub Pages), or o
 | Fire | Space / Z (hold for auto-fire) | Fires automatically while your finger is down |
 | Charge shot | Let go of fire for a second; your next shot pierces | Lift your finger for a second |
 | Smart bomb | X | Tap with a second finger |
+| Hull ability | V | Ability button under the screen |
 | Pause | P / Esc | Pause button under the screen |
 | Sound | M (cycles on / SFX only / off) | Sound button under the screen |
 | Hangar | H (title screen and between waves) | Hangar button |
@@ -38,6 +39,13 @@ Play it online at **https://onnihanski.github.io/Sum-Sum/** (GitHub Pages), or o
 - **Weapons:**
   - **Smart bombs:** two per run, bought in the shop for 40 scrap each (up to five). A bomb clears enemy fire and hits every enemy on screen.
   - **Charge shot:** fire a piercing bolt through a whole column.
+- **Hull abilities:** every hull has one signature move, fired with V or the ability button under the screen.
+  - **Meter:** kills fill it (divers fill more), grazes add a little, and so does damage to a boss. It is ready about once per regular wave and two or three times in a boss fight. It starts every run empty and is kept when you lose a ship (only a running ability ends), and it can't fill while a long ability is running.
+  - **Striker, Overdrive:** about 4 seconds of rapid spread fire, with a glowing aura.
+  - **Interceptor, Phase Dash:** an instant dash in your move direction (sideways when idle) with 0.4 seconds of invulnerability and an afterimage. Grazes during the dash pay double, and it slips you out of a tractor beam.
+  - **Bulwark, Barrier:** a shield wall above the ship for 5 seconds that soaks enemy shots and mines, but not diving enemies.
+  - **Lancer, Lance:** a beam straight up for 1.5 seconds that hits everything in its column; it does at most 12 damage to a boss.
+  - Abilities work with twin fighters, wingmen, shields and Time Warp, and the daily challenge's Striker has Overdrive.
 - **Seven power-ups:** Spread Shot, Rapid Fire, Shield, Time Warp, Nova Blast (clears the screen), Wingmen (two drones that add shots until you are hit), and Extra Ship.
 - **Scoring:**
   - **Combo multiplier:** kills in quick succession build up to x8.
@@ -45,7 +53,7 @@ Play it online at **https://onnihanski.github.io/Sum-Sum/** (GitHub Pages), or o
   - **No-hit bonus:** for clearing a wave without getting hit.
   - **Extra ships:** at 30,000 points and then every 100,000.
   - **Results screen:** arcade-style, with shots fired, number of hits and hit-miss ratio.
-- **Missions:** three random goals per run (for example: reach a x4 combo, rescue a captured fighter, shoot 5 mines), each paying scrap. The title screen shows the next run's missions and the pause screen shows your progress.
+- **Missions:** three random goals per run (for example: reach a x4 combo, rescue a captured fighter, shoot 5 mines, use your ability 3 times, defeat 8 foes with your ability), each paying scrap. The title screen shows the next run's missions and the pause screen shows your progress.
 - **Daily challenge:** the same seeded region, waves, events, drops and missions for everyone on a given (UTC) day. The day's region is open even if you haven't charted it yet. Everyone flies a Striker with no loadout, hangar, gambles or wager. The day's best score is kept separately from the top-10 table.
 - **Top 10 table** with 3-letter initials, saved in your browser's local storage.
 - **Chiptune soundtrack** with separate boss and bonus-stage themes, generated live with no audio files.
@@ -78,7 +86,7 @@ Press G (or the Map button) on the title screen to open the star map. Pick a reg
 - **Wave debrief:** after each wave you see your bonus (points + scrap). From there you can continue, open the hangar, or try **double or nothing** on that bonus: a coin flip (50/50) or a reflex test (stop the needle in a green zone that covers 20% of the bar). Your saved scrap is never at risk, only that wave's bonus.
 - **Hangar** (title screen and between waves):
   - **Shop:** upgrades that last one run: Shield, Spread Start, Fast Fire, Extra Ship, Scrap Magnet, Smart Bomb. Buying from the title screen applies them to your next run.
-  - **Ships:** the Striker (free, balanced), the Interceptor (300 scrap: faster, quicker single shots), and the Bulwark (400 scrap: slow, fires two bolts per shot, and starts every life shielded). Paint jobs recolor all three.
+  - **Ships:** the Striker (free, balanced), the Interceptor (300 scrap: faster, quicker single shots), the Bulwark (400 scrap: slow, fires two bolts per shot, and starts every life shielded), and the Lancer (500 scrap: slower single shots, but its charge shot charges twice as fast and hits harder). Each has its own ability (see above). Paint jobs and engine trails fit all four.
   - **Slots** (10 scrap): three of a kind gives that power-up next wave, three ships is the jackpot (an extra ship), and any pair returns 5 scrap. The exact odds of each outcome are listed under the reels.
   - **Mystery capsule** (60 scrap): pick a set with the arrows, then roll a collectible from it: Common 60%, Rare 28%, Epic 10%, Legendary 2%. Duplicates refund scrap.
   - **Album:** 268 cosmetic collectibles in nine sets (use the arrows or the arrow keys to switch sets), across four rarities: ship paint jobs, engine trails, pilot badges (shown next to your name in the high-score table), and trophy cards. Every item can also be bought outright, from any set, charted or not. Beating each boss or scoring a PERFECT stage, in any region, also awards its Sector 9 trophy card.
