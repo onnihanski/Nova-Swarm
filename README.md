@@ -6,7 +6,7 @@ The hive has reached Sector 9. Enemies fly in along swooping paths, lock into fo
 
 ## Play
 
-Play it online at **https://onnihanski.github.io/Sum-Sum/** (GitHub Pages), or open `index.html` in any modern browser. Everything lives in that one file: the pixel sprites are drawn in code and the chiptune music and sound effects are synthesized with WebAudio. The two pixel fonts load from Google Fonts, and the game falls back to a monospace font when offline.
+Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), or open `index.html` in any modern browser. Everything lives in that one file: the pixel sprites are drawn in code and the chiptune music and sound effects are synthesized with WebAudio. The two pixel fonts load from Google Fonts, and the game falls back to a monospace font when offline.
 
 | Action | Keyboard | Touch |
 | --- | --- | --- |
