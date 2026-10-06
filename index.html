@@ -523,6 +523,43 @@
     clip-path: polygon(0 0, 100% 0, 50% 100%);
   }
 
+  /* ---- pilot record and medals ---- */
+  .rc-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rc-detail {
+    width: 100%; min-height: calc(var(--px) * 28);
+    display: grid; grid-template-columns: auto 1fr; align-items: center; gap: calc(var(--px) * 4);
+    padding: calc(var(--px) * 2) calc(var(--px) * 3);
+    font-size: var(--fs-s); text-align: left; background: rgba(36, 26, 82, .6);
+  }
+  .rc-detail img { width: calc(var(--px) * 14); height: auto; image-rendering: pixelated; }
+  .rc-detail .nm { display: block; letter-spacing: .06em; overflow-wrap: anywhere; }
+  .rc-detail .ds { display: block; color: var(--ink-dim); overflow-wrap: anywhere; }
+  .rc-pips { display: inline-flex; gap: var(--px); margin-left: calc(var(--px) * 2); vertical-align: middle; }
+  .rc-pips i { width: calc(var(--px) * 3); height: calc(var(--px) * 3); background: var(--bezel-lo); box-shadow: inset 0 0 0 var(--px) var(--bezel); }
+  .rc-pips i.on { background: var(--rc); box-shadow: none; }
+  .rc-bar { height: calc(var(--px) * 3); margin-top: var(--px); background: var(--bezel-lo); box-shadow: inset 0 0 0 var(--px) var(--bezel); }
+  .rc-bar i { display: block; height: 100%; background: var(--rc, var(--teal)); }
+  .rc-grid { width: 100%; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: calc(var(--px) * 2); padding: var(--px); }
+  .medal img { top: 6%; left: 20%; width: 60%; height: 64%; }
+  .medal .mb { position: absolute; left: 14%; right: 14%; bottom: calc(var(--px) * 2); height: calc(var(--px) * 2); background: var(--bezel); }
+  .medal .mb i { display: block; height: 100%; background: var(--rc); }
+  .rc-stats h3 { margin: calc(var(--px) * 2) 0 var(--px); font-size: var(--fs-s); font-weight: 400; letter-spacing: .08em; color: var(--amber); text-align: left; }
+  .rc-stats dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: var(--px) calc(var(--px) * 4); font-size: var(--fs-s); text-align: left; }
+  .rc-stats dt { color: var(--ink-dim); min-width: 0; overflow-wrap: anywhere; }
+  .rc-stats dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+  .medal-toast {
+    position: absolute; left: 50%; top: calc(var(--px) * 15); z-index: 6;
+    transform: translateX(-50%); max-width: calc(100% - var(--px) * 12);
+    display: flex; align-items: center; gap: calc(var(--px) * 3);
+    padding: calc(var(--px) * 2) calc(var(--px) * 4);
+    font-size: var(--fs-s); letter-spacing: .06em; text-align: left;
+    background: rgba(13, 10, 38, .92); box-shadow: inset 0 0 0 var(--px) var(--rc, var(--amber));
+    pointer-events: none;
+  }
+  .medal-toast img { width: calc(var(--px) * 9); height: auto; image-rendering: pixelated; }
+  .medal-toast span { display: block; overflow-wrap: anywhere; }
+  .screen.paused .medal-toast { visibility: hidden; }
+
   @media (prefers-reduced-motion: reduce) {
     .blink, .banner.warn .bt, .scores li.new span, .coin.spin, .crate-stage.shake > img { animation: none; }
   }
@@ -589,6 +626,7 @@
             <dt>SOUND</dt><dd>M</dd>
             <dt>HANGAR</dt><dd>H (TITLE + DEBRIEF)</dd>
             <dt>STAR MAP</dt><dd>G (TITLE)</dd>
+            <dt>RECORDS</dt><dd>R (TITLE)</dd>
             <dt>BOMB</dt><dd>X / TAP A 2ND FINGER</dd>
             <dt>CHARGE</dt><dd>LET GO OF FIRE 1 SEC</dd>
             <dt>TOUCH</dt><dd>DRAG TO FLY + FIRE</dd>
@@ -609,6 +647,7 @@
         <button class="btn sm" type="button" id="hangarBtn">HANGAR<span class="kh"> (H)</span></button>
         <button class="btn sm" type="button" id="mapBtn">MAP<span class="kh"> (G)</span></button>
         <button class="btn sm" type="button" id="dailyBtn">DAILY<span class="kh"> (C)</span></button>
+        <button class="btn sm" type="button" id="recordsBtn">RECORDS<span class="kh"> (R)</span><span class="c-amber" id="rcNew"></span></button>
       </div>
     </section>
 
@@ -741,6 +780,28 @@
       <button class="btn primary" type="button" id="hgBack">BACK</button>
     </section>
 
+    <section class="ov solid" id="ovRecords" aria-label="Pilot record and medals" hidden>
+      <div class="hg-head"><h2>RECORDS</h2><span class="wallet" id="rcCount" aria-live="polite"></span></div>
+      <div class="hg-tabs rc-tabs" role="group" aria-label="Records views">
+        <button class="hg-tab" type="button" id="rcTabMedals" data-view="medals" aria-pressed="true">MEDALS<span class="kh"> (1)</span></button>
+        <button class="hg-tab" type="button" id="rcTabStats" data-view="stats" aria-pressed="false">STATS<span class="kh"> (2)</span></button>
+      </div>
+      <div class="rc-detail" id="rcDetail" aria-live="polite">
+        <img id="rcImg" alt="">
+        <div>
+          <span class="nm"><span id="rcName"></span><span class="rc-pips" id="rcPips" aria-hidden="true"></span></span>
+          <span class="ds" id="rcDesc"></span>
+          <span class="ds" id="rcProg"></span>
+          <div class="rc-bar" aria-hidden="true"><i id="rcFill"></i></div>
+        </div>
+      </div>
+      <div class="hg-body" id="rcBody">
+        <div class="rc-grid" id="rcGrid" role="group" aria-label="Medals"></div>
+        <div class="rc-stats" id="rcStats" hidden></div>
+      </div>
+      <button class="btn" type="button" id="rcBack">BACK<span class="kh"> (ESC)</span></button>
+    </section>
+
     <section class="ov solid" id="ovMap" aria-label="Star map" hidden>
       <div class="hg-head"><h2>STAR MAP</h2><span class="wallet"><img class="ico" alt="" data-icon="scrap"> <span class="js-scrap">0</span> SCRAP</span></div>
       <div class="map-wrap"><canvas id="mapCv" width="168" height="120" role="img" aria-label="Star map of the nine regions. Use the arrow buttons or keys to pick one."></canvas></div>
@@ -770,6 +831,7 @@
       </div>
     </section>
 
+    <div class="medal-toast" id="medalToast" role="status" hidden><img alt=""><div><span id="mtA"></span><span id="mtB"></span></div></div>
     <div class="scan"></div>
   </div>
 
@@ -1581,7 +1643,7 @@ const SCRAP_KEY = 'nova-swarm-scrap-v1';
 const Wallet = {
   held: false,
   scrap: Math.max(0, Math.floor(Number(store.get(SCRAP_KEY, 0)) || 0)),
-  add(n) { n = Math.floor(n); if (n <= 0) return; this.scrap += n; store.set(SCRAP_KEY, this.scrap); refreshWallet(); },
+  add(n) { n = Math.floor(n); if (n <= 0) return; this.scrap += n; Rec.earn(n); store.set(SCRAP_KEY, this.scrap); refreshWallet(); },
   spend(n) { if (n > this.scrap) return false; this.scrap -= n; store.set(SCRAP_KEY, this.scrap); refreshWallet(); return true; }
 };
 
@@ -2002,6 +2064,7 @@ function slotOf(e) {
 }
 function nextWave() {
   G.wave++;
+  Rec.waveStart();
   seedWave('W' + G.wave);
   mission('wave', G.wave);
   G.extra = [];
@@ -2100,6 +2163,7 @@ function bonusClear() {
   stats.bonus = stats.bonus.concat(hits).slice(-20);
   mission('bonus', hits);
   saveStats();
+  Rec.bonusStage(perfect);
   if (perfect && awardTrophy('trophy-golden')) extra.push(['TROPHY CARD', 'GOLDEN DRONE']);
   const pc = runReg().perfectCard;
   if (perfect && pc && awardTrophy(pc)) extra.push(['TROPHY CARD', byId(pc).name]);
@@ -2291,6 +2355,7 @@ function releaseCaptive(e) {
   e.captive = null;
   rescue = { x: p.x, y: p.y, t: 0, side: 1 };
   mission('rescue');
+  Rec.rescue();
   addScore(1000);
   popups.push({ text: '1000', x: p.x, y: p.y - 6, t: -0.6, c: PAL.t });
   G.extra.push(['FIGHTER RESCUED', '+1000']);
@@ -2669,6 +2734,7 @@ function killBoss(b) {
   const reg = runReg();
   if (reg.bossCard && b.kind === reg.boss && awardTrophy(reg.bossCard)) G.extra.push(['TROPHY CARD', reg.bossName]);
   mission('boss');
+  Rec.boss(b);
   G.extra.push(['BOSS SCRAP', '+' + (120 + 40 * b.k)]);
   Snd.bigBoom();
 }
@@ -2701,6 +2767,7 @@ function dropWings() {
 function useBomb() {
   if (state !== 'play' || !player.alive || G.bombs <= 0 || G.lives <= 0) return false;
   G.bombs--;
+  Rec.bomb();
   nova(1, 6);
   toast('SMART BOMB', PAL.c);
   return true;
@@ -2726,7 +2793,7 @@ function pierceHits(s) {
       s.hit.push(e);
       first();
       damageEnemy(e, 2);
-      if (e.dead) { s.kills = (s.kills || 0) + 1; mission('pierce', s.kills); }
+      if (e.dead) { s.kills = (s.kills || 0) + 1; mission('pierce', s.kills); Rec.pierce(s.kills); }
     }
   }
   for (const e of enemies) {
@@ -2776,6 +2843,7 @@ function mission(id, v = 1) {
     m.done = true;
     m.prog = m.n;
     Wallet.add(m.reward);
+    Rec.mission();
     G.scrapRun += m.reward;
     toast('MISSION DONE: +' + m.reward + ' SCRAP', PAL.y);
     Snd.win();
@@ -2795,6 +2863,354 @@ function renderMissions(el, list, progress) {
 }
 const missionsDone = () => G.missions.filter(m => m.done).length + '/' + G.missions.length;
 
+/* ================= pilot record and medals: lifetime stats, tiered medals paid in scrap ================= */
+// Events call one Rec method each. Medals are data: a new one is one line in MEDALS (check() returns the value its tiers are measured against).
+const REC_KEY = 'nova-swarm-record-v1';
+const REC_NUMS = ['runs', 'dailies', 'score', 'best', 'time', 'waves', 'bestWave', 'bestCombo', 'grazes', 'bestRunGrazes', 'bestWaveGrazes', 'bestRunNoHit',
+  'perfects', 'bestBonus', 'rescues', 'bombs', 'pierce', 'missions', 'relics', 'scrap', 'flawless', 'twinBosses'];
+const REC_MAPS = { kills: ETYPES, bosses: BOSSES, bossRegions: REGION, hullBest: HULLS };
+const emptyRec = () => {
+  const r = { medals: {}, seen: {}, legacy: false };
+  for (const k of REC_NUMS) r[k] = 0;
+  for (const k in REC_MAPS) r[k] = {};
+  return r;
+};
+function loadRec() {
+  const s = store.get(REC_KEY, null), r = emptyRec();
+  if (!s || typeof s !== 'object') return r;
+  for (const k of REC_NUMS) if (Number.isFinite(s[k]) && s[k] > 0) r[k] = k === 'time' ? s[k] : Math.floor(s[k]);
+  for (const k in REC_MAPS) if (s[k] && typeof s[k] === 'object') for (const id in s[k]) if (Object.prototype.hasOwnProperty.call(REC_MAPS[k], id) && Number.isFinite(s[k][id]) && s[k][id] > 0) r[k][id] = Math.floor(s[k][id]);
+  for (const k of ['medals', 'seen']) if (s[k] && typeof s[k] === 'object') for (const id in s[k]) if (/^[a-z0-9-]{1,24}$/.test(id) && s[k][id] >= 1 && s[k][id] <= 3) r[k][id] = s[k][id] | 0;
+  r.legacy = s.legacy === true;
+  return r;
+}
+const record = loadRec();
+const recSum = o => Object.values(o).reduce((a, b) => a + b, 0);
+const recMax = (o, k, v) => { if (v > (o[k] || 0)) o[k] = v; };
+
+// Medal icons: a ribbon over a round medal with a 5x5 glyph (left half plus centre column), tinted bronze, silver or gold.
+const MEDAL_GLYPHS = {
+  skull: ['.11', '111', '1.1', '.11', '.1.'], star: ['..1', '111', '.11', '.1.', '1..'], target: ['.11', '1..', '1.1', '1..', '.11'],
+  shield: ['111', '111', '111', '.11', '..1'], arrow: ['..1', '.11', '111', '..1', '..1'], crown: ['1.1', '111', '111', '.11', '...'],
+  globe: ['.11', '1.1', '111', '1.1', '.11'], gem: ['.11', '111', '111', '.11', '..1'], list: ['111', '...', '111', '...', '111'],
+  sun: ['1.1', '.11', '111', '.11', '1.1'], plus: ['..1', '..1', '111', '..1', '..1'], cross: ['1..', '.1.', '..1', '.1.', '1..'],
+  bomb: ['..1', '.11', '111', '111', '.11'], coin: ['.11', '111', '111', '111', '.11'], glass: ['111', '.11', '..1', '.11', '111'],
+  lock: ['.11', '1..', '111', '11.', '111']
+};
+const MEDAL_TONES = [
+  { name: 'BRONZE', color: '#cd7f32', rim: '#7a4a1a', hi: '#e9b27a' },
+  { name: 'SILVER', color: '#c9d1e0', rim: '#6b7390', hi: '#ffffff' },
+  { name: 'GOLD', color: '#ffb627', rim: '#c9661a', hi: '#fff27a' },
+  { name: 'LOCKED', color: '#2a2060', rim: '#3a2c7a', hi: '#3a2c7a' }
+];
+const medalCache = {};
+function medalHalf(glyph) {
+  const rows = [];
+  for (let y = 0; y < 13; y++) {
+    let row = '';
+    for (let x = 0; x < 6; x++) {
+      const dx = 5 - x, dy = y - 7.5, d = dx * dx + dy * dy;
+      let ch = '.';
+      if (y < 3) ch = [x === 2 || x === 3 ? 'B' : '.', x === 2 || x === 3 ? 'B' : '.', x === 3 || x === 4 ? 'B' : '.'][y];
+      else if (d <= 29.2) {
+        ch = d > 18.5 ? '2' : '1';
+        if (y >= 5 && y <= 9 && x >= 3 && glyph[y - 5][x - 3] === '1') ch = 'g';
+        else if (ch === '1' && x === 1 && y === 5) ch = '3';
+      }
+      row += ch;
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+function medalSprite(glyph, tone) {
+  const key = glyph + tone;
+  if (!medalCache[key]) {
+    const t = MEDAL_TONES[tone];
+    medalCache[key] = spriteC(medalHalf(MEDAL_GLYPHS[glyph]), ch => ({ 1: t.color, 2: t.rim, 3: t.hi, g: tone === 3 ? '#4a4478' : PAL.k, B: tone === 3 ? '#241a52' : PAL.c })[ch]);
+  }
+  return medalCache[key];
+}
+const medalUrl = (glyph, tone) => { const s = medalSprite(glyph, tone); return s.url || (s.url = s.img.toDataURL()); };
+
+// tiers are the values of check() that earn bronze / silver / gold (one tier: a gold medal); reward is the scrap each tier pays once.
+const regionsDone = n => REGIONS.filter(r => setOwned(r) >= r.items.length).length >= n;
+const MEDALS = [
+  { id: 'kills', name: 'SWARM BREAKER', desc: 'DESTROY {n} ENEMIES', glyph: 'skull', tiers: [500, 5000, 25000], reward: [20, 50, 150], check: () => recSum(record.kills) },
+  { id: 'warden', name: 'WARDEN SLAYER', desc: 'DESTROY {n} WARDENS', glyph: 'shield', tiers: [100, 500, 2000], reward: [20, 40, 80], check: () => record.kills.warden || 0 },
+  { id: 'bosses', name: 'BOSS HUNTER', desc: 'DESTROY {n} BOSSES', glyph: 'crown', tiers: [1, 10, 50], reward: [20, 50, 120], check: () => recSum(record.bosses) },
+  { id: 'roster', name: 'BOSS ROSTER', desc: 'DESTROY {n} KINDS OF BOSS', glyph: 'crown', tiers: [1, 2, 3], reward: [20, 40, 70], check: () => Object.keys(record.bosses).length },
+  { id: 'circuit', name: 'BOSS CIRCUIT', desc: 'DESTROY A BOSS IN {n} REGIONS', glyph: 'globe', tiers: [3, 6, 9], reward: [30, 60, 120], check: () => Object.keys(record.bossRegions).length },
+  { id: 'perfect', name: 'PERFECT PILOT', desc: 'PERFECT {n} CHALLENGING STAGES', glyph: 'star', tiers: [1, 5, 25], reward: [30, 70, 150], check: () => record.perfects },
+  { id: 'sharp', name: 'SHARPSHOOTER', desc: 'HIT {n}+ IN A CHALLENGING STAGE', glyph: 'target', tiers: [20, 30, 36], reward: [20, 40, 70], check: () => record.bestBonus },
+  { id: 'graze', name: 'GRAZE ARTIST', desc: 'GRAZE {n} BULLETS', glyph: 'target', tiers: [100, 1000, 10000], reward: [20, 50, 120], check: () => record.grazes },
+  { id: 'shave', name: 'CLOSE SHAVE', desc: 'GRAZE {n} BULLETS IN ONE RUN', glyph: 'target', tiers: [40, 100, 250], reward: [20, 50, 100], check: () => record.bestRunGrazes },
+  { id: 'nohit', name: 'UNTOUCHABLE', desc: 'CLEAR {n} WAVES WITHOUT A HIT IN ONE RUN', glyph: 'shield', tiers: [3, 6, 10], reward: [30, 60, 120], check: () => record.bestRunNoHit },
+  { id: 'wave', name: 'WAVE RIDER', desc: 'REACH WAVE {n}', glyph: 'arrow', tiers: [10, 15, 20], reward: [30, 70, 150], check: () => record.bestWave },
+  { id: 'chart', name: 'CARTOGRAPHER', desc: 'CHART {n} REGIONS', glyph: 'globe', tiers: [3, 6, REGIONS.length], reward: [25, 50, 100], check: () => Object.keys(regions.charted).length },
+  { id: 'album', name: 'COLLECTOR', desc: 'COLLECT {n} ALBUM ITEMS', glyph: 'gem', tiers: [50, 150, COLLECTION.length], reward: [30, 80, 150], check: ownedCount },
+  { id: 'sets', name: 'SET BUILDER', desc: 'COMPLETE {n} REGION SETS', glyph: 'gem', tiers: [1, 3, REGIONS.length], reward: [40, 80, 150], check: () => REGIONS.filter(r => setOwned(r) >= r.items.length).length },
+  { id: 'missions', name: 'MISSION CONTROL', desc: 'COMPLETE {n} MISSIONS', glyph: 'list', tiers: [25, 100, 300], reward: [30, 70, 150], check: () => record.missions },
+  { id: 'daily', name: 'DAILY DEVOTION', desc: 'PLAY {n} DAILY CHALLENGES', glyph: 'sun', tiers: [1, 7, 30], reward: [20, 60, 150], check: () => record.dailies },
+  { id: 'rescue', name: 'RESCUER', desc: 'RESCUE {n} CAPTURED FIGHTERS', glyph: 'plus', tiers: [1, 10, 50], reward: [20, 50, 120], check: () => record.rescues },
+  { id: 'combo', name: 'COMBO ARTIST', desc: 'REACH A X{n} COMBO', glyph: 'cross', tiers: [4, 6, 8], reward: [20, 40, 80], check: () => record.bestCombo },
+  { id: 'bomber', name: 'BOMBARDIER', desc: 'USE {n} SMART BOMBS', glyph: 'bomb', tiers: [10, 50, 250], reward: [20, 40, 80], check: () => record.bombs },
+  { id: 'pierce', name: 'LONG SHOT', desc: 'DESTROY {n} FOES WITH ONE CHARGE SHOT', glyph: 'arrow', tiers: [3, 4, 6], reward: [20, 40, 80], check: () => record.pierce },
+  { id: 'relic', name: 'RELIC FINDER', desc: 'CATCH {n} RELICS', glyph: 'gem', tiers: [1, 10, 50], reward: [20, 50, 100], check: () => record.relics },
+  { id: 'scrap', name: 'SCRAP BARON', desc: 'EARN {n} SCRAP', glyph: 'coin', tiers: [1000, 10000, 50000], reward: [20, 60, 150], check: () => record.scrap },
+  { id: 'runs', name: 'VETERAN', desc: 'START {n} RUNS', glyph: 'star', tiers: [10, 50, 250], reward: [20, 50, 100], check: () => record.runs },
+  { id: 'best', name: 'HIGH SCORER', desc: 'SCORE {n} IN ONE RUN', glyph: 'star', tiers: [25000, 100000, 250000], reward: [20, 60, 150], check: () => record.best },
+  { id: 'score', name: 'POINT BANK', desc: 'SCORE {n} IN TOTAL', glyph: 'coin', tiers: [250000, 1000000, 5000000], reward: [20, 50, 100], check: () => record.score },
+  { id: 'time', name: 'FLIGHT TIME', desc: 'FLY FOR {n}', glyph: 'glass', tiers: [1800, 10800, 43200], reward: [20, 50, 100], fmt: n => fmtTime(n), check: () => record.time },
+  { id: 'waves', name: 'WAVE CRUSHER', desc: 'CLEAR {n} WAVES', glyph: 'arrow', tiers: [50, 250, 1000], reward: [20, 50, 100], check: () => record.waves },
+  { id: 'interceptor', name: 'INTERCEPTOR ACE', desc: 'REACH WAVE {n} IN THE INTERCEPTOR', glyph: 'arrow', tiers: [11], reward: 60, check: () => record.hullBest.interceptor || 0 },
+  { id: 'bulwark', name: 'IRON BULWARK', desc: 'REACH WAVE {n} IN THE BULWARK', glyph: 'shield', tiers: [11], reward: 60, check: () => record.hullBest.bulwark || 0 },
+  { id: 'dancer', name: 'BULLET DANCER', desc: 'GRAZE {n} BULLETS IN ONE WAVE', glyph: 'sun', tiers: [25], reward: 50, secret: true, check: () => record.bestWaveGrazes },
+  { id: 'flawless', name: 'FLAWLESS VICTORY', desc: 'DESTROY A BOSS WITHOUT BEING HIT', glyph: 'crown', tiers: [1], reward: 60, secret: true, check: () => record.flawless },
+  { id: 'twin', name: 'DOUBLE TROUBLE', desc: 'DESTROY A BOSS WITH TWIN FIGHTERS', glyph: 'plus', tiers: [1], reward: 50, secret: true, check: () => record.twinBosses },
+  { id: 'hoard', name: "DRAGON'S HOARD", desc: 'HOLD {n} SCRAP AT ONCE', glyph: 'coin', tiers: [2000], reward: 40, secret: true, check: () => Wallet.scrap }
+];
+const medalTone = (m, i) => m.tiers.length === 1 ? 2 : i;
+const medalReward = (m, i) => Array.isArray(m.reward) ? m.reward[i] : m.reward;
+const medalTier = m => { const v = m.check(); let t = 0; while (t < m.tiers.length && v >= m.tiers[t]) t++; return t; };
+const fmtNum = n => String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const fmtTime = s => { const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? h + 'H ' + String(m).padStart(2, '0') + 'M' : m + 'M ' + String(Math.floor(s % 60)).padStart(2, '0') + 'S'; };
+const medalVal = (m, n) => m.fmt ? m.fmt(n) : fmtNum(n);
+const medalDesc = (m, i) => m.desc.replace('{n}', medalVal(m, m.tiers[Math.min(i, m.tiers.length - 1)]));
+const medalTotal = () => MEDALS.reduce((a, m) => a + m.tiers.length, 0);
+const medalPayout = () => MEDALS.reduce((a, m) => a + m.tiers.reduce((b, _, i) => b + medalReward(m, i), 0), 0);
+
+// Medal unlock toasts queue up in their own strip (below the HUD, clear of the wave banner and the other toasts) and show one at a time.
+const mq = { list: [], t: 0, gap: 0 };
+function queueMedalToast(img, color, a, b) { mq.list.push({ img, color, a, b }); }
+function tickMedalToast(dt) {
+  const el = $('medalToast');
+  if (mq.t > 0) { if ((mq.t -= dt) <= 0) { el.hidden = true; mq.gap = 0.3; } return; }
+  if (mq.gap > 0) { mq.gap -= dt; return; }
+  const n = mq.list.shift();
+  if (!n) return;
+  el.firstElementChild.src = n.img;
+  $('mtA').textContent = n.a;
+  $('mtA').style.color = n.color;
+  $('mtB').textContent = n.b;
+  el.style.setProperty('--rc', n.color);
+  el.hidden = false;
+  mq.t = mq.list.length > 2 ? 1.6 : 2.4;
+  Snd.fanfare(1);
+}
+
+let recPaying = false;
+function awardMedal(m, from, to, quiet) {
+  let pay = 0;
+  for (let i = from; i < to; i++) pay += medalReward(m, i);
+  record.medals[m.id] = to;
+  if (pay) { recPaying = true; Wallet.add(pay); recPaying = false; }   // medal scrap is not counted as earned scrap
+  Rec.save();
+  if (!quiet) {
+    const tone = medalTone(m, to - 1);
+    queueMedalToast(medalUrl(m.glyph, tone), MEDAL_TONES[tone].color, MEDAL_TONES[tone].name + ' MEDAL', m.name + (pay ? '  +' + pay + ' SCRAP' : ''));
+  }
+  return pay;
+}
+function checkMedals(quiet) {
+  let n = 0, pay = 0;
+  for (const m of MEDALS) {
+    const t = medalTier(m), had = Math.min(record.medals[m.id] || 0, m.tiers.length);
+    if (t > had) { pay += awardMedal(m, had, t, quiet); n += t - had; }
+  }
+  return { n, pay };
+}
+const newMedals = () => MEDALS.filter(m => (record.medals[m.id] || 0) > (record.seen[m.id] || 0)).length;
+let newShown = -1;
+
+const Rec = {
+  chk: 0,
+  run: { grazes: 0, noHit: 0 },
+  save() { store.set(REC_KEY, record); },
+  // The first time an old save meets the record: seed what the other saves can tell, then pay every medal it earns, once.
+  boot() {
+    if (!record.legacy) {
+      const real = scores.filter(s => !DEFAULT_SCORES.some(d => d.name === s.name && d.score === s.score && d.wave === s.wave));
+      const best = Object.values(regions.best);
+      recMax(record, 'best', Math.max(0, ...real.map(s => s.score)));
+      recMax(record, 'bestWave', Math.max(0, ...best, ...real.map(s => s.wave || 0)));
+      recMax(record, 'waves', recSum(regions.best));
+      recMax(record, 'runs', real.length);
+      recMax(record, 'scrap', Wallet.scrap);
+      recMax(record, 'dailies', store.get(DAILY_KEY, null) ? 1 : 0);
+      recMax(record, 'perfects', stats.bonus.filter(h => h >= 40).length);
+      recMax(record, 'bestBonus', Math.max(0, ...stats.bonus));
+      for (const r of REGIONS) {   // each region opens with its own boss and rotates through the three
+        const k = Math.floor((regions.best[r.id] || 0) / 5);
+        if (k > 0) record.bossRegions[r.id] = Math.max(record.bossRegions[r.id] || 0, k);
+        for (let i = 0; i < k; i++) { const kind = BOSS_ORDER[(i + BOSS_ORDER.indexOf(r.boss)) % 3]; record.bosses[kind] = Math.max(record.bosses[kind] || 0, 1); }
+      }
+      record.legacy = true;
+      const { n, pay } = checkMedals(true);
+      if (n) queueMedalToast(medalUrl('star', 2), MEDAL_TONES[2].color, 'SERVICE RECORD', n + ' MEDAL' + (n > 1 ? 'S' : '') + ' CREDITED  +' + pay + ' SCRAP');
+      this.save();
+    }
+    this.chk = 0;
+  },
+  // once every half second, and not per frame: medals that depend on other saves (album, charted regions, scrap held) are picked up here
+  tick(dt) {
+    if ((this.chk -= dt) <= 0) {
+      this.chk = 0.5;
+      checkMedals();
+      const nn = newMedals();
+      if (nn !== newShown) { newShown = nn; $('rcNew').textContent = nn ? ' · ' + nn + ' NEW' : ''; }
+    }
+    tickMedalToast(dt);
+  },
+  runStart() { record.runs++; if (daily) record.dailies++; this.run = { grazes: 0, noHit: 0 }; this.chk = 0; },
+  time(dt) { record.time += dt; },
+  earn(n) { if (!recPaying) record.scrap += n; },
+  score(v) { record.score += v; recMax(record, 'best', G.score); },
+  waveStart() { recMax(record, 'bestWave', G.wave); recMax(record.hullBest, runHull(), G.wave); },
+  waveClear(noHit) { record.waves++; if (noHit) { this.run.noHit++; recMax(record, 'bestRunNoHit', this.run.noHit); } this.chk = 0; this.save(); },
+  kill(type) { record.kills[type] = (record.kills[type] || 0) + 1; },
+  boss(b) {
+    record.bosses[b.kind] = (record.bosses[b.kind] || 0) + 1;
+    record.bossRegions[G.region] = (record.bossRegions[G.region] || 0) + 1;
+    if (!G.hitThisWave) record.flawless++;
+    if (player.twin) record.twinBosses++;
+    this.chk = 0;
+  },
+  mission() { record.missions++; },
+  graze() { record.grazes++; this.run.grazes++; recMax(record, 'bestRunGrazes', this.run.grazes); recMax(record, 'bestWaveGrazes', G.waveGrazes); },
+  combo(m) { recMax(record, 'bestCombo', m); },
+  rescue() { record.rescues++; },
+  bomb() { record.bombs++; },
+  pierce(n) { recMax(record, 'pierce', n); },
+  relic() { record.relics++; },
+  bonusStage(perfect) { record.waves++; if (perfect) record.perfects++; recMax(record, 'bestBonus', G.bonusHits); this.chk = 0; this.save(); },
+  over() { this.chk = 0; this.save(); }
+};
+addEventListener('pagehide', () => Rec.save());
+document.addEventListener('visibilitychange', () => { if (document.hidden) Rec.save(); });
+
+/* ---- records screen: medals and lifetime stats ---- */
+const rc = { view: 'medals', sel: 0 };
+const RC_COLS = 6;
+function openRecords() {
+  if (state !== 'title') return;
+  state = 'records';
+  Snd.blip();
+  showOverlay('ovRecords');
+  ui.readyAt = clock + 0.3;
+  renderRecords();
+}
+function closeRecords() {
+  if (state !== 'records') return;
+  for (const m of MEDALS) if (record.medals[m.id]) record.seen[m.id] = record.medals[m.id];
+  newShown = -1;
+  Rec.save();
+  showTitle(0);
+}
+function setRecordsView(v) {
+  rc.view = v;
+  Snd.tick();
+  renderRecords();
+}
+function renderRecords() {
+  const got = MEDALS.reduce((a, m) => a + (record.medals[m.id] ? 1 : 0), 0);
+  $('rcCount').textContent = got + '/' + MEDALS.length + ' MEDALS';
+  for (const b of document.querySelectorAll('.rc-tabs .hg-tab')) b.setAttribute('aria-pressed', String(b.dataset.view === rc.view));
+  const medals = rc.view === 'medals';
+  $('rcDetail').hidden = $('rcGrid').hidden = !medals;
+  $('rcStats').hidden = medals;
+  $('rcBody').scrollTop = 0;
+  if (medals) { buildMedalGrid(); selectMedal(rc.sel); } else buildStats();
+}
+// What a medal looks like right now: its tier, the value so far and how far the next tier is.
+function medalState(m) {
+  const t = Math.min(record.medals[m.id] || 0, m.tiers.length), v = m.check();
+  const prev = t ? m.tiers[t - 1] : 0, next = m.tiers[t];
+  return { t, v, next, frac: next === undefined ? 1 : clamp((v - prev) / (next - prev), 0, 1), secret: !!m.secret && !t };
+}
+function buildMedalGrid() {
+  const grid = $('rcGrid');
+  grid.textContent = '';
+  MEDALS.forEach((m, i) => {
+    const st = medalState(m), tone = st.t ? medalTone(m, st.t - 1) : 3;
+    const b = document.createElement('button'), img = document.createElement('img');
+    b.type = 'button';
+    b.className = 'tile medal' + ((record.medals[m.id] || 0) > (record.seen[m.id] || 0) ? ' eq' : '');
+    b.style.setProperty('--rc', tone === 3 ? MEDAL_TONES[3].rim : MEDAL_TONES[tone].color);
+    img.alt = '';
+    img.src = medalUrl(st.secret ? 'lock' : m.glyph, tone);
+    b.append(img);
+    if (!st.secret && st.next !== undefined) {
+      const bar = document.createElement('span'), fill = document.createElement('i');
+      bar.className = 'mb';
+      fill.style.width = Math.round(st.frac * 100) + '%';
+      bar.append(fill);
+      b.append(bar);
+    }
+    b.setAttribute('aria-label', st.secret ? 'Secret medal, not yet earned' : m.name + ', ' + (st.t ? MEDAL_TONES[medalTone(m, st.t - 1)].name.toLowerCase() + ' earned' : 'not yet earned'));
+    b.addEventListener('click', () => { selectMedal(i); Snd.tick(); b.blur(); });
+    grid.appendChild(b);
+  });
+}
+function selectMedal(i) {
+  rc.sel = clamp(i, 0, MEDALS.length - 1);
+  const m = MEDALS[rc.sel], st = medalState(m), tone = st.t ? medalTone(m, st.t - 1) : 3;
+  [...$('rcGrid').children].forEach((b, j) => b.setAttribute('aria-pressed', String(j === rc.sel)));
+  const c = MEDAL_TONES[tone === 3 ? 0 : tone].color;
+  $('rcDetail').style.setProperty('--rc', c);
+  $('rcImg').src = medalUrl(st.secret ? 'lock' : m.glyph, tone);
+  $('rcName').textContent = st.secret ? '???' : m.name;
+  $('rcName').style.color = st.t ? c : '';
+  $('rcPips').textContent = '';
+  if (!st.secret) m.tiers.forEach((_, j) => { const p = document.createElement('i'); p.style.setProperty('--rc', MEDAL_TONES[medalTone(m, j)].color); if (j < st.t) p.className = 'on'; $('rcPips').appendChild(p); });
+  $('rcDesc').textContent = st.secret ? 'A SECRET MEDAL. KEEP FLYING.' : medalDesc(m, st.t);
+  const next = st.next === undefined ? 'ALL TIERS EARNED' : medalVal(m, Math.min(st.v, st.next)) + ' / ' + medalVal(m, st.next) + ' FOR ' + MEDAL_TONES[medalTone(m, st.t)].name + ' +' + medalReward(m, st.t) + ' SCRAP';
+  $('rcProg').textContent = st.secret ? '' : next;
+  $('rcFill').style.width = (st.secret ? 0 : Math.round(st.frac * 100)) + '%';
+  $('rcFill').parentElement.style.setProperty('--rc', c);
+}
+function buildStats() {
+  const box = $('rcStats'), r = record;
+  box.textContent = '';
+  const group = (title, rows) => {
+    const h = document.createElement('h3'), dl = document.createElement('dl');
+    h.textContent = title;
+    for (const [k, v] of rows) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); }
+    box.append(h, dl);
+  };
+  const kinds = Object.keys(ETYPES).filter(k => r.kills[k]);
+  group('FLIGHT', [['RUNS STARTED', fmtNum(r.runs)], ['DAILY CHALLENGES', fmtNum(r.dailies)], ['TIME FLOWN', fmtTime(r.time)], ['WAVES CLEARED', fmtNum(r.waves)], ['BEST WAVE', fmtNum(r.bestWave)],
+    ['TOTAL SCORE', fmtNum(r.score)], ['BEST SCORE', fmtNum(r.best)], ['SCRAP EARNED', fmtNum(r.scrap)]]);
+  group('COMBAT', [['ENEMIES DESTROYED', fmtNum(recSum(r.kills))], ...kinds.map(k => ['· ' + k.toUpperCase(), fmtNum(r.kills[k])]), ['BEST COMBO', 'X' + Math.max(1, r.bestCombo)],
+    ['GRAZES', fmtNum(r.grazes)], ['SMART BOMBS USED', fmtNum(r.bombs)], ['BEST CHARGE-SHOT PIERCE', fmtNum(r.pierce)]]);
+  group('BOSSES', [['BOSSES DESTROYED', fmtNum(recSum(r.bosses))], ...Object.keys(BOSSES).map(k => ['· ' + BOSSES[k].name, fmtNum(r.bosses[k] || 0)]),
+    ...REGIONS.map(g => ['· IN ' + g.name, fmtNum(r.bossRegions[g.id] || 0)])]);
+  group('EXTRAS', [['PERFECT STAGES', fmtNum(r.perfects)], ['FIGHTERS RESCUED', fmtNum(r.rescues)], ['MISSIONS COMPLETED', fmtNum(r.missions)], ['RELICS CAUGHT', fmtNum(r.relics)]]);
+}
+function handleRecordsKey(e) {
+  const c = e.code, a = document.activeElement, confirm = c === 'Space' || c === 'Enter';
+  if (confirm && a && a.tagName === 'BUTTON' && !a.disabled && !a.closest('[hidden]')) return;   // a focused button keeps its own Space / Enter
+  const dx = c === 'ArrowLeft' || c === 'KeyA' ? -1 : c === 'ArrowRight' || c === 'KeyD' ? 1 : 0;
+  const dy = c === 'ArrowUp' || c === 'KeyW' ? -1 : c === 'ArrowDown' || c === 'KeyS' ? 1 : 0;
+  if (!(confirm || dx || dy || c === 'Escape' || c === 'KeyR' || c === 'Digit1' || c === 'Digit2')) return;
+  e.preventDefault();
+  if (clock < ui.readyAt) return;
+  if (dx || dy) {
+    if (rc.view === 'medals') {
+      const i = clamp(rc.sel + dx + dy * RC_COLS, 0, MEDALS.length - 1);
+      if (i !== rc.sel) { selectMedal(i); Snd.tick(); const t = $('rcGrid').children[i]; if (t) t.focus(); }
+    } else $('rcBody').scrollBy(0, dy * 40);
+    return;
+  }
+  if (e.repeat) return;
+  if (c === 'Digit1') setRecordsView('medals');
+  else if (c === 'Digit2') setRecordsView('stats');
+  else closeRecords();
+}
+$('recordsBtn').addEventListener('click', e => { openRecords(); e.currentTarget.blur(); });
+$('rcBack').addEventListener('click', e => { closeRecords(); e.currentTarget.blur(); });
+for (const b of document.querySelectorAll('.rc-tabs .hg-tab')) b.addEventListener('click', () => { if (state === 'records') setRecordsView(b.dataset.view); b.blur(); });
+
 /* ================= combo multiplier + graze bonus ================= */
 // Back-to-back kills (each within 1.6s of the last) build a multiplier: x2 at 5 kills, +1 every 4 more, up to x8.
 const COMBO_WINDOW = 1.6;
@@ -2805,7 +3221,7 @@ function comboKill() {
   G.combo++;
   G.comboT = COMBO_WINDOW;
   const m = comboMult();
-  if (m > before) { Snd.combo(m); G.waveMult = Math.max(G.waveMult, m); G.bestMult = Math.max(G.bestMult, m); mission('combo', m); }
+  if (m > before) { Snd.combo(m); G.waveMult = Math.max(G.waveMult, m); G.bestMult = Math.max(G.bestMult, m); mission('combo', m); Rec.combo(m); }
   return m;
 }
 function breakCombo() { G.combo = 0; G.comboT = 0; }
@@ -2814,6 +3230,7 @@ function graze(b) {
   G.grazes++;
   G.waveGrazes++;
   mission('graze');
+  Rec.graze();
   addScore(20);
   spark(b.x, b.y);
   Snd.graze();
@@ -2830,6 +3247,7 @@ function damageEnemy(e, n) {
 function killEnemy(e) {
   if (e.dead) return;
   e.dead = true;
+  Rec.kill(e.type);
   if (e.entering) { e.entering = false; G.entering--; }
   const moving = e.state === 'path' || e.state === 'join' || e.state === 'beam';
   const mult = e.bonus ? 1 : comboKill(), pts = (e.bonus ? 100 : moving ? e.T.divePts : e.T.pts) * mult;
@@ -2851,6 +3269,7 @@ function killEnemy(e) {
 }
 function addScore(v) {
   G.score += v;
+  Rec.score(v);
   while (G.score >= G.nextLife) {
     G.nextLife += EXTRA_EVERY;
     if (G.lives < 5) { G.lives++; toast('EXTRA SHIP', PAL.c); Snd.life(); }
@@ -2943,6 +3362,7 @@ function waveClear() {
   G.pendingBonus = G.wave % 5 === 3;
   const noHit = !G.hitThisWave;
   if (noHit) mission('nohit');
+  Rec.waveClear(noHit);
   chartProgress();
   if (G.event) G.extra.push(['SECTOR EVENT', EVENTS[G.event].tag]);
   if (G.waveMult > 1) G.extra.push(['BEST COMBO', 'X' + G.waveMult]);
@@ -3027,6 +3447,7 @@ function updateRelics(dt) {
 function openRelic() {
   const item = rollItem(G.region), res = grantItem(item);
   G.relics++;
+  Rec.relic();
   (G.clear ? G.clear.extra : G.extra).push(['RELIC', item.name]);
   toast('RELIC: ' + item.name + (res.isNew ? ' (NEW!)' : ' · +' + res.refund + ' SCRAP'), RARITY[item.r].color);
   rings.push({ x: player.x, y: player.y, r: 3, v: 70, t: 0, life: 0.35, c: RARITY[item.r].color });
@@ -3110,6 +3531,7 @@ function updatePlayer(dt) {
   }
 }
 function update(dt) {
+  if (state === 'play' && G.lives > 0) Rec.time(dt);
   const et = dt * (G.slowT > 0 ? 0.45 : 1) * (G.event === 'fast' ? 1.3 : 1);
   if (G.slowT > 0) G.slowT = Math.max(0, G.slowT - dt);
   if (G.comboT > 0 && (G.comboT -= dt) <= 0) G.combo = 0;
@@ -3401,7 +3823,7 @@ function drawHudCanvas() {
   }
 }
 // The play field shows the ship and HUD only during a run (not on the title or the title's hangar).
-const inRun = () => !(state === 'title' || state === 'map' || (state === 'hangar' && hangarPreRun()));
+const inRun = () => !(state === 'title' || state === 'map' || state === 'records' || (state === 'hangar' && hangarPreRun()));
 function draw() {
   const reg = viewReg(), tint = inRun() ? runTint() : null;
   cx.setTransform(1, 0, 0, 1, 0, 0);
@@ -3492,7 +3914,7 @@ function placeToast() {
 }
 function hideBanners() { ui.bannerT = ui.toastT = 0; $('banner').hidden = true; $('toast').hidden = true; }
 
-const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovHangar', 'ovWheel', 'ovMap'];
+const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovHangar', 'ovWheel', 'ovMap', 'ovRecords'];
 function showOverlay(id) {
   for (const o of OVERLAYS) $(o).hidden = o !== id;
   scr.classList.toggle('paused', id === 'ovPause');   // frozen banners stay out of the pause menu
@@ -3617,6 +4039,7 @@ function startDaily() {
   Snd.unlock();
   state = 'play';
   resetGame();                                   // no loadout: everyone starts equal, in a Striker
+  Rec.runStart();
   G.missions = rollMissions(seeded(hashStr(daily + ':missions')));
   $('hudHiLbl').textContent = 'DAILY BEST';
   showOverlay(null);
@@ -3659,6 +4082,7 @@ function startGame() {
   Snd.unlock();
   state = 'play';
   resetGame();
+  Rec.runStart();
   G.missions = nextMissions || rollMissions();
   nextMissions = null;
   applyLoadout();
@@ -3691,6 +4115,7 @@ function showTitle(panel, hl) {
   $('dailyNote').textContent = 'DAILY CHALLENGE' + (dr.id === 'home' ? '' : ' IN ' + dr.name) + ': ' + (db ? "TODAY'S BEST " + db : 'NOT PLAYED TODAY');
   Snd.hold(false);
   Snd.stop();
+  Rec.save();
   hideBanners();
   enemies = []; eshots = []; pshots = []; pickups = []; popups = []; scrapBits = []; relicDrops = []; boss = null; rescue = null; mines = []; meteors = [];
   G.slowT = 0;
@@ -3712,6 +4137,7 @@ function showGameOver() {
   Snd.over();
   hideBanners();
   flushScrap();
+  Rec.over();
   $('rScrap').textContent = G.scrapRun;
   $('rMissions').textContent = missionsDone();
   rng = null;
@@ -4462,13 +4888,14 @@ addEventListener('keydown', e => {
   const c = e.code;
   if (state === 'entry') { handleEntryKey(e); return; }
   if (MENU_STATES.has(state)) { handleMenuKey(e); return; }
-  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || c === 'KeyX' || ((c === 'KeyH' || c === 'KeyC' || c === 'KeyG') && state === 'title')) e.preventDefault();
+  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || c === 'KeyX' || ((c === 'KeyH' || c === 'KeyC' || c === 'KeyG' || c === 'KeyR') && state === 'title')) e.preventDefault();
   if (c === 'KeyM') { if (!e.repeat) cycleSound(); return; }
   if (state === 'title') {
     if ((FIRE.has(c) || c === 'Enter') && !e.repeat) startGame();
     else if (c === 'KeyH' && !e.repeat) openHangar('title');
     else if (c === 'KeyG' && !e.repeat) openMap();
     else if (c === 'KeyC' && !e.repeat) startDaily();
+    else if (c === 'KeyR' && !e.repeat) openRecords();
     else if (MOVE[c] === 'l') showPanel(panelIdx - 1);
     else if (MOVE[c] === 'r') showPanel(panelIdx + 1);
   } else if (state === 'play') {
@@ -4485,10 +4912,11 @@ addEventListener('keydown', e => {
 });
 // Menus between waves: Space/Enter is the safe default (continue, skip, no bet).
 // A button the player has tabbed to keeps its own Space/Enter behaviour.
-const MENU_STATES = new Set(['debrief', 'wager', 'hangar', 'wheel', 'map']);
+const MENU_STATES = new Set(['debrief', 'wager', 'hangar', 'wheel', 'map', 'records']);
 function handleMenuKey(e) {
   const c = e.code, a = document.activeElement;
   if (c === 'KeyM') { e.preventDefault(); if (!e.repeat) cycleSound(); return; }
+  if (state === 'records') { handleRecordsKey(e); return; }
   const confirm = c === 'Space' || c === 'Enter';
   if (confirm && a && a.tagName === 'BUTTON' && !a.disabled && !a.closest('[hidden]')) return;
   const step = c === 'ArrowLeft' || c === 'ArrowUp' || c === 'KeyA' || c === 'KeyW' ? -1 : c === 'ArrowRight' || c === 'ArrowDown' || c === 'KeyD' || c === 'KeyS' ? 1 : 0;
@@ -4684,6 +5112,7 @@ function frame(now) {
   else if (state !== 'paused') updateFx(dt);
   draw();
   if (state === 'map') drawMap();
+  if (state !== 'paused') Rec.tick(dt);
   if (state === 'hangar') animatePreviews();
   requestAnimationFrame(frame);
 }
@@ -4700,6 +5129,7 @@ function animatePreviews() {
 
 function start(data) {
   setupStatic();
+  Rec.boot();
   fit(); fit();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fit(); fit(); });
   const r = data && data.resume;
