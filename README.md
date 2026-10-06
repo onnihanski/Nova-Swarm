@@ -19,6 +19,7 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
 | Hangar | H (title screen and between waves) | Hangar button |
 | Star map | G (title screen) | Map button |
 | Daily challenge | C (title screen) | Daily button |
+| Records | R (title screen) | Records button |
 
 ## What's in it
 
@@ -47,6 +48,7 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
   - **Results screen:** arcade-style, with shots fired, number of hits and hit-miss ratio.
 - **Missions:** three random goals per run (for example: reach a x4 combo, rescue a captured fighter, shoot 5 mines), each paying scrap. The title screen shows the next run's missions and the pause screen shows your progress.
 - **Daily challenge:** the same seeded region, waves, events, drops and missions for everyone on a given (UTC) day. The day's region is open even if you haven't charted it yet. Everyone flies a Striker with no loadout, hangar, gambles or wager. The day's best score is kept separately from the top-10 table.
+- **Pilot record and medals:** lifetime stats and 33 medals in bronze, silver and gold, each tier paying scrap once (see below).
 - **Top 10 table** with 3-letter initials, saved in your browser's local storage.
 - **Chiptune soundtrack** with separate boss and bonus-stage themes, generated live with no audio files.
 - **CRT scanlines**, screen shake, and pixel explosions. All motion effects respect the reduced-motion setting.
@@ -71,6 +73,17 @@ Press G (or the Map button) on the title screen to open the star map. Pick a reg
 - **Collectible sets:** every new region has its own set of 30 collectibles: 8 paint jobs, 7 engine trails, 7 pilot badges and 8 trophy cards (the local swarm, a native creature, a landmark and the local boss). Most sets are 12 Common, 9 Rare, 6 Epic and 3 Legendary; the Prism Rift's is 10 / 9 / 7 / 4. Sector 9 keeps the original 28, for 268 in all.
 - **Patterns:** many region collectibles are patterned. Paint jobs come in stripes, checkers, chevrons, scales, spots, speckles, rings, circuits, gradients, glitch and split hulls, and each region's Legendary paint job is animated (marquee flames, aurora, pulse, twinkle, shimmer, hazard stripes, prism and static). Trails come as confetti (mixed colors), color cycles, twin jets (a different color per engine) and sparklers; badges and trophy cards have patterns too. A striped corner on an album tile marks a patterned item.
 - **Relics:** in the eight new regions, every boss drops a relic, and one kill per wave has a 2% chance to drop one too. Catch it to get a random item from that region's set (duplicates refund scrap like a capsule). Relics still on screen when a wave ends fly to you. Beating a region's first boss also awards its boss trophy card, and a PERFECT challenging stage there awards a patterned card of its native creature.
+
+## Pilot record and medals
+
+Press R (or the Records button) on the title screen to open your pilot record. It has two views, switched with the tabs or the 1 and 2 keys:
+
+- **Medals:** 33 medals in a grid of pixel icons, colored bronze, silver or gold by the tier you hold, each with a progress bar toward the next tier. Pick one (tap it, or use the arrow keys) to see what it asks for, your progress and what the next tier pays. A small amber corner marks a medal you haven't looked at yet, and the title screen's Records button counts them.
+- **Stats:** your lifetime record: runs started (daily challenges included), time flown, waves cleared, total and best score, enemies destroyed by type, bosses destroyed by kind and by region, best combo, grazes, smart bombs used, best charge-shot pierce, perfect challenging stages, fighters rescued, missions completed, relics caught and scrap earned.
+
+Medals come in tiers: most have bronze, silver and gold (for example 500 / 5,000 / 25,000 enemies destroyed, reaching wave 10 / 15 / 20, collecting 50 / 150 / all album items, completing 25 / 100 / 300 missions). Some have a single tier, such as flying the Interceptor or the Bulwark past wave 10. Four are secret and show as "???" until you earn them. Each tier pays scrap once, 20 to 150 depending on how hard it is; all 87 tiers together pay 5,515 scrap, against roughly 200 to 1,000 for a run. Medals never award album items and never change gameplay. The daily challenge counts toward every stat and medal.
+
+An unlock shows a short toast under the HUD, one at a time, so it doesn't pile onto the wave banner or other messages. The first time you load the game with an existing save, medals your save already earns (album count, charted regions, best waves, high scores, challenging-stage history) are credited once, with one summary toast. The record is saved in your browser under its own key, at the end of every wave, at game over and when the page is hidden.
 
 ## Scrap, the hangar and the album
 
