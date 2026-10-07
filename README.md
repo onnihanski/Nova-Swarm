@@ -2,7 +2,7 @@
 
 A retro pixel space shooter in the spirit of Galaga. It runs in the browser from a single file with no build step and no dependencies.
 
-The hive has reached Sector 9. Enemies fly in along swooping paths, lock into formation, then peel off to dive at you. Survive the waves, bank power-ups, and beat the boss that guards every fifth wave. Then chart a course across the star map to eight new regions, each with its own swarm, twist and set of collectibles.
+The hive has reached Sector 9. Enemies fly in along swooping paths, lock into formation, then peel off to dive at you. Survive the waves, bank power-ups, and beat the boss that guards every fifth wave. Then chart a course across the star map to nine new regions, each with its own swarm, twist and set of collectibles, ending at the Hive Heart, where the swarm comes from.
 
 ## Play
 
@@ -22,16 +22,18 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
 | Star map | G (title screen) | Map button | Map button |
 | Daily challenge | C (title screen) | Daily button | Daily button |
 | Records | R (title screen) | Records button | Records button |
+| Skip the ending | Space / Enter / Esc (after a moment) | A, B or Start | Tap |
 | Menus | Tab, arrow keys, Space / Enter, Esc | D-pad or left stick moves focus, A picks, B goes back, LB / RB flip tabs | Tap |
 
 ## What's in it
 
 - **Six enemy types.** Drones swoop, Stingers zig-zag, and Wardens take two hits and fire 3-way spreads. From wave 4, Splitters burst into two fast minis when shot. From wave 6, Minelayers sweep across the screen dropping drifting mines. From wave 7, the Aegis's front armor stops straight shots: hit it side-on while it turns in a dive, or use spread shots, a charge shot or a bomb. Diving enemies are worth double or more.
 - **Tractor beams.** From wave 3, a Warden can swoop down and beam your ship up. It never takes your last ship, and a shield repels the beam. Shoot that Warden to free your ship (+1,000). The freed ship docks beside you and you fly twin fighters with double shots; a hit knocks out one ship, not a life. Shoot the captured ship itself and it's gone for good.
-- **Bosses every 5th wave**, in rotation. Each fight opens with a supply drop (a shield, or rapid fire if you're already shielded):
+- **Bosses every 5th wave**, in rotation (four of them, counting the Hive Mind, which only the Hive Heart has). Each fight opens with a supply drop (a shield, or rapid fire if you're already shielded):
   - **Hive Queen:** fan volleys, aimed streams, summoned escorts, and a spiral barrage below 1/3 health.
   - **Iron Maw:** a telegraphed laser beam, twin cannons, and bullet rings.
   - **Mothership:** two wing turrets and two shield generators (500 points each) guard a core that stays shielded until both generators are down. It fires turret volleys, drops lines of mines, launches drones, and fires bursts from the core once the shield is gone.
+  - **Hive Mind** (the Hive Heart's wave-5 boss, and the biggest of them all): its health bar has three phases, and each one echoes an earlier boss. Phase 1 fires Queen-style fans and aimed streams and summons escorts. Phase 2 adds Maw-style telegraphed lasers (three beams at once, so slip between them), cannons and bullet rings. Phase 3 grows six nodes around its core: four shield generators and two turrets guard it like the Mothership's, and once the core is exposed and badly hurt, a desperation pattern begins. Each phase change is a flash, a banner and a short beat where it cannot be hurt, and a Nova or bomb cannot skip one. It has its own music.
 - **Challenging stages** after waves 3, 8, 13 and so on: 40 enemies loop through without firing. Every hit scores 100, and hitting all 40 is a PERFECT worth 10,000.
 - **Sector events.** In Sector 9, about 3 in 10 regular waves from wave 4 get a twist, announced in the wave banner. The other regions have their own mix (see below):
   - **Meteor shower:** rocks to dodge or shoot.
@@ -57,10 +59,10 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
   - **Extra ships:** at 30,000 points and then every 100,000.
   - **Results screen:** arcade-style, with shots fired, number of hits and hit-miss ratio.
 - **Missions:** three random goals per run (for example: reach a x4 combo, rescue a captured fighter, shoot 5 mines, use your ability 3 times, defeat 8 foes with your ability), each paying scrap. The title screen shows the next run's missions and the pause screen shows your progress.
-- **Daily challenge:** the same seeded region, waves, events, drops and missions for everyone on a given (UTC) day. The day's region is open even if you haven't charted it yet. Everyone flies a Striker with no loadout, hangar, gambles or wager. The day's best score is kept separately from the top-10 table.
-- **Pilot record and medals:** lifetime stats and 34 medals in bronze, silver and gold, each tier paying scrap once (see below).
+- **Daily challenge:** the same seeded region, waves, events, drops and missions for everyone on a given (UTC) day. The day's region is open even if you haven't charted it yet; the Hive Heart is never the day's region, so the finale stays something you reach. Everyone flies a Striker with no loadout, hangar, gambles or wager. The day's best score is kept separately from the top-10 table.
+- **Pilot record and medals:** lifetime stats and 35 medals in bronze, silver and gold, each tier paying scrap once (see below).
 - **Top 10 table** with 3-letter initials, saved in your browser's local storage.
-- **Chiptune soundtrack** with separate boss and bonus-stage themes, generated live with no audio files.
+- **Chiptune soundtrack** with separate boss, bonus-stage and Hive Mind themes, generated live with no audio files.
 - **CRT scanlines**, screen shake, and pixel explosions. All motion effects respect the reduced-motion setting, and the options screen can tune them (see below).
 
 ## Gamepad and options
@@ -91,20 +93,22 @@ Press G (or the Map button) on the title screen to open the star map. Pick a reg
 | Coral Drift | The formation sways far wider and faster. | Reef Carrier |
 | Iron Foundry | Aegis shield-bearers join from wave 3. Double time is common. | Chrome Queen |
 | Prism Rift | A sector event in most waves, and the swarm changes color every wave. | Prism Maw |
+| Hive Heart | The finale, and the hardest region: a pulsing, organic nebula, an event in most waves, Aegis shield-bearers from wave 3, a faster swarm that fires more often. | Hive Mind |
 
-- **Charting:** regions open in map order. Clear wave 5 (beat the first boss) in a region to chart the next one, or chart it early for 150 to 500 scrap once the region before it is charted.
-- **Collectible sets:** every new region has its own set of 30 collectibles: 8 paint jobs, 7 engine trails, 7 pilot badges and 8 trophy cards (the local swarm, a native creature, a landmark and the local boss). Most sets are 12 Common, 9 Rare, 6 Epic and 3 Legendary; the Prism Rift's is 10 / 9 / 7 / 4. Sector 9 keeps the original 28, for 268 in all.
-- **Patterns:** many region collectibles are patterned. Paint jobs come in stripes, checkers, chevrons, scales, spots, speckles, rings, circuits, gradients, glitch and split hulls, and each region's Legendary paint job is animated (marquee flames, aurora, pulse, twinkle, shimmer, hazard stripes, prism and static). Trails come as confetti (mixed colors), color cycles, twin jets (a different color per engine) and sparklers; badges and trophy cards have patterns too. A striped corner on an album tile marks a patterned item.
-- **Relics:** in the eight new regions, every boss drops a relic, and one kill per wave has a 2% chance to drop one too. Catch it to get a random item from that region's set (duplicates refund scrap like a capsule). Relics still on screen when a wave ends fly to you. Beating a region's first boss also awards its boss trophy card, and a PERFECT challenging stage there awards a patterned card of its native creature.
+- **Charting:** regions open in map order. Clear wave 5 (beat the first boss) in a region to chart the next one, or chart it early for 150 to 600 scrap once the region before it is charted.
+- **Collectible sets:** every new region has its own set of 30 collectibles: 8 paint jobs, 7 engine trails, 7 pilot badges and 8 trophy cards (the local swarm, a native creature, a landmark and the local boss). Most sets are 12 Common, 9 Rare, 6 Epic and 3 Legendary; the Prism Rift's is 10 / 9 / 7 / 4. Sector 9 keeps the original 28, for 298 in all.
+- **Patterns:** many region collectibles are patterned. Paint jobs come in stripes, checkers, chevrons, scales, spots, speckles, rings, circuits, gradients, glitch and split hulls, and each region's Legendary paint job is animated (marquee flames, aurora, pulse, twinkle, shimmer, hazard stripes, prism, static and heartbeat). Trails come as confetti (mixed colors), color cycles, twin jets (a different color per engine) and sparklers; badges and trophy cards have patterns too. A striped corner on an album tile marks a patterned item.
+- **The Hive Heart:** the tenth and last node, up in the corner of the map. Clear wave 5 in the Prism Rift to chart it, or chart it early for 600 scrap. Its swarm is tinted flesh-red, its nebula throbs like a heartbeat (still when reduced motion is on), and its wave-5 boss is the Hive Mind, which then joins the other three in its boss rotation (every other region keeps its three-boss rotation). Its set has 12 Common, 9 Rare, 6 Epic and 3 Legendary collectibles, with an animated Heartbeat paint job as the Legendary one. Destroy the Hive Mind for the first time and a short ending plays: a story crawl, then the credits. Space, Enter or a tap skips it after a moment. The run then goes on (the swarm fights on) and the score keeps counting. The ending is remembered in your browser, so later kills show only a banner, and the Hive Heart wears a crown on the star map once its Hive Mind has fallen.
+- **Relics:** in the nine new regions, every boss drops a relic, and one kill per wave has a 2% chance to drop one too. Catch it to get a random item from that region's set (duplicates refund scrap like a capsule). Relics still on screen when a wave ends fly to you. Beating a region's first boss also awards its boss trophy card, and a PERFECT challenging stage there awards a patterned card of its native creature.
 
 ## Pilot record and medals
 
 Press R (or the Records button) on the title screen to open your pilot record. It has two views, switched with the tabs or the 1 and 2 keys:
 
-- **Medals:** 34 medals in a grid of pixel icons, colored bronze, silver or gold by the tier you hold, each with a progress bar toward the next tier. Pick one (tap it, or use the arrow keys) to see what it asks for, your progress and what the next tier pays. A small amber corner marks a medal you haven't looked at yet, and the title screen's Records button counts them.
+- **Medals:** 35 medals in a grid of pixel icons, colored bronze, silver or gold by the tier you hold, each with a progress bar toward the next tier. Pick one (tap it, or use the arrow keys) to see what it asks for, your progress and what the next tier pays. A small amber corner marks a medal you haven't looked at yet, and the title screen's Records button counts them.
 - **Stats:** your lifetime record: runs started (daily challenges included), time flown, waves cleared, total and best score, enemies destroyed by type, bosses destroyed by kind and by region, best combo, grazes, smart bombs used, best charge-shot pierce, perfect challenging stages, fighters rescued, missions completed, relics caught and scrap earned.
 
-Medals come in tiers: most have bronze, silver and gold (for example 500 / 5,000 / 25,000 enemies destroyed, reaching wave 10 / 15 / 20, collecting 50 / 150 / all album items, completing 25 / 100 / 300 missions). Some have a single tier, such as flying the Interceptor, the Bulwark or the Lancer past wave 10. Four are secret and show as "???" until you earn them. Each tier pays scrap once, 20 to 150 depending on how hard it is; all 88 tiers together pay 5,575 scrap, against roughly 200 to 1,000 for a run. Medals never award album items and never change gameplay. The daily challenge counts toward every stat and medal.
+Medals come in tiers: most have bronze, silver and gold (for example 500 / 5,000 / 25,000 enemies destroyed, reaching wave 10 / 15 / 20, collecting 50 / 150 / all album items, completing 25 / 100 / 300 missions). Some have a single tier, such as flying the Interceptor, the Bulwark or the Lancer past wave 10, or destroying the Hive Mind. Four are secret and show as "???" until you earn them. Each tier pays scrap once, 20 to 150 depending on how hard it is; all 89 tiers together pay 5,675 scrap, against roughly 200 to 1,000 for a run. Medals never award album items and never change gameplay. The daily challenge counts toward every stat and medal.
 
 An unlock shows a short toast under the HUD, one at a time, so it doesn't pile onto the wave banner or other messages. The first time you load the game with an existing save, medals your save already earns (album count, charted regions, best waves, high scores, challenging-stage history) are credited once, with one summary toast. The record is saved in your browser under its own key, at the end of every wave, at game over and when the page is hidden.
 
@@ -117,7 +121,7 @@ An unlock shows a short toast under the HUD, one at a time, so it doesn't pile o
   - **Ships:** the Striker (free, balanced), the Interceptor (300 scrap: faster, quicker single shots), the Bulwark (400 scrap: slow, fires two bolts per shot, and starts every life shielded), and the Lancer (500 scrap: slower single shots, but its charge shot is ready in 0.7 seconds instead of 1 and hits regular enemies harder). Each has its own ability (see above). Paint jobs and engine trails fit all four.
   - **Slots** (10 scrap): three of a kind gives that power-up next wave, three ships is the jackpot (an extra ship), and any pair returns 5 scrap. The exact odds of each outcome are listed under the reels.
   - **Mystery capsule** (60 scrap): pick a set with the arrows, then roll a collectible from it: Common 60%, Rare 28%, Epic 10%, Legendary 2%. Duplicates refund scrap.
-  - **Album:** 268 cosmetic collectibles in nine sets (use the arrows or the arrow keys to switch sets), across four rarities: ship paint jobs, engine trails, pilot badges (shown next to your name in the high-score table), and trophy cards. Every item can also be bought outright, from any set, charted or not. Beating each boss or scoring a PERFECT stage, in any region, also awards its Sector 9 trophy card.
+  - **Album:** 298 cosmetic collectibles in ten sets (use the arrows or the arrow keys to switch sets), across four rarities: ship paint jobs, engine trails, pilot badges (shown next to your name in the high-score table), and trophy cards. Every item can also be bought outright, from any set, charted or not. Beating each boss or scoring a PERFECT stage, in any region, also awards its Sector 9 trophy card (the Hive Mind has none: its card comes only from the Hive Heart).
 - **Challenging-stage wager:** before a bonus stage you can bet scrap on hitting at least 20, 30, 36 or all 40 enemies (pays 1.5x, 2x, 3x or 6x). It shows how often you've hit each target before.
 - **Prize wheel:** one free spin after every game over. 10 equal slices: scrap (40%), blank (30%), a mystery capsule from the region you just flew, a shield for your next run, or an extra ship for your next run (10% each).
 

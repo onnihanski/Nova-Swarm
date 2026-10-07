@@ -389,6 +389,17 @@
     gap: calc(var(--px) * 3);
     padding: calc(var(--px) * 5) calc(var(--px) * 6);
   }
+  .ov.ending { justify-content: center; padding: calc(var(--px) * 12) calc(var(--px) * 6) calc(var(--px) * 6); background: #07020a; cursor: pointer; }
+  .crawl { position: relative; flex: 1; width: 100%; overflow: hidden;
+    -webkit-mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent); }
+  .crawl-in { position: absolute; left: 0; right: 0; top: 0; will-change: transform; }
+  .cg { margin-bottom: calc(var(--px) * 22); font-size: var(--fs-m); line-height: 1.7; color: var(--coral); letter-spacing: .06em; }
+  .cg p { margin: 0; }
+  .cg.cr { color: var(--amber); }
+  .cg.cr p:first-child:not(:last-child) { color: var(--ink-dim); font-size: var(--fs-s); }
+  .cg[hidden] { display: none; }
+  .crawl.paged .crawl-in { top: 50%; transform: translateY(-50%); }
+  .crawl.paged .cg { margin: 0; }
   .ov.tight { gap: calc(var(--px) * 3); padding-top: calc(var(--px) * 16); }
   .ico { image-rendering: pixelated; width: calc(var(--px) * 5); height: auto; vertical-align: middle; }
   .wallet { font-size: var(--fs-s); color: var(--amber); letter-spacing: .06em; font-variant-numeric: tabular-nums; }
@@ -610,7 +621,7 @@
 
     <section class="ov" id="ovTitle" aria-label="Title screen">
       <h1 class="logo"><span class="a">NOVA</span><span class="b">SWARM</span></h1>
-      <p class="tag wallet"><img class="ico" alt="" data-icon="scrap"> <span class="js-scrap">0</span> SCRAP &nbsp;&middot;&nbsp; ALBUM <span class="js-album">0/268</span></p>
+      <p class="tag wallet"><img class="ico" alt="" data-icon="scrap"> <span class="js-scrap">0</span> SCRAP &nbsp;&middot;&nbsp; ALBUM <span class="js-album">0/298</span></p>
       <p class="tag" id="titleCourse">COURSE: SECTOR 9</p>
       <div class="attract">
         <div class="panel">
@@ -633,7 +644,7 @@
         </div>
         <div class="panel" hidden>
           <h2>BOSSES</h2>
-          <div class="bosses" id="bossRow"><img alt="Hive Queen" data-spr="queen"><img alt="Iron Maw" data-spr="maw"><img alt="Mothership" data-spr="mother"></div>
+          <div class="bosses" id="bossRow"><img alt="Hive Queen" data-spr="queen"><img alt="Iron Maw" data-spr="maw"><img alt="Mothership" data-spr="mother"><img alt="Hive Mind" data-spr="hive" data-w="28"></div>
           <p class="note">A BOSS GUARDS EVERY 5TH WAVE. THE<br>MOTHERSHIP'S CORE IS SHIELDED UNTIL<br>BOTH GENERATORS ARE DOWN.<br>BONUS STAGE AFTER WAVE 3, 8, 13…</p>
           <p class="note">WARDENS CAN BEAM UP YOUR SHIP: SHOOT<br>ONE TO WIN IT BACK AS A TWIN FIGHTER</p>
         </div>
@@ -814,7 +825,7 @@
           <div class="set-nav"><button class="btn sm js-set-prev" type="button" aria-label="Previous set">&lt;</button><span class="nm js-set-name">SECTOR 9</span><button class="btn sm js-set-next" type="button" aria-label="Next set">&gt;</button></div>
           <div class="album" id="albumGrid"></div>
           <div class="detail"><div><span class="nm" id="adName">PICK AN ITEM</span><span class="ds" id="adMeta"></span></div><button class="btn sm" type="button" id="adAct" hidden>EQUIP</button></div>
-          <p class="fine"><span class="js-album">0/268</span> COLLECTED IN ALL SETS &middot; COSMETIC ONLY</p>
+          <p class="fine"><span class="js-album">0/298</span> COLLECTED IN ALL SETS &middot; COSMETIC ONLY</p>
         </div>
       </div>
       <p class="fine">SCRAP IS EARNED ONLY BY PLAYING. EVERY GAMBLE IS OPTIONAL AND SHOWS ITS ODDS.</p>
@@ -845,7 +856,7 @@
 
     <section class="ov solid" id="ovMap" aria-label="Star map" hidden>
       <div class="hg-head"><h2>STAR MAP</h2><span class="wallet"><img class="ico" alt="" data-icon="scrap"> <span class="js-scrap">0</span> SCRAP</span></div>
-      <div class="map-wrap"><canvas id="mapCv" width="168" height="120" role="img" aria-label="Star map of the nine regions. Use the arrow buttons or keys to pick one."></canvas></div>
+      <div class="map-wrap"><canvas id="mapCv" width="168" height="120" role="img" aria-label="Star map of the ten regions. Use the arrow buttons or keys to pick one."></canvas></div>
       <div class="map-info" aria-live="polite">
         <div class="map-top"><h3 class="map-name" id="mpName">SECTOR 9</h3><span class="fine" id="mpSet">SET 0/28</span></div>
         <p class="fine" id="mpTwist"></p>
@@ -884,6 +895,11 @@
     </section>
 
     <div class="medal-toast" id="medalToast" role="status" hidden><img alt=""><div><span id="mtA"></span><span id="mtB"></span></div></div>
+    <section class="ov solid ending" id="ovEnding" aria-label="Ending and credits" hidden>
+      <div class="crawl" id="crawl"><div class="crawl-in" id="crawlIn"></div></div>
+      <p class="fine" id="endHint">SPACE, ENTER OR A TAP SKIPS THIS</p>
+    </section>
+
     <div class="scan"></div>
   </div>
 
@@ -1009,8 +1025,17 @@ const MAW_ROWS = [
   'sSSsSaasSSSSSS', 'sSSsSaasSkkkkk', 'sS.sSSSSkrrrrr', 'aS..SSSSkrryyy', 'a...SSSSkrrrrr', '......SSSkkkkk',
   '........SSSSSS', '..........S..S'
 ];
+// The Hive Mind: a pulsing heart of flesh, crowned with horns, around one great eye.
+const HIVE_ROWS = [
+  '.......a......a.a.', '......aA.....aAAa.', '.....aAv....vvAAv.', '....vvVvvvvvvvvVVv',
+  '...vvVccvvvvvvvvvv', '..vVccCCccvvvvvvvv', '.vVcccCCcccccvvccc', '.VccCCcccccccccccc',
+  'vVcCCccaaaccccwwww', 'vVcCcccayyaccwkkkk', 'VcCCcccayyaccwkrrr', 'VcCCcccayyaccwkrry',
+  'vVcCcccaaaaccwkrrr', 'vVccCCccaaccccwkkk', '.VvccCCccccccccwww', '.vVvccCCCCccccccvv',
+  '..vVvvccCCccccvvVV', '...vVvvvccccvvVVv.', '....VVvvvvvvVVv...', '..a..VVvVVvVVv.a..',
+  '.aA...V.vV.v..Aa..', 'aA.....V..V......a.'
+];
 // first-frame rows of every foe, for the region trophy cards
-const FOE_ROWS = { drone: DRONE[0], stinger: STINGER[0], warden: WARDEN[0], splitter: SPLITTER[0], miner: MINER[0], aegis: AEGIS[0], queen: QUEEN_ROWS, maw: MAW_ROWS, mother: MOTHER_ROWS };
+const FOE_ROWS = { drone: DRONE[0], stinger: STINGER[0], warden: WARDEN[0], splitter: SPLITTER[0], miner: MINER[0], aegis: AEGIS[0], queen: QUEEN_ROWS, maw: MAW_ROWS, mother: MOTHER_ROWS, hive: HIVE_ROWS };
 const SPR = {
   player: sprite(PLAYER_HALF),
   life: sprite(LIFE_HALF),
@@ -1026,10 +1051,12 @@ const SPR = {
   mine: sprite(['..c', '.ca', 'cay', '.ca', '..c']),
   mother: sprite(MOTHER_ROWS),
   turret: sprite(['.SS', 'SsS', 'Sss', '.aa', '..a']),
+  node: sprite(['.kkk', 'kyyw', 'kywy', 'kyyy', '.kkk']),
   gen: sprite(['..b', '.bt', 'bty', '.bt', '..b']),
   core: sprite(['..CC', '.Ccc', 'Ccwy', '.Ccc', '..CC']),
   queen: sprite(QUEEN_ROWS),
-  maw: sprite(MAW_ROWS)
+  maw: sprite(MAW_ROWS),
+  hive: sprite(HIVE_ROWS)
 };
 
 // 3x5 pixel font for in-canvas labels and score popups
@@ -1096,7 +1123,9 @@ const BOSSES = {
   queen: { name: 'HIVE QUEEN', spr: SPR.queen, hp: 58, pts: 3000, colors: [PAL.v, PAL.c, PAL.b, PAL.a, PAL.y], bar: PAL.v },
   maw: { name: 'IRON MAW', spr: SPR.maw, hp: 80, pts: 4000, colors: [PAL.s, PAL.S, PAL.a, PAL.r, PAL.y], bar: PAL.a },
   // Mothership: hp is its core; the turrets and shield generators have their own (see spawnBoss).
-  mother: { name: 'MOTHERSHIP', spr: SPR.mother, hp: 40, pts: 5000, colors: [PAL.s, PAL.S, PAL.b, PAL.t, PAL.c, PAL.y], bar: PAL.t }
+  mother: { name: 'MOTHERSHIP', spr: SPR.mother, hp: 40, pts: 5000, colors: [PAL.s, PAL.S, PAL.b, PAL.t, PAL.c, PAL.y], bar: PAL.t },
+  // The Hive Mind: its health bar is three segments (HIVE_SEG); the third is a shielded core with nodes (see startHivePhase).
+  hive: { name: 'HIVE MIND', spr: SPR.hive, hp: 0, pts: 10000, colors: [PAL.v, PAL.c, PAL.r, PAL.a, PAL.y, PAL.w], bar: PAL.r }
 };
 
 /* ================= scrap, loadout, collection ================= */
@@ -1187,13 +1216,18 @@ const PATTERNS = {
   twinkle: (x, y, w, h, n, f) => (Math.floor(hash2(x, y) * ANIM_FRAMES) + f) % ANIM_FRAMES < 2 ? n - 1 : n > 2 && hash2(y, x) < 0.3 ? 1 : 0,
   shimmer: (x, y, w, h, n, f) => ((x + y - 2 * f) % 24 + 24) % 24 < 3 ? n - 1 : Math.min(n - 2, Math.floor(y * (n - 1) / h)),
   prism: (x, y, w, h, n, f) => (x + y + f) % n,
-  static: (x, y, w, h, n, f) => Math.floor(hash2(y + f * 17, (x >> 1) + f * 5) * n)
+  static: (x, y, w, h, n, f) => Math.floor(hash2(y + f * 17, (x >> 1) + f * 5) * n),
+  // a glow that swells from the centre and ebbs, lub-dub: a strong beat then a weaker one
+  heartbeat: (x, y, w, h, n, f) => {
+    const t = f / ANIM_FRAMES, beat = Math.max(Math.sin(t * TAU * 2), 0) * (t < 0.5 ? 1 : 0.6), d = Math.hypot(x - mid(w), y - mid(h)) / Math.hypot(mid(w), mid(h));
+    return clamp(Math.floor((beat * 0.6 - d * 0.7 + 0.65) * n), 0, n - 1);
+  }
 };
-const ANIMATED = new Set(['marquee', 'hazard', 'aurora', 'pulse', 'twinkle', 'shimmer', 'prism', 'static']);
+const ANIMATED = new Set(['marquee', 'hazard', 'aurora', 'pulse', 'twinkle', 'shimmer', 'prism', 'static', 'heartbeat']);
 const PATTERN_NAME = {
   stripe: 'STRIPES', band: 'BANDS', check: 'CHECKERS', diag: 'DIAGONALS', chevron: 'CHEVRONS', grad: 'GRADIENT', split: 'SPLIT',
   spots: 'SPOTS', speck: 'SPECKLES', ring: 'RINGS', scales: 'SCALES', circuit: 'CIRCUITS', glitch: 'GLITCH',
-  marquee: 'MARQUEE', hazard: 'HAZARD', aurora: 'AURORA', pulse: 'PULSE', twinkle: 'TWINKLE', shimmer: 'SHIMMER', prism: 'PRISM', static: 'STATIC',
+  marquee: 'MARQUEE', hazard: 'HAZARD', aurora: 'AURORA', pulse: 'PULSE', twinkle: 'TWINKLE', shimmer: 'SHIMMER', prism: 'PRISM', static: 'STATIC', heartbeat: 'HEARTBEAT',
   mix: 'CONFETTI', seq: 'COLOR CYCLE', twin: 'TWIN JETS', spark: 'SPARKLER'
 };
 
@@ -1317,7 +1351,7 @@ function cardSprite(reg, c) {
   return spriteC(FOE_ROWS[c.foe || c.boss], fill(ch => tintHex(PAL[ch], reg.tintObj)));
 }
 
-/* ================= regions: eight new sectors on the star map, each with its own 30-item set ================= */
+/* ================= regions: nine new sectors on the star map, each with its own 30-item set ================= */
 const mkPaint = (r, name, spec) => ({ kind: 'paint', r, name, paint: spec });
 const mkTrail = (r, name, t) => ({ kind: 'trail', r, name, ...t });
 const mkBadge = (r, name, shape, cols, pat, pcols) => ({ kind: 'badge', r, name, shape, cols, pat, pcols });
@@ -1330,11 +1364,13 @@ const VER = { main: '#6adf5a', lite: '#d8ffb0', dark: '#1f6b3a', pollen: '#ffe14
 const SOL = { main: '#ffcf3d', lite: '#fff7c2', dark: '#c96a12', orange: '#ff8a3d', white: '#ffffff', deep: '#5a2a08', red: '#ff4d3d', sky: '#8ad8ff' };
 const COR = { main: '#3ee6c1', lite: '#c8fff2', dark: '#1f7f8f', coral: '#ff7aa8', sand: '#ffd0a0', deep: '#0a2a3a', glow: '#ffffff', sea: '#3a8aff', clown: '#ff8a3d' };
 const IRO = { main: '#c0c8d8', lite: '#ffffff', dark: '#4a5068', copper: '#e8843a', red: '#ff3b5c', deep: '#1a1c28', hazard: '#ffd23f', rust: '#8a4a2a', gun: '#6a7088' };
+const HIV = { main: '#e8346a', lite: '#ffc0d4', dark: '#5a0c2a', flesh: '#ff7a8a', bile: '#b8e04a', vein: '#8a2aa8', deep: '#1a0510', glow: '#fff0f4', bone: '#e8d8b8' };
 const PRI = { pink: '#ff5de0', lite: '#ffffff', dark: '#6a2ca8', cyan: '#5dfff0', yellow: '#fff27a', deep: '#1a0a33', violet: '#b26bff', orange: '#ff9a3d', lime: '#9be564' };
 
 // Region fields: map = node position on the star map; chart = scrap to chart it early; tint = the swarm's colors;
 // boss = the boss met first (bossName is its local name); events = sector event weights, rolled with evChance
 // from wave evFrom (evStreak allows events in back-to-back waves); mods tweak the swarm (see MOD_DEFAULTS).
+// finale marks the last region (kept out of the daily pool); bossOrder replaces the three-boss rotation; pulse makes the nebula throb.
 const REGION_DEFS = [
   { id: 'ember', name: 'EMBER BELT', color: '#ff7a3d', map: [42, 81], chart: 150,
     twist: 'A BURNING ASTEROID BELT. METEOR SHOWERS IN MOST WAVES, FROM WAVE 2.',
@@ -1655,9 +1691,49 @@ const REGION_DEFS = [
       mkCard(2, 'PRISM MAW', { boss: 'maw', earn: 'boss' }),
       mkCard(2, 'RIFT CARRIER', { boss: 'mother' }),
       mkCard(3, 'HOLO WRAITH', { native: true, pat: 'prism', on: '13', cols: PRISM12, earn: 'perfect' })
+    ] },
+  { id: 'hive', name: 'HIVE HEART', color: '#ff4d7a', map: [156, 20], chart: 600, finale: true,
+    twist: 'WHERE THE SWARM IS BORN. THE HARDEST SECTOR: EVENTS IN MOST WAVES, AEGIS FROM WAVE 3, A FASTER SWARM.',
+    bg: '#10030a', neb: ['#2a0614', '#4a0a22'], stars: ['#4a1a2a', '#b0506a', '#ffd8e0'], pulse: true,
+    tint: { hue: 340, mix: 0.6 }, boss: 'hive', bossName: 'HIVE MIND', bossOrder: ['hive', 'queen', 'maw', 'mother'],
+    events: { meteor: 1, dark: 1, fast: 1, wind: 1, surge: 2 }, evChance: 0.7, evFrom: 2, evStreak: true, mods: { aegisFrom: 3, speed: 1.15, fireRate: 1.4 },
+    pal: { main: HIV.main, dark: HIV.dark, acc: HIV.bile },
+    native: ['...11', '..133', '.1233', '12344', '123k4', '12344', '.1233', '..133', '...11'],
+    nativeCols: { 1: HIV.main, 2: HIV.dark, 3: HIV.lite, 4: HIV.bile },
+    items: [
+      mkPaint(0, 'FLESH', { t: HIV.flesh, T: HIV.dark, b: HIV.bile, w: HIV.lite }),
+      mkPaint(0, 'BONE', { t: HIV.bone, T: '#8a7a5a', b: HIV.main, w: HIV.glow }),
+      mkPaint(0, 'BRUISE', { t: HIV.vein, T: HIV.deep, b: HIV.flesh, w: HIV.lite }),
+      mkPaint(1, 'SINEW', { pat: 'stripe', t: [HIV.main, HIV.dark], T: HIV.deep, b: HIV.lite }),
+      mkPaint(1, 'MARROW', { pat: 'grad', t: [HIV.lite, HIV.flesh, HIV.main, HIV.dark], T: HIV.deep, b: HIV.bile }),
+      mkPaint(2, 'SPORE CLOUD', { pat: 'spots', t: [HIV.vein, HIV.bile], T: HIV.deep, b: HIV.flesh }),
+      mkPaint(2, 'COMPOUND EYE', { pat: 'scales', t: [HIV.main, HIV.dark], T: HIV.deep, b: HIV.bile }),
+      mkPaint(3, 'HEARTBEAT', { pat: 'heartbeat', t: [HIV.deep, HIV.dark, HIV.main, HIV.flesh, HIV.glow], T: HIV.deep, b: HIV.glow }),
+      mkTrail(0, 'SINEW', { core: '#ffd0dc', outer: HIV.main }),
+      mkTrail(0, 'BILE', { core: '#f4ffb0', outer: HIV.bile }),
+      mkTrail(0, 'MARROW', { core: HIV.bone, outer: '#a08a6a' }),
+      mkTrail(1, 'BLOODSTREAM', { mix: [HIV.main, HIV.dark, HIV.flesh] }),
+      mkTrail(1, 'SPORES', { core: HIV.glow, outer: HIV.vein, spark: HIV.bile }),
+      mkTrail(2, 'TWIN VEINS', { twin: [{ core: '#ffd0dc', outer: HIV.main }, { core: '#f4ffb0', outer: HIV.bile }] }),
+      mkTrail(3, 'LIFEBLOOD', { seq: [HIV.dark, HIV.main, HIV.flesh, HIV.glow, HIV.flesh, HIV.main], rate: 7 }),
+      mkBadge(0, 'HIVE EYE', 'eye', [HIV.main, HIV.dark, HIV.glow, HIV.bile]),
+      mkBadge(0, 'THROB', 'heart', [HIV.flesh, HIV.dark, HIV.lite]),
+      mkBadge(0, 'BROOD CREST', 'shield', [HIV.main, HIV.dark, HIV.lite]),
+      mkBadge(1, 'CHITIN HEX', 'hex', [HIV.vein, HIV.deep, HIV.lite, HIV.bile]),
+      mkBadge(1, 'STINGER FANG', 'sword', [HIV.bone, HIV.dark, HIV.glow, HIV.flesh]),
+      mkBadge(2, 'HORNED MIND', 'crown', [HIV.main, HIV.dark, HIV.lite, HIV.bone], 'stripe', [HIV.flesh]),
+      mkBadge(2, 'SPORE ORB', 'orb', [HIV.vein, HIV.deep, HIV.glow], 'speck', [HIV.bile]),
+      mkCard(0, 'HIVE DRONE', { foe: 'drone' }),
+      mkCard(0, 'HIVE STINGER', { foe: 'stinger' }),
+      mkCard(0, 'HEARTWORM', { native: true }),
+      mkCard(1, 'HIVE WARDEN', { foe: 'warden' }),
+      mkCard(1, 'GILDED AEGIS', { foe: 'aegis', pat: 'speck', on: 's', cols: ['#d8b86a', HIV.glow] }),
+      mkCard(1, 'THE BROOD MOON', { planet: { pat: 'ring', cols: [HIV.main, HIV.flesh, HIV.dark], dark: HIV.deep, rays: HIV.flesh } }),
+      mkCard(2, 'HIVE MIND', { boss: 'hive', earn: 'boss' }),
+      mkCard(3, 'GOLDEN HEARTWORM', { native: true, pat: 'grad', on: '13', cols: [HIV.glow, HIV.bone, '#c9961a'], earn: 'perfect' })
     ] }
 ];
-const MOD_DEFAULTS = { shotSpeed: 1, fireRate: 1, dropMul: 1, sway: 1, aegisFrom: 7 };
+const MOD_DEFAULTS = { shotSpeed: 1, fireRate: 1, dropMul: 1, sway: 1, aegisFrom: 7, speed: 1 };
 const REGIONS = [
   { id: 'home', name: 'SECTOR 9', color: '#5aa9ff', map: [16, 99], chart: 0,
     twist: 'WHERE THE HIVE WAS FIRST SIGHTED. THE CLASSIC SWARM, WITH SECTOR EVENTS FROM WAVE 4.',
@@ -1971,6 +2047,7 @@ const Snd = (() => {
   const SONGS = {
     main: { bpm: 144, roots: [45, 41, 48, 43], arps: [[69, 72, 76, 81], [65, 69, 72, 77], [64, 67, 72, 76], [67, 71, 74, 79]], mel: MEL },
     boss: { bpm: 168, roots: [45, 46, 45, 44], arps: [[69, 72, 76, 72], [70, 74, 77, 74], [69, 72, 76, 79], [68, 71, 74, 77]], mel: null },
+    hive: { bpm: 176, roots: [43, 44, 43, 41], arps: [[67, 70, 74, 70], [68, 72, 75, 72], [67, 70, 74, 77], [65, 68, 72, 75]], mel: null },
     bonus: { bpm: 156, roots: [48, 41, 43, 48], arps: [[72, 76, 79, 84], [69, 72, 77, 81], [71, 74, 79, 83], [72, 76, 79, 84]], mel: null }
   };
   const ARP = [0, 1, 2, 3, 2, 1, 2, 3, 0, 1, 2, 3, 2, 3, 2, 1];
@@ -2161,7 +2238,7 @@ function nextWave() {
     G.phaseT = 2.6;
     banner('WARNING', 'BOSS APPROACHING', 'warn', 2.4);
     Snd.warn();
-    Snd.play('boss');
+    Snd.play(bossKindAt(runReg(), G.bossCount) === 'hive' ? 'hive' : 'boss');
   } else {
     G.phaseT = 1.7;
     const where = G.region === 'home' ? '' : runReg().name;
@@ -2177,7 +2254,7 @@ function spawnWave() {
   if (n % 5 === 0) { spawnBoss(); return; }
   const rows = waveRows(n);
   G.rows = rows.map(r => r.count);
-  const speed = Math.min(100 + n * 4, 150);
+  const speed = Math.min(100 + n * 4, 150) * runReg().mods.speed;
   const gap = Math.max(0.85, 1.5 - n * 0.05);
   let order = 0, total = 0;
   for (let r = rows.length - 1; r >= 0; r--, order++) {
@@ -2280,7 +2357,7 @@ function startDive(e) {
     speed = Math.min(62 + n * 2, 96);
     after = 'join';
   }
-  followPath(e, pts, after, speed);
+  followPath(e, pts, after, speed * runReg().mods.speed);
   e.diving = true;
   const shots = e.type === 'miner' ? 1 : e.type === 'warden' || e.type === 'aegis' ? 1 : n >= 4 ? 2 : (n === 1 && grand() < 0.5 ? 0 : 1);
   e.shots = [];
@@ -2616,13 +2693,18 @@ function fire() {
 
 /* ================= boss ================= */
 const BOSS_ORDER = ['queen', 'maw', 'mother'];
+// Each region opens with its own boss, then rotates through the order (the Hive Heart's has the Hive Mind too).
+const bossKindAt = (reg, k) => { const o = reg.bossOrder || BOSS_ORDER; return o[(k + o.indexOf(reg.boss)) % o.length]; };
 function spawnBoss() {
   const k = G.bossCount++;
-  const kind = BOSS_ORDER[(k + BOSS_ORDER.indexOf(runReg().boss)) % 3];   // each region opens with its own boss
+  const kind = bossKindAt(runReg(), k);
   const B = BOSSES[kind];
   let hp = B.hp + 30 * k;
+  hiveNote = null;
+  const seg = kind === 'hive' ? HIVE_SEG.map(v => Math.round(v * (1 + 0.25 * k))) : null;   // the Hive Mind's health bar: one segment per phase
+  if (seg) hp = seg[0] + seg[1] + seg[2];
   G.rows = [];
-  boss = { kind, B, k, x: W / 2, y: -16, hp, max: hp, t: 0, state: 'enter', atk: null, atkT: 1.2, sub: 0, subT: 0, spin: 0, flash: 0, last: '', dieT: 0, boomT: 0 };
+  boss = { kind, B, k, x: W / 2, y: -16, hp, max: hp, t: 0, state: 'enter', atk: null, atkT: 1.2, sub: 0, subT: 0, spin: 0, flash: 0, last: '', dieT: 0, boomT: 0, stage: 1, desp: false, morphT: 0, seg };
   if (kind === 'mother') {   // hp / max track the total of every part, for the health bar
     const part = (kind, dx, dy, hp) => ({ kind, dx, dy, hp, max: hp, flash: 0 });
     boss.parts = [part('turret', -14, 5, 10 + 3 * k), part('turret', 14, 5, 10 + 3 * k), part('gen', -7, 6, 8 + 2 * k), part('gen', 7, 6, 8 + 2 * k)];
@@ -2634,8 +2716,12 @@ function spawnBoss() {
 const ATTACKS = {
   queen: [['fan', 'stream', 'spawn'], ['fan2', 'stream', 'spawn', 'fan'], ['spiral', 'fan2', 'stream', 'spawn']],
   maw: [['laser', 'cannons', 'cannons'], ['laser', 'cannons', 'ring'], ['laser', 'ring', 'cannons', 'laser']],
-  mother: [['volley', 'rain', 'launch'], ['volley', 'burst', 'rain', 'launch'], ['burst', 'volley', 'burst', 'rain']]
+  mother: [['volley', 'rain', 'launch'], ['volley', 'burst', 'rain', 'launch'], ['burst', 'volley', 'burst', 'rain']],
+  // Hive Mind: Queen fans and escorts, then Maw lasers, then a shielded core, its core exposed, and a desperation pattern
+  hive: [['fan', 'stream', 'spawn', 'fan'], ['lasers', 'cannons', 'ring', 'laser', 'spawn', 'fan'], ['volley', 'rain', 'launch'], ['volley', 'burst', 'rain', 'launch'], ['spiral', 'burst', 'laser', 'ring']]
 };
+const HIVE_GAP = [1.2, 0.5, 0.9, 0.75, 0.5];   // pause between attacks in each of its five attack sets
+const hiveAtkSet = b => b.stage < 3 ? b.stage - 1 : b.desp ? 4 : shielded(b) ? 2 : 3;
 /* ---- Mothership parts ---- */
 const shielded = b => b.parts.some(p => p.kind === 'gen' && p.hp > 0);
 const aliveParts = (b, kind) => b.parts.filter(p => p.hp > 0 && (!kind || p.kind === kind));
@@ -2664,11 +2750,11 @@ function damageCore(b, n) {
 // A regular shot: parts first, then the core (or its shield), then the armored hull soaks it up.
 // Returns 'hit' when it did damage, 'blocked' when the shield or hull stopped it, or '' for a miss.
 function hitMother(b, s) {
-  for (const p of b.parts) if (p.hp > 0 && Math.abs(s.x - b.x - p.dx) <= 3 && Math.abs(s.y - b.y - p.dy) <= 3.5) { damagePart(b, p, 1); return 'hit'; }
+  for (const p of b.parts) if (p.hp > 0 && Math.abs(s.x - b.x - p.dx) <= (b.partW || 3) && Math.abs(s.y - b.y - p.dy) <= (b.partH || 3.5)) { damagePart(b, p, 1); return 'hit'; }
   const cdx = Math.abs(s.x - b.x), cdy = Math.abs(s.y - b.y - b.core.dy);
   if (shielded(b)) { if (cdx < 7 && cdy < 6) { spark(s.x, s.y); Snd.ting(); return 'blocked'; } }
   else if (cdx <= 4 && cdy <= 3.5) { damageCore(b, 1); return 'hit'; }
-  if (cdx <= 16 && Math.abs(s.y - b.y) <= 4.5) { spark(s.x, s.y); return 'blocked'; }
+  if (cdx <= (b.hullX || 16) && Math.abs(s.y - b.y) <= (b.hullY || 4.5)) { spark(s.x, s.y); return 'blocked'; }
   return '';
 }
 function spawnEscort(b) {
@@ -2678,13 +2764,13 @@ function spawnEscort(b) {
   followPath(e, [{ x: b.x, y: b.y + 8 }, { x: cxk(b.x + dir * 30), y: b.y + 30 }, { x: cxk(px - dir * 20), y: H * 0.6 },
     { x: cxk(px + dir * 10), y: H * 0.85 }, { x: cxk(px + dir * 40), y: H + 14 }], 'exit', 80 + b.k * 5);
   e.diving = true;
-  e.shots = b.hp / b.max <= 0.66 ? [e.path.len * 0.3] : [];   // escorts only shoot once she's hurt
+  e.shots = (b.kind === 'hive' ? b.stage > 1 : b.hp / b.max <= 0.66) ? [e.path.len * 0.3] : [];   // escorts only shoot once she's hurt
   enemies.push(e);
 }
 function endAttack(b, phase) {
   b.last = b.atk;
   b.atk = null;
-  b.atkT = [1.5, 1.15, 0.85][phase - 1] * Math.max(0.7, 1 - b.k * 0.06);
+  b.atkT = (b.kind === 'hive' ? HIVE_GAP[hiveAtkSet(b)] : [1.5, 1.15, 0.85][phase - 1]) * Math.max(0.7, 1 - b.k * 0.06);
 }
 function updateBoss(dt) {
   const b = boss;
@@ -2719,32 +2805,35 @@ function updateBoss(dt) {
       dropPickup(b.x + 12, b.y, true);
       dropScrap(b.x, b.y, 120 + 40 * b.k, true);
       if (runReg().relics) dropRelic(b.x, b.y);   // bosses in the new regions always drop a relic
+      if (b.kind === 'hive') hiveDown();
       boss = null;
     }
     return;
   }
+  if (b.state === 'morph') { updateMorph(b, dt); return; }
   const ratio = b.hp / b.max;
-  const phase = b.kind === 'mother' ? (shielded(b) ? 1 : b.core.hp / b.core.max > 0.5 ? 2 : 3) : ratio > 0.66 ? 1 : ratio > 0.33 ? 2 : 3;
+  if (b.kind === 'hive' && b.stage === 3 && !b.desp && !shielded(b) && b.core.hp / b.core.max <= 0.65) { b.desp = true; startMorph(b, 'DESPERATION', 'THE CORE LASHES OUT'); }
+  const phase = b.kind === 'hive' ? (b.stage < 3 ? b.stage : b.desp ? 3 : shielded(b) ? 1 : 2) : b.kind === 'mother' ? (shielded(b) ? 1 : b.core.hp / b.core.max > 0.5 ? 2 : 3) : ratio > 0.66 ? 1 : ratio > 0.33 ? 2 : 3;
   if (b.parts) for (const p of b.parts.concat(b.core)) if (p.flash > 0) p.flash -= dt;
-  if (b.atk !== 'laser') {
-    const tx = b.kind === 'queen' ? W / 2 + Math.sin(b.t * 0.7) * 44 : b.kind === 'mother' ? W / 2 + Math.sin(b.t * 0.45) * 40 : W / 2 + Math.sin(b.t * 0.5) * 56;
-    const ty = b.kind === 'queen' ? 54 + Math.sin(b.t * 1.6) * 8 : b.kind === 'mother' ? 46 + Math.sin(b.t * 1.2) * 3 : 50 + Math.sin(b.t * 0.9) * 4;
+  if (b.atk !== 'laser' && b.atk !== 'lasers') {
+    const tx = b.kind === 'hive' ? W / 2 + Math.sin(b.t * (b.stage === 3 ? 0.35 : 0.5)) * (b.stage === 3 ? 32 : 48) : b.kind === 'queen' ? W / 2 + Math.sin(b.t * 0.7) * 44 : b.kind === 'mother' ? W / 2 + Math.sin(b.t * 0.45) * 40 : W / 2 + Math.sin(b.t * 0.5) * 56;
+    const ty = b.kind === 'hive' ? 52 + Math.sin(b.t * 1.1) * 4 : b.kind === 'queen' ? 54 + Math.sin(b.t * 1.6) * 8 : b.kind === 'mother' ? 46 + Math.sin(b.t * 1.2) * 3 : 50 + Math.sin(b.t * 0.9) * 4;
     b.x += (tx - b.x) * Math.min(1, dt * 3);
     b.y += (ty - b.y) * Math.min(1, dt * 3);
   }
   if (!b.atk) {
     b.atkT -= dt;
     if (b.atkT <= 0 && player.alive) {
-      const opts = ATTACKS[b.kind][phase - 1];
+      const opts = ATTACKS[b.kind][b.kind === 'hive' ? hiveAtkSet(b) : phase - 1];
       const fresh = opts.filter(o => o !== b.last);
       b.atk = pick(fresh.length ? fresh : opts);
       if (b.atk === 'volley' && !aliveParts(b, 'turret').length) b.atk = shielded(b) ? 'rain' : 'burst';
       b.sub = 0;
-      b.subT = b.atk === 'laser' ? 0.9 : 0;
+      b.subT = b.atk === 'laser' || b.atk === 'lasers' ? 0.9 : 0;
     }
     return;
   }
-  const spd = 60 + b.k * 4;
+  const spd = 60 + b.k * 4 + (b.kind === 'hive' ? (b.stage > 1 ? 12 : 4) : 0);
   b.subT -= dt;
   switch (b.atk) {
     case 'fan':
@@ -2768,23 +2857,23 @@ function updateBoss(dt) {
         if (b.sub >= 30) endAttack(b, phase);
       }
       break;
-    case 'laser':
+    case 'laser': case 'lasers':   // lasers: three beams, so the player has to slip between them
       if (b.sub === 0) {
         b.x += clamp(player.x - b.x, -70 * dt, 70 * dt);
         if (b.subT <= 0) { b.sub = 1; b.subT = 0.9; Snd.charge(); }
       } else if (b.sub === 1) {
         if (b.subT <= 0) { b.sub = 2; b.subT = 1.0; Snd.laser(); shakeIt(2); }
       } else {
-        if (player.alive && nearestShipDx(b.x) < 5.5 && player.y > b.y) hitPlayer(b.x);
-        if (Math.random() < 0.6) parts.push({ x: b.x + frand(-3, 3), y: H - 2, vx: frand(-40, 40), vy: frand(-60, -20), t: 0, life: 0.3, c: fpick([PAL.c, PAL.y, PAL.w]), s: 1 });
+        if (player.alive && player.y > b.y) for (const o of beamOffs(b)) if (nearestShipDx(b.x + o) < 5.5) { hitPlayer(b.x + o); break; }
+        if (Math.random() < 0.6) parts.push({ x: b.x + (b.atk === 'lasers' ? fpick(beamOffs(b)) : 0) + frand(-3, 3), y: H - 2, vx: frand(-40, 40), vy: frand(-60, -20), t: 0, life: 0.3, c: fpick([PAL.c, PAL.y, PAL.w]), s: 1 });
         if (b.subT <= 0) endAttack(b, phase);
       }
       break;
     case 'cannons':
-      if (b.subT <= 0) { aimed(b.x - 13, b.y + 4, spd + 10, 0.08); aimed(b.x + 13, b.y + 4, spd + 10, 0.08); b.sub++; b.subT = 0.3; if (b.sub >= 3) endAttack(b, phase); }
+      if (b.subT <= 0) { aimed(b.x - 13, b.y + 4, spd + 10, 0.08); aimed(b.x + 13, b.y + 4, spd + 10, 0.08); b.sub++; b.subT = 0.3; if (b.sub >= (b.kind === 'hive' ? 4 : 3)) endAttack(b, phase); }
       break;
     case 'ring':
-      if (b.subT <= 0) { ringShot(b.x, b.y + 2, 14, spd - 10, b.sub * Math.PI / 14); b.sub++; b.subT = 0.35; if (b.sub >= (phase === 3 ? 2 : 1)) endAttack(b, phase); }
+      if (b.subT <= 0) { ringShot(b.x, b.y + 2, b.kind === 'hive' ? 18 : 14, spd - 10, b.sub * Math.PI / 14); b.sub++; b.subT = 0.35; if (b.sub >= (phase === 3 ? 2 : 1)) endAttack(b, phase); }
       break;
     case 'volley':   // each live turret fires three aimed shots
       if (b.subT <= 0) { for (const p of aliveParts(b, 'turret')) aimed(b.x + p.dx, b.y + p.dy + 3, spd + 8, 0.07); b.sub++; b.subT = 0.24; if (b.sub >= 3) endAttack(b, phase); }
@@ -2804,11 +2893,12 @@ function updateBoss(dt) {
 function damageBoss(n) {
   const b = boss;
   if (!b || b.state !== 'fight') return;
-  if (b.kind === 'mother') {
+  if (b.parts) {
     for (const p of aliveParts(b)) damagePart(b, p, n);
     if (!shielded(b)) damageCore(b, n);
     return;
   }
+  if (b.kind === 'hive') { hiveHit(b, n); return; }
   b.hp -= n; b.flash = 0.06;
   abilityCharge(Math.min(n, b.hp + n) / b.max * AB_BOSS);
   Snd.bossHit();
@@ -2816,7 +2906,7 @@ function damageBoss(n) {
   killBoss(b);
 }
 function killBoss(b) {
-  b.hp = 0; b.state = 'dying'; b.dieT = 1.8; b.boomT = 0; b.atk = null;
+  b.hp = 0; b.state = 'dying'; b.dieT = b.kind === 'hive' ? 3 : 1.8; b.boomT = 0; b.atk = null;
   const bonus = b.B.pts + 2000 * b.k;
   addScore(bonus);
   popups.push({ text: String(bonus), x: b.x, y: b.y - 14, t: -0.9, c: PAL.y });
@@ -2828,9 +2918,136 @@ function killBoss(b) {
   if (reg.bossCard && b.kind === reg.boss && awardTrophy(reg.bossCard)) G.extra.push(['TROPHY CARD', reg.bossName]);
   mission('boss');
   Rec.boss(b);
+  if (b.kind === 'hive') G.extra.push(['HIVE MIND', 'DESTROYED']);
   G.extra.push(['BOSS SCRAP', '+' + (120 + 40 * b.k)]);
   Snd.bigBoom();
   rumble(900, 1, 0.8);
+}
+
+/* ================= hive mind: three phases, then the ending ================= */
+// Its health bar has three segments, one per phase. Phase 1 (Queen): fans and escorts. Phase 2 (Maw): telegraphed lasers.
+// Phase 3 (Mothership): a shielded core behind destructible nodes; once the core is exposed and badly hurt, a desperation pattern.
+// Each change is a short invulnerable beat (state 'morph') with a flash and a banner; blast damage cannot skip a phase.
+const HIVE_SEG = [110, 100, 56];   // hp of phases 1, 2 and 3 (nodes and core count for phase 3: hard to hit, so fewer)
+const beamOffs = b => b.atk === 'lasers' ? [-34, 0, 34] : [0];
+function hiveHit(b, n) {
+  const floor = b.stage === 1 ? b.seg[1] + b.seg[2] : b.seg[2];
+  const was = b.hp;
+  b.hp = Math.max(floor, b.hp - n); b.flash = 0.06;
+  abilityCharge((was - b.hp) / b.max * AB_BOSS);
+  Snd.bossHit();
+  if (b.hp <= floor) startHivePhase(b);
+}
+function startHivePhase(b) {
+  b.stage++;
+  if (b.stage === 3) {   // the nodes: four shield generators and two turrets around a core, which together make the last third
+    const S = b.seg[2], part = (kind, dx, dy, hp) => ({ kind, dx, dy, hp, max: hp, flash: 0 });
+    const gen = Math.round(S * 0.11), tur = Math.round(S * 0.06);
+    b.parts = [part('gen', -8, 7, gen), part('gen', 8, 7, gen), part('gen', -18, 5, gen), part('gen', 18, 5, gen), part('turret', -13, 10, tur), part('turret', 13, 10, tur)];
+    for (const q of b.parts) if (q.kind === 'gen') q.spr = 'node';
+    b.partW = 4; b.partH = 4;
+    b.core = part('core', 0, 2, S - 4 * gen - 2 * tur);
+    b.hullX = 17;
+  }
+  startMorph(b, 'PHASE ' + b.stage, b.stage === 2 ? 'THE MAW AWAKENS' : 'THE CORE AWAKENS');
+}
+function startMorph(b, title, sub) {
+  b.state = 'morph'; b.morphT = 1.6; b.atk = null; b.flash = 0;
+  for (const s of eshots) spark(s.x, s.y);
+  eshots = [];
+  clearMines();
+  for (const e of enemies) if (!e.dead) { e.dead = true; explode(e.x, e.y, tcol(e.T.colors), 10, 50); }
+  rings.push({ x: b.x, y: b.y, r: 3, v: 120, t: 0, life: 0.7, c: PAL.r }, { x: b.x, y: b.y, r: 2, v: 80, t: 0, life: 0.7, c: PAL.w });
+  flash = flashLvl(0.5, 0.15);
+  shakeIt(5);
+  banner(title, sub, 'warn', 1.5);
+  Snd.warn(); Snd.bigBoom();
+}
+function updateMorph(b, dt) {
+  b.morphT -= dt;
+  b.x += (W / 2 - b.x) * Math.min(1, dt * 3);
+  if (Math.random() < dt * 14) explode(b.x + frand(-14, 14), b.y + frand(-8, 8), tcol(b.B.colors), 5, 40);
+  if (b.morphT <= 0) { b.state = 'fight'; b.atkT = 1.1; }
+}
+// Whether the ending has been seen and how often the Hive Mind has fallen, saved in this browser.
+const HIVE_KEY = 'nova-swarm-hive-v1';
+const hive = (() => {
+  const h = store.get(HIVE_KEY, null) || {};
+  return { seen: h.seen === true, kills: Number.isFinite(h.kills) ? clamp(h.kills | 0, 0, 99999) : 0 };
+})();
+const saveHive = () => store.set(HIVE_KEY, hive);
+// The Hive Mind is gone: the first time plays the ending, later kills a banner. Both wait for the wave-clear banner.
+let hiveNote = null;
+function hiveDown() {
+  if (G.lives <= 0) return;
+  hive.kills++;
+  hiveNote = hive.seen ? 'banner' : 'ending';
+  hive.seen = true;
+  saveHive();
+}
+function hiveClearBanner() {
+  const d = hiveNote;
+  hiveNote = null;
+  if (d === 'ending') startEnding();
+  else if (d) { banner('HIVE MIND DESTROYED', 'THE SWARM FIGHTS ON', 'good', 2.4); Snd.fanfare(3); }
+}
+const ENDING = [
+  ['THE HIVE MIND IS DEAD.', 'ITS GREAT EYE GOES DARK.'],
+  ['THE HEART THAT BEAT', 'BEHIND EVERY WAVE', 'HAS GONE QUIET.'],
+  ['BUT THE SWARM DOES NOT STOP.', 'IT NEVER NEEDED A MIND', 'TO HUNGER.'],
+  ['SO YOU FLY ON, PILOT.', 'THE DARK IS YOURS.'],
+  ['NOVA SWARM'],
+  ['PILOT', 'YOU'],
+  ['WINGMEN', 'EVERY SHIP THAT FELL BEFORE'],
+  ['SOUND', 'ONE TINY BROWSER SYNTH'],
+  ['THANKS FOR PLAYING'],
+  ['THE SWARM FIGHTS ON']
+];
+const ENDING_STORY = 4;   // the first groups are the story, the rest the credits
+const ending = { t: 0, built: false };
+function startEnding() {
+  const box = $('crawlIn');
+  if (!ending.built) {   // the whole text stays in the page, so it can be read in any mode
+    ending.built = true;
+    ENDING.forEach((g, i) => {
+      const d = document.createElement('div');
+      d.className = 'cg' + (i >= ENDING_STORY ? ' cr' : '');
+      for (const l of g) { const p = document.createElement('p'); p.textContent = l; d.appendChild(p); }
+      box.appendChild(d);
+    });
+  }
+  state = 'ending';
+  ending.t = 0;
+  keys.clear(); touch.id = null;
+  hideBanners();
+  Snd.stop(); Snd.fanfare(3);
+  showOverlay('ovEnding');
+  tickEnding(0);
+}
+// A slow crawl up the screen; with reduced motion, one group at a time instead.
+function tickEnding(dt) {
+  ending.t += dt;
+  const box = $('crawlIn'), view = $('crawl'), groups = box.children;
+  if (reduceMotion) {
+    const i = Math.floor(ending.t / 2.8);
+    for (let j = 0; j < groups.length; j++) groups[j].hidden = j !== i;
+    view.classList.add('paged');
+    if (i >= groups.length) endEnding();
+    return;
+  }
+  const y = view.clientHeight - ending.t * 26 * U;
+  box.style.transform = 'translateY(' + y + 'px)';
+  if (y + box.offsetHeight < 0) endEnding();
+}
+function skipEnding() { if (state === 'ending' && ending.t >= 1.2) endEnding(); }
+function endEnding() {
+  if (state !== 'ending') return;
+  for (const g of $('crawlIn').children) g.hidden = false;
+  state = 'play';
+  keys.clear(); touch.id = null;
+  showOverlay(null);
+  Snd.play('main');
+  banner('THE SWARM FIGHTS ON', 'WAVE ' + G.wave + ' CLEAR', 'good', 2);
 }
 
 /* ================= wingmen: two drones that copy your shots until you are hit ================= */
@@ -3234,6 +3451,7 @@ const MEDALS = [
   { id: 'interceptor', name: 'INTERCEPTOR ACE', desc: 'REACH WAVE {n} IN THE INTERCEPTOR', glyph: 'arrow', tiers: [11], reward: 60, check: () => record.hullBest.interceptor || 0 },
   { id: 'bulwark', name: 'IRON BULWARK', desc: 'REACH WAVE {n} IN THE BULWARK', glyph: 'shield', tiers: [11], reward: 60, check: () => record.hullBest.bulwark || 0 },
   { id: 'lancer', name: 'LANCE MASTER', desc: 'REACH WAVE {n} IN THE LANCER', glyph: 'arrow', tiers: [11], reward: 60, check: () => record.hullBest.lancer || 0 },
+  { id: 'heart', name: 'HEART BREAKER', desc: 'DESTROY THE HIVE MIND', glyph: 'crown', tiers: [1], reward: 100, check: () => record.bosses.hive || 0 },
   { id: 'dancer', name: 'BULLET DANCER', desc: 'GRAZE {n} BULLETS IN ONE WAVE', glyph: 'sun', tiers: [25], reward: 50, secret: true, check: () => record.bestWaveGrazes },
   { id: 'flawless', name: 'FLAWLESS VICTORY', desc: 'DESTROY A BOSS WITHOUT BEING HIT', glyph: 'crown', tiers: [1], reward: 60, secret: true, check: () => record.flawless },
   { id: 'twin', name: 'DOUBLE TROUBLE', desc: 'DESTROY A BOSS WITH TWIN FIGHTERS', glyph: 'plus', tiers: [1], reward: 50, secret: true, check: () => record.twinBosses },
@@ -3310,10 +3528,10 @@ const Rec = {
       if (dy) { recMax(record, 'dailies', 1); if (typeof dy.day === 'string') record.lastDaily = dy.day; }
       recMax(record, 'perfects', stats.bonus.filter(h => h >= 40).length);
       recMax(record, 'bestBonus', Math.max(0, ...stats.bonus));
-      for (const r of REGIONS) {   // each region opens with its own boss and rotates through the three
+      for (const r of REGIONS) {   // each region opens with its own boss and rotates through its order
         const k = Math.floor((regions.best[r.id] || 0) / 5);
         if (k > 0) record.bossRegions[r.id] = Math.max(record.bossRegions[r.id] || 0, k);
-        for (let i = 0; i < k; i++) { const kind = BOSS_ORDER[(i + BOSS_ORDER.indexOf(r.boss)) % 3]; record.bosses[kind] = Math.max(record.bosses[kind] || 0, 1); }
+        for (let i = 0; i < k; i++) { const kind = bossKindAt(r, i); record.bosses[kind] = Math.max(record.bosses[kind] || 0, 1); }
       }
       record.legacy = true;
       const { n, pay } = checkMedals(true);
@@ -3652,6 +3870,7 @@ function waveClear() {
   for (const b of scrapBits) b.home = true;
   for (const r of relicDrops) r.home = true;
   Snd.jingle();
+  hiveClearBanner();
 }
 // Clearing a wave records the region's best; clearing wave 5 (its boss) charts the next region on the map.
 function chartProgress() {
@@ -3974,8 +4193,10 @@ function drawNebula(reg) {
   const nb = nebulaFor(reg);
   if (!nb) return;
   const y = Math.floor(nebY);
+  if (reg.pulse && !reduceMotion) cx.globalAlpha = 0.55 + 0.45 * Math.max(Math.sin(clock * 5.2), 0.6 * Math.sin(clock * 5.2 - 1.5), 0);   // a slow heartbeat
   cx.drawImage(nb, 0, y - H);
   cx.drawImage(nb, 0, y);
+  cx.globalAlpha = 1;
 }
 function drawEnemies(tint) {
   const q = Math.PI / 8;
@@ -4014,20 +4235,21 @@ function drawCaptives() {
   if (rescue) drawSpr(shipFor(album.equip.paint).ship, rescue.x, rescue.y, rescue.t < 0.6 ? Math.round(Math.PI * (1 - rescue.t / 0.6) / q) * q : 0);
 }
 function drawBoss(b, tint) {
-  const flick = b.state === 'dying' && Math.floor(clock * 16) % 2;
-  drawSpr(tinted(b.B.spr, tint), b.x, b.y, 0, (b.flash > 0 && !b.parts) || flick);
+  const flick = (b.state === 'dying' || b.state === 'morph') && Math.floor(clock * 16) % 2;
+  drawSpr(tinted(b.B.spr, tint), b.x + (b.state === 'morph' && !reduceMotion ? Math.round(frand(-1, 1)) : 0), b.y, 0, (b.flash > 0 && !b.parts) || flick);
   if (b.parts) {
     for (const p of b.parts) {
       if (p.hp <= 0) cx.globalAlpha = 0.3;
-      drawSpr(tinted(SPR[p.kind], tint), b.x + p.dx, b.y + p.dy, 0, p.hp > 0 && (p.flash > 0 || flick));
+      drawSpr(tinted(SPR[p.spr || p.kind], tint), b.x + p.dx, b.y + p.dy, 0, p.hp > 0 && (p.flash > 0 || flick));
       cx.globalAlpha = 1;
     }
     drawSpr(tinted(SPR.core, tint), b.x, b.y + b.core.dy, 0, b.core.flash > 0 || flick);
     if (shielded(b) && b.state === 'fight') ringPts(b.x, b.y + b.core.dy, 6.5, Math.floor(clock * 8) % 2 ? PAL.b : PAL.t, Math.floor(clock * 12) % 3);
+    else if (b.desp && b.state === 'fight') ringPts(b.x, b.y + b.core.dy, 5.5 + Math.floor(clock * 6) % 2, Math.floor(clock * 8) % 2 ? PAL.r : PAL.y, Math.floor(clock * 12) % 3);
   }
-  if (b.atk === 'laser' && b.sub >= 1) {
+  if ((b.atk === 'laser' || b.atk === 'lasers') && b.sub >= 1) {
     cx.fillStyle = Math.floor(clock * 20) % 2 ? PAL.y : PAL.w;
-    cx.fillRect(Math.round(b.x) - 2, Math.round(b.y) + 2, 5, 2);
+    for (const o of beamOffs(b)) cx.fillRect(Math.round(b.x + o) - 2, Math.round(b.y) + 2, 5, 2);
   }
 }
 // High-contrast enemy fire: a dark halo, a white edge and a hot core read on every backdrop.
@@ -4048,16 +4270,18 @@ function hiHazards() {
   for (const b of eshots) drawHiShot(Math.round(b.x), Math.round(b.y), f);
 }
 function drawBeam(b) {
-  if (b.atk !== 'laser' || b.sub === 0) return;
-  const x = Math.round(b.x), y0 = Math.round(b.y) + 4;
-  if (b.sub === 1) {
-    if (Math.floor(clock * 16) % 2) { cx.fillStyle = PAL.c; for (let y = y0; y < H; y += 4) cx.fillRect(x, y, 1, 2); }
-    return;
+  if ((b.atk !== 'laser' && b.atk !== 'lasers') || b.sub === 0) return;
+  const y0 = Math.round(b.y) + 4, wob = Math.floor(clock * 30) % 2;
+  for (const o of beamOffs(b)) {
+    const x = Math.round(b.x + o);
+    if (b.sub === 1) {
+      if (Math.floor(clock * 16) % 2) { cx.fillStyle = PAL.c; for (let y = y0; y < H; y += 4) cx.fillRect(x, y, 1, 2); }
+      continue;
+    }
+    cx.fillStyle = PAL.c; cx.fillRect(x - 3 - wob, y0, 7 + wob * 2, H - y0);
+    cx.fillStyle = PAL.y; cx.fillRect(x - 2, y0, 5, H - y0);
+    cx.fillStyle = '#ffffff'; cx.fillRect(x - 1, y0, 3, H - y0);
   }
-  const wob = Math.floor(clock * 30) % 2;
-  cx.fillStyle = PAL.c; cx.fillRect(x - 3 - wob, y0, 7 + wob * 2, H - y0);
-  cx.fillStyle = PAL.y; cx.fillRect(x - 2, y0, 5, H - y0);
-  cx.fillStyle = '#ffffff'; cx.fillRect(x - 1, y0, 3, H - y0);
 }
 function drawPlayer() {
   if (!player.alive || !inRun()) return;
@@ -4117,7 +4341,8 @@ function drawHudCanvas() {
     txt(reg.bossName && b.kind === reg.boss ? reg.bossName : b.B.name, W / 2, 19, bar, 'center');
     cx.fillStyle = '#241a52'; cx.fillRect(x0 - 1, 26, w + 2, 4);
     cx.fillStyle = b.flash > 0 ? '#ffffff' : bar; cx.fillRect(x0, 27, Math.ceil(w * b.hp / b.max), 2);
-    cx.fillStyle = PAL.k; cx.fillRect(x0 + Math.round(w / 3), 27, 1, 2); cx.fillRect(x0 + Math.round(w * 2 / 3), 27, 1, 2);
+    const cut = b.seg ? [b.seg[2] / b.max, (b.seg[1] + b.seg[2]) / b.max] : [1 / 3, 2 / 3];   // where its phases change
+    cx.fillStyle = PAL.k; cx.fillRect(x0 + Math.round(w * cut[0]), 27, 1, 2); cx.fillRect(x0 + Math.round(w * cut[1]), 27, 1, 2);
   }
 }
 // The play field shows the ship and HUD only during a run (not on the title or the title's hangar).
@@ -4215,7 +4440,7 @@ function placeToast() {
 }
 function hideBanners() { ui.bannerT = ui.toastT = 0; $('banner').hidden = true; $('toast').hidden = true; }
 
-const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovHangar', 'ovWheel', 'ovMap', 'ovRecords', 'ovOptions'];
+const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovHangar', 'ovWheel', 'ovMap', 'ovRecords', 'ovOptions', 'ovEnding'];
 function showOverlay(id) {
   for (const o of OVERLAYS) $(o).hidden = o !== id;
   opt.open = id === 'ovOptions';
@@ -4335,7 +4560,8 @@ function dailyBest(day = todayUTC()) {
 let dailyBestNow = 0;
 function seedWave(tag) { if (daily) rng = seeded(hashStr(daily + ':' + tag)); }
 // The day's region, the same for everyone and open whether or not it is charted.
-const dailyRegion = day => REGIONS[Math.floor(seeded(hashStr(day + ':region'))() * REGIONS.length)].id;
+const DAILY_POOL = REGIONS.filter(r => !r.finale);   // the Hive Heart is a destination, not a daily
+const dailyRegion = day => DAILY_POOL[Math.floor(seeded(hashStr(day + ':region'))() * DAILY_POOL.length)].id;
 function startDaily() {
   if (state !== 'title') return;
   daily = todayUTC();
@@ -5010,6 +5236,11 @@ function drawMap() {
       g.fillRect(l, t, 2, 1); g.fillRect(l, t, 1, 2); g.fillRect(rt - 1, t, 2, 1); g.fillRect(rt, t, 1, 2);
       g.fillRect(l, b, 2, 1); g.fillRect(l, b - 1, 1, 2); g.fillRect(rt - 1, b, 2, 1); g.fillRect(rt, b - 1, 1, 2);
     }
+    if (r.finale && hive.kills) {   // the Hive Heart is marked with a crown once its Hive Mind has fallen
+      g.fillStyle = '#ffd23f';
+      g.fillRect(x + 5, y - 12, 1, 1); g.fillRect(x + 7, y - 12, 1, 1); g.fillRect(x + 9, y - 12, 1, 1); g.fillRect(x + 5, y - 11, 5, 2);
+      g.fillStyle = '#ff4d7a'; g.fillRect(x + 7, y - 10, 1, 1);
+    }
     if (r.id === regions.sel) g.drawImage(shipFor(album.equip.paint).life.img, x - 3, y - 13 + (Math.floor(clock * 3) % 2));   // your course
   });
 }
@@ -5024,7 +5255,7 @@ function renderMap() {
   $('mpName').style.color = r.color;
   $('mpSet').textContent = 'SET ' + setOwned(r) + '/' + r.items.length;
   $('mpTwist').textContent = r.twist;
-  const best = regions.best[r.id] ? 'BEST: WAVE ' + regions.best[r.id] + ' CLEARED. ' : '';
+  const best = (r.finale && hive.kills ? 'HIVE MIND SLAIN' + (hive.kills > 1 ? ' X' + hive.kills : '') + '. ' : '') + (regions.best[r.id] ? 'BEST: WAVE ' + regions.best[r.id] + ' CLEARED. ' : '');
   $('mpNote').textContent = !open
     ? 'UNCHARTED. CLEAR WAVE 5 IN ' + prev.name + (regions.charted[prev.id] ? ' OR CHART IT FOR ' + r.chart + ' SCRAP.' : ' TO CHART IT.')
     : best + (r.relics ? 'RELICS FROM THIS SET DROP HERE: EVERY BOSS DROPS ONE.' : 'NO RELICS HERE. THE NEW REGIONS DROP THEM.');
@@ -5480,6 +5711,8 @@ addEventListener('keydown', e => {
     else if (c === 'KeyO' && !e.repeat) openOptions();
   } else if (state === 'over') {
     if (!e.repeat && (FIRE.has(c) || c === 'Enter')) continueFromOver();
+  } else if (state === 'ending') {
+    if (!e.repeat && (FIRE.has(c) || c === 'Enter' || c === 'Escape')) skipEnding();
   }
 });
 // Menus between waves: Space/Enter is the safe default (continue, skip, no bet).
@@ -5555,6 +5788,7 @@ scr.addEventListener('contextmenu', e => e.preventDefault());
 // buttons
 const onClick = (id, fn) => $(id).addEventListener('click', e => { fn(e); e.currentTarget.blur(); });
 onClick('startBtn', startGame);
+$('ovEnding').addEventListener('click', skipEnding);
 onClick('resumeBtn', resume);
 onClick('quitBtn', () => showTitle(0));
 onClick('overBtn', continueFromOver);
@@ -5642,7 +5876,7 @@ function setupStatic() {
   document.querySelectorAll('img[data-spr]').forEach(img => {
     const s = SPR[img.dataset.spr][0] || SPR[img.dataset.spr];
     img.src = s.img.toDataURL();
-    img.style.width = 'calc(var(--u) * ' + s.w + 'px)';
+    img.style.width = 'calc(var(--u) * ' + (img.dataset.w || s.w) + 'px)';
   });
   const list = $('powList');
   for (const p of Object.values(POWERS)) {
@@ -5692,6 +5926,7 @@ function frame(now) {
   pollPad(dt);
   if (state === 'play' || state === 'over' || state === 'entry') update(dt);
   else if (state !== 'paused') updateFx(dt);
+  if (state === 'ending') tickEnding(dt);
   draw();
   if (state === 'map') drawMap();
   if (state !== 'paused') Rec.tick(dt);
