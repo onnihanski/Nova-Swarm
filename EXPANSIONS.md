@@ -2,6 +2,8 @@
 
 A snapshot of where Nova Swarm stands and the five expansions being built next. Each expansion is developed in its own session and branch, in parallel, off the same base.
 
+**Status:** all five expansions are built, reviewed and merged into the default branch. The README describes how they play.
+
 ## Where the game stands
 
 - **Healthy build.** `index.html` (about 4,700 lines, 240 KB) loads with no console errors, and a headless Chromium smoke test plays wave 1 cleanly. There is no build step, no dependency and no test suite; balance so far came from ad-hoc bot playtests.

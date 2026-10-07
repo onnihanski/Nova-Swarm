@@ -27,7 +27,13 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
 
 ## What's in it
 
-- **Six enemy types.** Drones swoop, Stingers zig-zag, and Wardens take two hits and fire 3-way spreads. From wave 4, Splitters burst into two fast minis when shot. From wave 6, Minelayers sweep across the screen dropping drifting mines. From wave 7, the Aegis's front armor stops straight shots: hit it side-on while it turns in a dive, or use spread shots, a charge shot or a bomb. Diving enemies are worth double or more.
+- **Nine enemy types.** Drones swoop, Stingers zig-zag, and Wardens take two hits and fire 3-way spreads. From wave 4, Splitters burst into two fast minis when shot. From wave 6, Minelayers sweep across the screen dropping drifting mines. From wave 7, the Aegis's front armor stops straight shots: hit it side-on while it turns in a dive, or use spread shots, a charge shot or a bomb. Diving enemies are worth double or more.
+- **The elite swarm.** Three late-wave foes, each with a clear counter. They arrive on the same waves in every region, so waves 1 to 8 never change:
+  - **Phantom** (from wave 9, one hit): fully visible in formation, but it cloaks to a faint shimmer while it dives. It shows briefly when it fires or when your shots pass close by, so keep shooting its way. In a Dark Sector the dark is cloak enough, so phantoms stay uncloaked there.
+  - **Brood** (from wave 11, three hits): it never dives. Every few seconds it flashes and rings an empty formation slot, then hatches a drone into it. Shoot it first. It lays at most 4 drones, at most 5 hatchlings fly at once, and they pay points but no scrap or drops.
+  - **Sentry** (from wave 14, two hits): it hangs at the top edge, sways, and every few seconds draws a warning line to your ship, locks it, then fires a thin beam along it. Step out of the line (a graze pays), let a shield soak it, or cut it short with a bomb or Nova. Time Warp slows the whole sequence. A charge shot reaches it through the formation. The warning line stays visible in a Dark Sector.
+- **Squadron dives.** From wave 10, three drones, stingers or splitters sometimes peel off together in a tight V behind a marked leader. Shoot the leader to break the squadron (+1,000 and a little scrap); the wingmen then dive on their own.
+- **Late waves.** Past wave 13 the swarm keeps getting harder, with a soft cap: more of the elite foes, slightly faster entries and dives, and more divers at once. Wave 25 and beyond is hard, not impossible.
 - **Tractor beams.** From wave 3, a Warden can swoop down and beam your ship up. It never takes your last ship, and a shield repels the beam. Shoot that Warden to free your ship (+1,000). The freed ship docks beside you and you fly twin fighters with double shots; a hit knocks out one ship, not a life. Shoot the captured ship itself and it's gone for good.
 - **Bosses every 5th wave**, in rotation (four of them, counting the Hive Mind, which only the Hive Heart has). Each fight opens with a supply drop (a shield, or rapid fire if you're already shielded):
   - **Hive Queen:** fan volleys, aimed streams, summoned escorts, and a spiral barrage below 1/3 health.
@@ -58,9 +64,9 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
   - **No-hit bonus:** for clearing a wave without getting hit.
   - **Extra ships:** at 30,000 points and then every 100,000.
   - **Results screen:** arcade-style, with shots fired, number of hits and hit-miss ratio.
-- **Missions:** three random goals per run (for example: reach a x4 combo, rescue a captured fighter, shoot 5 mines, use your ability 3 times, defeat 8 foes with your ability), each paying scrap. The title screen shows the next run's missions and the pause screen shows your progress.
+- **Missions:** three random goals per run (for example: reach a x4 combo, rescue a captured fighter, shoot 5 mines, use your ability 3 times, shoot 3 phantoms, break 2 squadrons), each paying scrap. The title screen shows the next run's missions and the pause screen shows your progress.
 - **Daily challenge:** the same seeded region, waves, events, drops and missions for everyone on a given (UTC) day. The day's region is open even if you haven't charted it yet; the Hive Heart is never the day's region, so the finale stays something you reach. Everyone flies a Striker with no loadout, hangar, gambles or wager. The day's best score is kept separately from the top-10 table.
-- **Pilot record and medals:** lifetime stats and 35 medals in bronze, silver and gold, each tier paying scrap once (see below).
+- **Pilot record and medals:** lifetime stats and 36 medals in bronze, silver and gold, each tier paying scrap once (see below).
 - **Top 10 table** with 3-letter initials, saved in your browser's local storage.
 - **Chiptune soundtrack** with separate boss, bonus-stage and Hive Mind themes, generated live with no audio files.
 - **CRT scanlines**, screen shake, and pixel explosions. All motion effects respect the reduced-motion setting, and the options screen can tune them (see below).
@@ -77,6 +83,22 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
   - **Hi-contrast shots:** draws enemy bullets and mines with a dark halo, a white edge and a hot core, so they stand out on every region's backdrop, in Dark Sector waves and in the Prism Rift.
   - **Pad rumble:** on or off.
   - Shake and flashes start from your device's reduced-motion setting (off and reduced when it is on) until you pick a value; a choice you make overrides it.
+
+### Score advance table
+
+| Foe | In formation | Diving |
+| --- | --- | --- |
+| Drone | 50 | 100 |
+| Stinger | 80 | 160 |
+| Warden | 150 | 400 |
+| Splitter | 100 | 200 |
+| Minelayer | 120 | 250 |
+| Aegis | 200 | 500 |
+| Phantom | 180 | 450 |
+| Brood | 300 | never dives |
+| Sentry | 250 | never dives |
+
+The same table is on the title screen. Splitter minis are worth 40 and a broken squadron's leader pays 1,000 on top.
 
 ## Regions and the star map
 
@@ -105,10 +127,10 @@ Press G (or the Map button) on the title screen to open the star map. Pick a reg
 
 Press R (or the Records button) on the title screen to open your pilot record. It has two views, switched with the tabs or the 1 and 2 keys:
 
-- **Medals:** 35 medals in a grid of pixel icons, colored bronze, silver or gold by the tier you hold, each with a progress bar toward the next tier. Pick one (tap it, or use the arrow keys) to see what it asks for, your progress and what the next tier pays. A small amber corner marks a medal you haven't looked at yet, and the title screen's Records button counts them.
+- **Medals:** 36 medals in a grid of pixel icons, colored bronze, silver or gold by the tier you hold, each with a progress bar toward the next tier. Pick one (tap it, or use the arrow keys) to see what it asks for, your progress and what the next tier pays. A small amber corner marks a medal you haven't looked at yet, and the title screen's Records button counts them.
 - **Stats:** your lifetime record: runs started (daily challenges included), time flown, waves cleared, total and best score, enemies destroyed by type, bosses destroyed by kind and by region, best combo, grazes, smart bombs used, best charge-shot pierce, perfect challenging stages, fighters rescued, missions completed, relics caught and scrap earned.
 
-Medals come in tiers: most have bronze, silver and gold (for example 500 / 5,000 / 25,000 enemies destroyed, reaching wave 10 / 15 / 20, collecting 50 / 150 / all album items, completing 25 / 100 / 300 missions). Some have a single tier, such as flying the Interceptor, the Bulwark or the Lancer past wave 10, or destroying the Hive Mind. Four are secret and show as "???" until you earn them. Each tier pays scrap once, 20 to 150 depending on how hard it is; all 89 tiers together pay 5,675 scrap, against roughly 200 to 1,000 for a run. Medals never award album items and never change gameplay. The daily challenge counts toward every stat and medal.
+Medals come in tiers: most have bronze, silver and gold (for example 500 / 5,000 / 25,000 enemies destroyed, reaching wave 10 / 15 / 20, collecting 50 / 150 / all album items, completing 25 / 100 / 300 missions). Some have a single tier, such as flying the Interceptor, the Bulwark or the Lancer past wave 10, or destroying the Hive Mind. Four are secret and show as "???" until you earn them. Each tier pays scrap once, 20 to 150 depending on how hard it is; all 92 tiers together pay 5,845 scrap, against roughly 200 to 1,000 for a run. Medals never award album items and never change gameplay. The daily challenge counts toward every stat and medal.
 
 An unlock shows a short toast under the HUD, one at a time, so it doesn't pile onto the wave banner or other messages. The first time you load the game with an existing save, medals your save already earns (album count, charted regions, best waves, high scores, challenging-stage history) are credited once, with one summary toast. The record is saved in your browser under its own key, at the end of every wave, at game over and when the page is hidden.
 

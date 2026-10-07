@@ -164,6 +164,9 @@
   .c-teal { color: var(--teal); }
   .c-sky { color: var(--sky); }
   .c-dim { color: var(--ink-dim); }
+  .c-ghost { color: #cdb8ff; }
+  .c-hive { color: var(--amber-dk); }
+  .c-steel { color: #9fb4d8; }
   .dimtxt { color: var(--ink-dim); font-size: var(--fs-s); }
 
   .logo {
@@ -219,7 +222,7 @@
     grid-template-columns: auto auto auto auto;
     align-items: center;
     column-gap: calc(var(--px) * 6);
-    row-gap: calc(var(--px) * 3);
+    row-gap: calc(var(--px) * 1);
     font-size: var(--fs-s);
     font-variant-numeric: tabular-nums;
   }
@@ -639,8 +642,17 @@
             <img alt="" data-spr="splitter"><span class="c-teal">SPLITTER</span><span>100</span><span>200</span>
             <img alt="" data-spr="miner"><span class="c-sky">MINELAYER</span><span>120</span><span>250</span>
             <img alt="" data-spr="aegis"><span class="c-dim">AEGIS</span><span>200</span><span>500</span>
+            <img alt="" data-spr="phantom"><span class="c-ghost">PHANTOM</span><span>180</span><span>450</span>
+            <img alt="" data-spr="brood"><span class="c-hive">BROOD</span><span>300</span><span>-</span>
+            <img alt="" data-spr="sentry"><span class="c-steel">SENTRY</span><span>250</span><span>-</span>
           </div>
-          <p class="note">SPLITTERS BURST INTO TWO MINIS.<br>MINELAYERS DROP DRIFTING MINES.<br>AEGIS ARMOR STOPS STRAIGHT SHOTS:<br>HIT IT SIDE-ON OR WITH A CHARGE SHOT</p>
+        </div>
+        <div class="panel" hidden>
+          <h2>KNOW YOUR FOES</h2>
+          <p class="note">SPLITTERS BURST INTO TWO MINIS.<br>MINELAYERS DROP DRIFTING MINES.</p>
+          <p class="note">AEGIS ARMOR STOPS STRAIGHT SHOTS:<br>HIT IT SIDE-ON OR WITH A CHARGE SHOT</p>
+          <p class="note">PHANTOMS CLOAK WHILE THEY DIVE.<br>BROODS HATCH DRONES: SHOOT THEM FIRST.<br>SENTRIES AIM BEAMS: STEP OUT OF THE LINE.</p>
+          <p class="note">IN A SQUADRON DIVE, SHOOT THE<br>MARKED LEADER TO BREAK IT UP</p>
         </div>
         <div class="panel" hidden>
           <h2>BOSSES</h2>
@@ -686,11 +698,12 @@
       <div class="tabs" role="group" aria-label="Attract screens">
         <button class="tab" type="button" data-i="0" aria-label="Best pilots"></button>
         <button class="tab" type="button" data-i="1" aria-label="Score advance table"></button>
-        <button class="tab" type="button" data-i="2" aria-label="Bosses"></button>
-        <button class="tab" type="button" data-i="3" aria-label="Power-ups"></button>
-        <button class="tab" type="button" data-i="4" aria-label="Next run missions"></button>
-        <button class="tab" type="button" data-i="5" aria-label="Controls"></button>
-        <button class="tab" type="button" data-i="6" aria-label="Menus"></button>
+        <button class="tab" type="button" data-i="2" aria-label="Know your foes"></button>
+        <button class="tab" type="button" data-i="3" aria-label="Bosses"></button>
+        <button class="tab" type="button" data-i="4" aria-label="Power-ups"></button>
+        <button class="tab" type="button" data-i="5" aria-label="Next run missions"></button>
+        <button class="tab" type="button" data-i="6" aria-label="Controls"></button>
+        <button class="tab" type="button" data-i="7" aria-label="Menus"></button>
       </div>
       <div class="title-actions">
         <button class="start blink" type="button" id="startBtn">PRESS SPACE TO START</button>
@@ -1009,6 +1022,19 @@ const AEGIS = [
   ['....c.', '..sscc', '.sSSsk', 'sSSSss', 'sSsSSs', 'wwwwww', '.wSSSS', '..w...'],
   ['....c.', '..sscc', '.sSSsk', 'sSSSss', 'sSsSSs', 'wwwwww', '.wSSSS', '.w....']
 ];
+// elite swarm: a hooded ghost, a hive mother with egg sacs along her belly, and a turret with one red eye
+const PHANTOM = [
+  ['.....v', '...vss', '..ssSs', '.ssSSS', '.swSkS', 'sssSSS', 'ss.sS.', 's..s..'],
+  ['.....v', '...vss', '..ssSs', '.ssSSS', '.swSkS', 'sssSSS', '.s.sS.', '..s.s.']
+];
+const BROOD = [
+  ['....AAa', '..AAAaA', '.AaAAAA', 'AAAyAyA', 'AaAAyAy', 'AAyAAyA', '.AAyAyy', '..AA.A.', '...A..A'],
+  ['....AAa', '..AAAaA', '.AaAAAA', 'AAAyAyA', 'AaAAyAy', 'AAyAAyA', '.AAyAyy', '..AA.A.', '..A..A.']
+];
+const SENTRY = [
+  ['....SS', '..SSSs', '.SsSSS', '.SSrrk', '.SSrrr', '..SSsS', '...Sss', '....rr', '....r.'],
+  ['....SS', '..SSSs', '.SsSSS', '.SSrrk', '.SSrrr', '..SSsS', '...Sss', '...r.r', '....r.']
+];
 const SPLITTER = [['.tt..', 'tTtt.', 'tttkw', 'ttttw', '.tTtw', '..tt.', '.t.t.', 't....'], ['.tt..', 'tTtt.', 'tttkw', 'ttttw', '.tTtw', '..tt.', '..tt.', '.t...']];
 const MINER = [['..b..', '.bbbb', 'bBbkb', 'bbbbb', '.bBbb', '..a.a', '..a..', '.....'], ['..b..', '.bbbb', 'bBbkb', 'bbbbb', '.bBbb', '..a.a', '...a.', '..a..']];
 const MOTHER_ROWS = [
@@ -1048,6 +1074,11 @@ const SPR = {
   miner: MINER.map(f => sprite(f)),
   aegis: AEGIS.map(f => sprite(f)),
   aegisHurt: AEGIS.map(f => sprite(f, { s: 'c', S: 'C', w: 's' })),
+  phantom: PHANTOM.map(f => sprite(f)),
+  brood: BROOD.map(f => sprite(f)),
+  broodHurt: BROOD.map(f => sprite(f, { A: 'c', a: 'C' })),
+  sentry: SENTRY.map(f => sprite(f)),
+  sentryHurt: SENTRY.map(f => sprite(f, { S: 'C', s: 'c' })),
   mine: sprite(['..c', '.ca', 'cay', '.ca', '..c']),
   mother: sprite(MOTHER_ROWS),
   turret: sprite(['.SS', 'SsS', 'Sss', '.aa', '..a']),
@@ -1117,7 +1148,11 @@ const ETYPES = {
   splitter: { spr: SPR.splitter, hp: 1, pts: 100, divePts: 200, colors: [PAL.t, PAL.T, PAL.w], drop: 0.08, scrap: 2 },
   mini: { spr: SPR.mini, hp: 1, pts: 40, divePts: 40, colors: [PAL.t, PAL.w], drop: 0, scrap: 1 },
   miner: { spr: SPR.miner, hp: 1, pts: 120, divePts: 250, colors: [PAL.b, PAL.B, PAL.a], drop: 0.1, scrap: 2 },
-  aegis: { spr: SPR.aegis, hurt: SPR.aegisHurt, hp: 2, pts: 200, divePts: 500, colors: [PAL.s, PAL.S, PAL.c], drop: 0.14, scrap: 3, armored: true }
+  aegis: { spr: SPR.aegis, hurt: SPR.aegisHurt, hp: 2, pts: 200, divePts: 500, colors: [PAL.s, PAL.S, PAL.c], drop: 0.14, scrap: 3, armored: true },
+  // Elite swarm (see its section): phantoms cloak while diving; a brood never dives and hatches drones; a sentry hangs at the top edge and fires an aimed beam.
+  phantom: { spr: SPR.phantom, hp: 1, pts: 180, divePts: 450, colors: [PAL.v, PAL.s, PAL.w], drop: 0.12, scrap: 3, mission: 'phantom' },
+  brood: { spr: SPR.brood, hurt: SPR.broodHurt, hp: 3, pts: 300, divePts: 300, colors: [PAL.A, PAL.a, PAL.y], drop: 0.3, scrap: 5, still: true },
+  sentry: { spr: SPR.sentry, hurt: SPR.sentryHurt, hp: 2, pts: 250, divePts: 250, colors: [PAL.S, PAL.r, PAL.y], drop: 0.2, scrap: 4, still: true }
 };
 const BOSSES = {
   queen: { name: 'HIVE QUEEN', spr: SPR.queen, hp: 58, pts: 3000, colors: [PAL.v, PAL.c, PAL.b, PAL.a, PAL.y], bar: PAL.v },
@@ -1733,7 +1768,8 @@ const REGION_DEFS = [
       mkCard(3, 'GOLDEN HEARTWORM', { native: true, pat: 'grad', on: '13', cols: [HIV.glow, HIV.bone, '#c9961a'], earn: 'perfect' })
     ] }
 ];
-const MOD_DEFAULTS = { shotSpeed: 1, fireRate: 1, dropMul: 1, sway: 1, aegisFrom: 7, speed: 1 };
+// phantomFrom / broodFrom / sentryFrom: the first wave of each elite foe (all from wave 9 or later, so waves 1 to 8 never change)
+const MOD_DEFAULTS = { shotSpeed: 1, fireRate: 1, dropMul: 1, sway: 1, aegisFrom: 7, speed: 1, phantomFrom: 9, broodFrom: 11, sentryFrom: 14 };
 const REGIONS = [
   { id: 'home', name: 'SECTOR 9', color: '#5aa9ff', map: [16, 99], chart: 0,
     twist: 'WHERE THE HIVE WAS FIRST SIGHTED. THE CLASSIC SWARM, WITH SECTOR EVENTS FROM WAVE 4.',
@@ -2102,6 +2138,9 @@ const Snd = (() => {
     beamPulse(k) { tone('triangle', k % 2 ? 392 : 523, 0, 0.14, 0.05); },
     capture() { tone('square', 180, 1400, 1.1, 0.06); tone('triangle', 90, 700, 1.1, 0.12); },
     laser() { noise(1.0, 0.25, 900, 700, 0, 0, 'bandpass'); tone('square', 70, 60, 1.0, 0.1); },
+    egg() { tone('triangle', 330, 660, 0.3, 0.06); },
+    hatch() { tone('square', 520, 1320, 0.09, 0.07); noise(0.1, 0.1, 3500, 900); },
+    zap() { tone('sawtooth', 1100, 260, 0.4, 0.07); noise(0.3, 0.12, 5000, 800, 0, 0, 'highpass'); },
     bossHit() { if (thr('bhit', 70)) tone('square', 180, 120, 0.05, 0.08); },
     blip() { tone('square', 880, 0, 0.05, 0.07); },
     coin() { if (thr('coin', 45)) tone('square', 1320, 1760, 0.05, 0.045); },
@@ -2211,6 +2250,7 @@ function waveRows(n) {
   if (n >= 6) rows.push({ type: 'miner', count: 6 });
   const dr = n === 1 ? 6 : 8;
   rows.push(n >= runReg().mods.aegisFrom ? { type: 'aegis', count: 6 } : { type: 'drone', count: dr }, { type: n >= 4 ? 'splitter' : 'drone', count: dr });
+  eliteSwap(rows, n);
   return rows;
 }
 function makeEnemy(type, col, row) {
@@ -2243,7 +2283,9 @@ function nextWave() {
     G.phaseT = 1.7;
     const where = G.region === 'home' ? '' : runReg().name;
     const first = daily ? 'DAILY CHALLENGE' + (where ? ': ' + where : '') : where || 'GET READY';
-    banner('WAVE ' + G.wave, G.event ? EVENTS[G.event].name : G.wave === 1 ? first : '', G.event ? 'warn' : '', G.event ? 2 : 1.5);
+    const foe = eliteIntro(G.wave);   // a new foe is announced like a sector event; an event then moves to the toast
+    banner('WAVE ' + G.wave, foe ? 'NEW FOE: ' + foe : G.event ? EVENTS[G.event].name : G.wave === 1 ? first : '', G.event || foe ? 'warn' : '', G.event || foe ? 2 : 1.5);
+    if (foe && G.event) toast(EVENTS[G.event].name, EVENTS[G.event].color);
     Snd.jingle();
     Snd.play('main');
   }
@@ -2254,21 +2296,22 @@ function spawnWave() {
   if (n % 5 === 0) { spawnBoss(); return; }
   const rows = waveRows(n);
   G.rows = rows.map(r => r.count);
-  const speed = Math.min(100 + n * 4, 150) * runReg().mods.speed;
-  const gap = Math.max(0.85, 1.5 - n * 0.05);
+  const speed = (Math.min(100 + n * 4, 150) + late(n) * 20) * runReg().mods.speed;
+  const gap = Math.max(0.85, 1.5 - n * 0.05) - late(n) * 0.2;
   let order = 0, total = 0;
   for (let r = rows.length - 1; r >= 0; r--, order++) {
     const { type, count } = rows[r];
     const pattern = ENTRY[(order + n) % ENTRY.length];
     for (let c = 0; c < count; c++) {
       const right = c >= count / 2;
-      const e = makeEnemy(type, c, r);
+      const e = makeEnemy((rows[r].swap || {})[c] || type, c, r);
       e.delay = order * gap + (right ? c - count / 2 : c) * 0.14;
       e.pattern = pattern; e.mirror = right; e.speed = speed; e.entering = true;
       enemies.push(e);
       total++;
     }
   }
+  spawnSentries(n);
   G.entering = total;
   G.diveT = 1.0;
   G.fireT = 2;
@@ -2351,13 +2394,16 @@ function startDive(e) {
   } else if (e.type === 'miner') {   // a wide sweep across the screen, sowing mines
     pts = [...lead, { x: cxk(px - dir * 50), y: H * 0.36 }, { x: cxk(px + dir * 45), y: H * 0.46 }, { x: cxk(px - dir * 15), y: H * 0.55 }, { x: cxk(px - dir * 40), y: H + 14 }];
     speed = Math.min(66 + n * 2, 100);
+  } else if (e.type === 'phantom') {   // a drifting S-curve that cuts back and forth across the ship's column
+    pts = [...lead, { x: cxk(px - dir * 34), y: H * 0.36 }, { x: cxk(px + dir * 30), y: H * 0.54 }, { x: cxk(px - dir * 14), y: H * 0.74 }, { x: cxk(px + dir * 20), y: H + 14 }];
+    speed = Math.min(78 + n * 2, 112);
   } else {
     pts = [...lead, { x: cxk(px), y: H * 0.5 }, { x: cxk(px - dir * 30), y: H * 0.7 }, { x: cxk(px - dir * 50), y: H * 0.5 },
       { x: cxk(W / 2 - dir * 30), y: H * 0.3 }, slotOf(e)];
     speed = Math.min(62 + n * 2, 96);
     after = 'join';
   }
-  followPath(e, pts, after, speed * runReg().mods.speed);
+  followPath(e, pts, after, speed * (1 + 0.12 * late(n)) * runReg().mods.speed);
   e.diving = true;
   const shots = e.type === 'miner' ? 1 : e.type === 'warden' || e.type === 'aegis' ? 1 : n >= 4 ? 2 : (n === 1 && grand() < 0.5 ? 0 : 1);
   e.shots = [];
@@ -2369,6 +2415,7 @@ function updateEnemy(e, dt) {
   if (e.dead) return;
   e.anim += dt;
   if (e.flash > 0) e.flash -= dt;
+  if (e.type === 'sentry') { updateSentry(e, dt); return; }
   switch (e.state) {
     case 'wait':
       e.delay -= dt;
@@ -2417,6 +2464,9 @@ function updateEnemy(e, dt) {
     case 'beam':
       updateBeam(e, dt);
       break;
+    case 'squad':
+      updateSquad(e, dt);
+      break;
   }
   if (e.captive) updateCaptive(e, dt);
 }
@@ -2429,16 +2479,17 @@ function schedule(dt) {
     let active = 0;
     const ready = [];
     const surge = G.event === 'surge';   // a swarm surge sends more divers, more often
-    for (const e of enemies) { if (e.diving) active++; else if (e.state === 'form') ready.push(e); }
-    if (ready.length && active < Math.min(1 + Math.ceil(n / 2), 6) + (surge ? 2 : 0)) {
+    for (const e of enemies) { if (e.diving) active++; else if (e.state === 'form' && !e.T.still) ready.push(e); }
+    const cap = Math.min(1 + Math.ceil(n / 2), 6) + (surge ? 2 : 0) + Math.round(late(n) * 2);
+    if (ready.length && active < cap) {
       const cmd = canBeam() && grand() < 0.5 ? ready.find(e => e.type === 'warden' && !e.captive) : null;
-      if (cmd) startBeam(cmd); else startDive(pick(ready));
+      if (cmd) startBeam(cmd); else if (!trySquad(ready, cap - active)) startDive(pick(ready));
     }
-    G.diveT = rand(0.7, 1.3) * Math.max(0.5, 2.1 - n * 0.13) * (enemies.length <= 5 ? 0.45 : 1) * (surge ? 0.7 : 1);
+    G.diveT = rand(0.7, 1.3) * Math.max(0.5, 2.1 - n * 0.13) * (1 - 0.25 * late(n)) * (enemies.length <= 5 ? 0.45 : 1) * (surge ? 0.7 : 1);
   }
   G.fireT -= dt;
   if (G.fireT <= 0) {
-    G.fireT = rand(1.4, 2.8) / (1 + n * 0.12) / runReg().mods.fireRate;
+    G.fireT = rand(1.4, 2.8) / (1 + Math.min(n, 13) * 0.12 + late(n) * 0.9) / runReg().mods.fireRate;
     if (n >= 2) { const f = enemies.filter(e => e.state === 'form'); if (f.length) enemyFire(pick(f), true); }
   }
 }
@@ -2655,6 +2706,246 @@ function deflects(e, s) {
   return Math.abs(Math.atan2(Math.sin(e.a), Math.cos(e.a))) < 0.5;
 }
 
+/* ================= elite swarm: phantoms, broods, sentries and squadron dives ================= */
+// Three late-wave foes (first waves set per region by mods) and squadron dives from wave 10. Waves 1 to 8 never change.
+// Past wave 13 the swarm keeps getting harder, with a soft cap: late(n) climbs from 0 at wave 13 toward 1.
+//  - PHANTOM cloaks to a faint shimmer while it dives. It shows when it fires and when your shots pass close by.
+//    In a Dark Sector the dark is cloak enough, so phantoms stay uncloaked there.
+//  - BROOD never dives. Every few seconds it picks an empty formation slot, flashes and rings it, then hatches a drone there
+//    (4 drones at most per brood, 5 hatchlings alive at once, no scrap or drops from them). Shoot the brood to stop it.
+//  - SENTRY hangs at the top edge. It tracks you with a warning line, locks it, then fires a thin beam along it. Step out of the
+//    line, shoot it (a bomb or Nova cuts the beam), or let a shield soak it. Time Warp slows the whole sequence.
+//  - SQUADRON: three drones, stingers or splitters peel off in a V behind a marked leader. Shoot the leader to break it (+1000).
+const late = n => n > 13 ? 1 - Math.exp(-(n - 13) / 9) : 0;
+const SQUAD_FROM = 10, SQUAD_TYPES = ['drone', 'stinger', 'splitter'], SQUAD_BONUS = 1000;
+const BROOD_MAX = 4, BROOD_LIVE = 5, BROOD_TELL = 0.9;
+const SENTRY_Y = 22, SENTRY_TRACK = 0.7, SENTRY_LOCK = 0.6, SENTRY_FIRE = 0.4;
+const HATCHLING = { ...ETYPES.drone, drop: 0, scrap: 0 };
+const FOE_NAMES = { phantom: 'PHANTOM', brood: 'BROOD', sentry: 'SENTRY' };
+const blinkOn = hz => reduceMotion || Math.floor(clock * hz) % 2;   // warnings hold steady under reduced motion
+const elite = { seen: {} };   // new foes already announced this run
+const resetElite = () => { elite.seen = {}; };
+function eliteMix(n) {
+  const m = runReg().mods;
+  return {
+    phantom: n >= m.phantomFrom ? Math.min(2 + ((n - m.phantomFrom) >> 1), 6) : 0,
+    brood: n >= m.broodFrom ? 1 + (n >= m.broodFrom + 5) + (n >= m.broodFrom + 11) : 0,
+    sentry: n >= m.sentryFrom ? 1 + (n >= m.sentryFrom + 6) + (n >= m.sentryFrom + 14) : 0
+  };
+}
+// Phantoms take stinger slots and broods take slots in the drone / aegis row (sentries hang outside the formation).
+function eliteSwap(rows, n) {
+  const mix = eliteMix(n);
+  const put = (type, row, cols, k) => { if (row) for (const c of cols.filter(c => c < row.count).slice(0, k)) (row.swap = row.swap || {})[c] = type; };
+  put('phantom', rows.find(r => r.type === 'stinger'), [1, 6, 3, 4, 2, 5, 0, 7], mix.phantom);
+  put('brood', rows[rows.length - 2], [3, 6, 1], mix.brood);
+}
+function eliteIntro(n) {
+  const mix = eliteMix(n), fresh = Object.keys(FOE_NAMES).filter(k => mix[k] && !elite.seen[k]);
+  for (const k of fresh) elite.seen[k] = 1;
+  return fresh.map(k => FOE_NAMES[k]).join(', ');
+}
+function spawnSentries(n) {
+  const k = eliteMix(n).sentry;
+  for (let i = 0; i < k; i++) {
+    const e = makeEnemy('sentry', 0, 0);
+    Object.assign(e, { delay: 1.4 + i * 0.7, px: W * (i + 1) / (k + 1), amp: k > 1 ? 18 : 26, ph: i * 2.1, t: 0, bm: 'idle', ang: Math.PI / 2, pt: rand(2.2, 3.4) + i * 1.1 });
+    enemies.push(e);
+  }
+}
+function updateElite(dt) {
+  const act = G.phase === 'active' && player.alive && G.entering <= 0 && !boss;
+  for (const e of enemies.slice()) {   // a hatch adds to the list
+    if (e.dead) continue;
+    if (e.type === 'phantom') cloak(e, dt);
+    else if (e.type === 'brood') broodUpdate(e, dt, act);
+    else if (e.sq && e.sq.lead) {
+      if (e.state !== 'path') endSquad(e, false);
+      else if (!e.sq.fired && e.d >= e.path.len * 0.4) { e.sq.fired = true; for (const m of [e, ...e.sq.mates]) if (!m.dead) enemyFire(m, false); }
+    }
+  }
+}
+/* ---- phantom ---- */
+function cloak(e, dt) {
+  if (e.reveal > 0) e.reveal -= dt;
+  for (const s of pshots) if (Math.abs(s.x - e.x) <= 12 && s.y > e.y - 4 && s.y - e.y < 42) e.reveal = 0.35;   // your shots pass close by
+  const hidden = e.diving && e.state === 'path' && G.event !== 'dark' && !(e.reveal > 0), a = e.alpha === undefined ? 1 : e.alpha;
+  if (hidden) {
+    e.alpha = Math.max(0.1 + (reduceMotion ? 0.03 : 0.06 * Math.sin(clock * 16 + e.anim * 7)), a - dt * 5);
+    if (!reduceMotion && Math.random() < dt * 18) parts.push({ x: e.x + frand(-5, 5), y: e.y + frand(-4, 4), vx: 0, vy: 0, t: 0, life: 0.15, c: PAL.s, s: 1 });
+  } else e.alpha = Math.min(1, a + dt * 12);
+}
+/* ---- brood ---- */
+// A slot is empty when no live enemy owns it (minis, escorts and bonus-stage enemies never do).
+function emptySlots() {
+  const taken = new Set();
+  for (const e of enemies) if (!e.dead && !e.bonus && e.after !== 'exit' && e.type !== 'sentry') taken.add(e.row + ':' + e.col);
+  const out = [];
+  G.rows.forEach((n, row) => { for (let col = 0; col < n; col++) if (!taken.has(row + ':' + col)) out.push({ row, col }); });
+  return out;
+}
+function broodUpdate(e, dt, act) {
+  if (e.state !== 'form') return;
+  if (e.hatchT === undefined) { e.hatchT = rand(2.5, 4); e.laid = 0; }
+  if (!act || e.laid >= BROOD_MAX) return;
+  e.hatchT -= dt;
+  if (e.hatchT > BROOD_TELL) return;
+  if (!e.egg) {   // the tell starts: the brood flashes and a ring marks the slot it will hatch into
+    const free = emptySlots();
+    if (!free.length || enemies.filter(x => x.hatchery && !x.dead).length >= BROOD_LIVE) { e.hatchT = 1.5; return; }
+    e.egg = pick(free);
+    Snd.egg();
+  }
+  e.flash = blinkOn(12) ? 0.05 : 0;
+  if (e.hatchT > 0) return;
+  if (emptySlots().some(s => s.row === e.egg.row && s.col === e.egg.col)) {
+    const d = makeEnemy('drone', e.egg.col, e.egg.row), p = slotOf(d);
+    Object.assign(d, { T: HATCHLING, hatchery: e, state: 'form', x: p.x, y: p.y, flash: 0.25 });
+    enemies.push(d);
+    e.laid++;
+    explode(p.x, p.y, [PAL.y, PAL.A, PAL.w], 8, 35);
+    Snd.hatch();
+  }
+  e.egg = null;
+  e.hatchT = rand(3.5, 5) * (1 - 0.3 * late(G.wave));
+}
+/* ---- sentry ---- */
+const rayDist = (ox, oy, a, px, py) => {   // distance from a point to the ray, or far away when it is behind the origin
+  const dx = Math.cos(a), dy = Math.sin(a), vx = px - ox, vy = py - oy;
+  return vx * dx + vy * dy < 0 ? 999 : Math.abs(vx * dy - vy * dx);
+};
+function updateSentry(e, dt) {
+  if (e.state === 'wait') {
+    if ((e.delay -= dt) <= 0) { e.state = 'perch'; e.x = e.px; e.y = -10; }
+    return;
+  }
+  e.t += dt;
+  e.y += (SENTRY_Y - e.y) * Math.min(1, dt * 3);   // glides in from above, then sways along the top edge
+  if (e.bm === 'idle') e.x = e.px + Math.sin(e.t * 0.7 + e.ph) * e.amp;
+  const ox = e.x, oy = e.y + 4, aim = Math.atan2(player.y - oy, player.x - ox);
+  if (e.bm === 'idle') {
+    if (G.phase === 'active' && player.alive && G.entering <= 0 && (e.pt -= dt) <= 0) { e.bm = 'track'; e.pt = SENTRY_TRACK; e.ang = aim; Snd.egg(); }
+    return;
+  }
+  if (!player.alive || G.phase !== 'active') { cancelBeam(e); return; }
+  e.pt -= dt;
+  if (e.bm === 'track') {
+    e.ang = turnToward(e.ang, aim, dt * 6);
+    if (e.pt <= 0) { e.bm = 'lock'; e.pt = SENTRY_LOCK; Snd.beamPulse(0); }
+  } else if (e.bm === 'lock') {
+    e.flash = blinkOn(14) ? 0.05 : 0;
+    if (e.pt <= 0) { e.bm = 'fire'; e.pt = SENTRY_FIRE; e.hit = e.near = e.blocked = false; Snd.zap(); shakeIt(1); }
+  } else {
+    const cut = barrierCut(ox, oy, e.ang);
+    if (cut < Infinity) {   // a Bulwark's barrier soaks the beam
+      if (!e.blocked) { e.blocked = true; ab.blocked++; Snd.ting(); }
+      if (Math.random() < 0.5) spark(ox + Math.cos(e.ang) * cut, oy + Math.sin(e.ang) * cut);
+    } else {
+      let hit = null;
+      for (const sx of shipXs()) {
+        const d = rayDist(ox, oy, e.ang, sx, player.y);
+        if (d < 4.2) hit = sx; else if (d < 9 && player.invuln <= 0) e.near = true;
+      }
+      if (hit !== null && player.invuln <= 0) { e.hit = true; hitPlayer(hit); }   // a shield soaks the beam (and is used up)
+    }
+    if (e.pt <= 0) {
+      if (e.near && !e.hit && player.alive) graze({ x: player.x, y: player.y - 6 });   // slipped past the beam
+      cancelBeam(e);
+    }
+  }
+}
+// How far along a sentry beam a Bulwark's barrier cuts it, or Infinity when it does not.
+function barrierCut(ox, oy, a) {
+  const dy = Math.sin(a), yb = player.y - 16;
+  if (ab.barrier <= 0 || !player.alive || dy <= 0.05) return Infinity;
+  const t = (yb - oy) / dy;
+  return t > 0 && Math.abs(ox + Math.cos(a) * t - player.x) <= barrierHalf() + 1 ? t : Infinity;
+}
+function cancelBeam(e) { e.bm = 'idle'; e.pt = rand(2.4, 3.8) * (1 - 0.3 * late(G.wave)); }
+// Bombs, Nova and a new life cut every sentry beam that is warming up or firing.
+function clearBeams() { for (const e of enemies) if (e.type === 'sentry' && e.bm && e.bm !== 'idle') cancelBeam(e); }
+/* ---- squadron dives ---- */
+function trySquad(ready, room) {
+  const n = G.wave;
+  if (n < SQUAD_FROM || room < 3 || enemies.some(e => e.sq && !e.dead)) return false;
+  const el = ready.filter(e => SQUAD_TYPES.includes(e.type));
+  if (el.length < 3 || grand() >= Math.min(0.5, 0.3 + (n - SQUAD_FROM) * 0.02)) return false;
+  const l = pick(el), dist = e => Math.hypot(e.x - l.x, e.y - l.y);
+  const mates = el.filter(e => e !== l).sort((a, b) => dist(a) - dist(b)).slice(0, 2);
+  if (mates.some(m => dist(m) > 40)) return false;   // a tight V needs close neighbours
+  const dir = l.x < W / 2 ? -1 : 1, px = player.x, x = l.x, y = l.y;
+  followPath(l, [{ x, y }, { x: cxk(x + dir * 10), y: y - 10 }, { x: cxk(x + dir * 18), y: y + 2 }, { x: cxk(lerp(x, px, 0.55)), y: H * 0.42 },
+    { x: cxk(px + rand(-14, 14)), y: H * 0.74 }, { x: cxk(px - dir * 30), y: H + 14 }], 'wrap', Math.min(70 + n * 2, 108) * (1 + 0.12 * late(n)) * runReg().mods.speed);
+  l.diving = true;
+  l.shots = [];
+  l.sq = { lead: true, mates, fired: false };
+  mates.forEach((m, i) => {
+    m.diving = true; m.state = 'squad';
+    m.sq = { l, ox: i ? 9 : -9, oy: -8, t: 0, x0: m.x, y0: m.y };
+  });
+  Snd.dive();
+  return true;
+}
+// The wingmen hold their V offsets behind the leader, easing in from their slots.
+function updateSquad(m, dt) {
+  const sq = m.sq;
+  if (sq && sq.l.sq && sq.l.state !== 'path') endSquad(sq.l, false);
+  if (!m.sq) return;
+  const l = sq.l, a = l.a, c = Math.cos(a), s = Math.sin(a), k = Math.min(1, (sq.t += dt) / 0.6), q = k * k * (3 - 2 * k);
+  m.x = lerp(sq.x0, l.x + sq.ox * c - sq.oy * s, q);
+  m.y = lerp(sq.y0, l.y + sq.ox * s + sq.oy * c, q);
+  m.a = turnToward(m.a, a, dt * 10);
+}
+// broken: the leader was shot, so the wingmen dive on their own; otherwise the squadron flew off and they all loop back to the top.
+function endSquad(l, broken) {
+  const mates = l.sq.mates;
+  l.sq = null;
+  for (const m of mates) {
+    if (m.dead || !m.sq) continue;
+    m.sq = null;
+    if (broken) startDive(m);
+    else { const p = slotOf(m); Object.assign(m, { x: p.x, y: -12, a: 0, diving: false, state: 'join' }); }
+  }
+}
+function squadHit(e) {
+  if (!e.sq.lead) return;
+  endSquad(e, true);
+  addScore(SQUAD_BONUS);
+  dropScrap(e.x, e.y, 3);
+  mission('squad');
+  popups.push({ text: String(SQUAD_BONUS), x: e.x, y: e.y - 10, t: -0.3, c: PAL.y });
+  G.extra.push(['SQUADRON BROKEN', '+' + SQUAD_BONUS]);
+  toast('SQUADRON BROKEN!', PAL.y);
+}
+/* ---- drawing: above the dark sector, so a warning line or an egg ring is never lost in it ---- */
+function drawElite() {
+  if (!inRun()) return;
+  const dark = G.event === 'dark';
+  for (const e of enemies) {
+    if (e.dead || e.state === 'wait') continue;
+    if (e.type === 'brood' && e.egg) {
+      const p = slotOf(e.egg), k = clamp(e.hatchT / BROOD_TELL, 0, 1);
+      ringPts(p.x, p.y, 3 + k * 6, PAL.y, Math.floor(clock * 10) % 3);
+      cx.fillStyle = PAL.y;
+      const n = Math.floor(Math.hypot(p.x - e.x, p.y - e.y) / 3);
+      for (let i = 1; i < n; i += 2) cx.fillRect(Math.round(lerp(e.x, p.x, i / n)), Math.round(lerp(e.y, p.y, i / n)), 1, 1);
+    }
+    if (e.sq && e.sq.lead && (reduceMotion || Math.floor(clock * 8) % 4)) { cx.fillStyle = PAL.y; cx.fillRect(Math.round(e.x) - 2, Math.round(e.y) - 9, 5, 1); cx.fillRect(Math.round(e.x), Math.round(e.y) - 10, 1, 3); }   // the leader's marker
+    if (dark && e.T.still) { cx.globalAlpha = 0.5; cx.fillStyle = e.type === 'sentry' ? PAL.r : PAL.y; cx.fillRect(Math.round(e.x) - 1, Math.round(e.y) - 1, 3, 3); cx.globalAlpha = 1; }
+    if (e.type === 'sentry' && e.bm && e.bm !== 'idle') drawSentryBeam(e);
+  }
+}
+function drawSentryBeam(e) {
+  const ox = e.x, oy = e.y + 4, dx = Math.cos(e.ang), dy = Math.sin(e.ang), fire = e.bm === 'fire', blink = blinkOn(14);
+  const end = fire ? Math.min(320, barrierCut(ox, oy, e.ang)) : 320;   // a barrier stops the beam where it crosses
+  for (let t = 6; t < end; t += fire ? 1 : e.bm === 'lock' ? 2 : 4) {
+    const x = Math.round(ox + dx * t), y = Math.round(oy + dy * t);
+    if (x < -2 || x > W + 2 || y > H) break;
+    if (fire) { cx.fillStyle = PAL.c; cx.fillRect(x - 1, y - 1, 3, 3); cx.fillStyle = '#ffffff'; cx.fillRect(x, y, 1, 1); }
+    else { cx.fillStyle = e.bm === 'lock' && blink ? PAL.y : PAL.c; cx.fillRect(x, y, 1, 1); }
+  }
+}
+
 /* ================= shooting ================= */
 function eshot(x, y, vx, vy) { const k = runReg().mods.shotSpeed; if (player.alive) eshots.push({ x, y, vx: vx * k, vy: vy * k }); }
 function shootAngle(x, y, a, s) { eshot(x, y, Math.cos(a) * s, Math.sin(a) * s); }
@@ -2663,6 +2954,7 @@ function fan(x, y, n, spread, s) { for (let i = 0; i < n; i++) shootAngle(x, y, 
 function ringShot(x, y, n, s, off) { for (let i = 0; i < n; i++) shootAngle(x, y, off + i * TAU / n, s); }
 function enemyFire(e, formation) {
   if (!player.alive || e.y > player.y - 20) return;
+  e.reveal = 0.8;   // a cloaked phantom shows itself when it fires
   const s = Math.min(70 + G.wave * 3, 110);
   if (e.type === 'warden' && !formation) {
     const a = Math.atan2(player.y - e.y, player.x - e.x);
@@ -3310,7 +3602,9 @@ const MISSIONS = [
   { id: 'wave', n: 8, reward: 50, best: true, text: n => 'REACH WAVE ' + n },
   { id: 'minis', n: 6, reward: 30, text: n => 'SHOOT ' + n + ' SPLITTER MINIS' },
   { id: 'ability', n: 3, reward: 40, text: n => 'USE YOUR ABILITY ' + n + ' TIMES' },
-  { id: 'abkills', n: 8, reward: 40, text: n => 'DEFEAT ' + n + ' FOES WITH YOUR ABILITY' }
+  { id: 'abkills', n: 8, reward: 40, text: n => 'DEFEAT ' + n + ' FOES WITH YOUR ABILITY' },
+  { id: 'phantom', n: 3, reward: 50, text: n => 'SHOOT ' + n + ' PHANTOMS' },
+  { id: 'squad', n: 2, reward: 50, text: n => 'BREAK ' + n + ' SQUADRONS' }
 ];
 let nextMissions = null;   // rolled on the title screen so they can be shown before the run
 function rollMissions(rnd = Math.random) {
@@ -3423,6 +3717,7 @@ const regionsDone = n => REGIONS.filter(r => setOwned(r) >= r.items.length).leng
 const MEDALS = [
   { id: 'kills', name: 'SWARM BREAKER', desc: 'DESTROY {n} ENEMIES', glyph: 'skull', tiers: [500, 5000, 25000], reward: [20, 50, 150], check: () => recSum(record.kills) },
   { id: 'warden', name: 'WARDEN SLAYER', desc: 'DESTROY {n} WARDENS', glyph: 'shield', tiers: [100, 500, 2000], reward: [20, 40, 80], check: () => record.kills.warden || 0 },
+  { id: 'ghost', name: 'GHOST HUNTER', desc: 'DESTROY {n} PHANTOMS', glyph: 'skull', tiers: [25, 250, 1000], reward: [20, 50, 100], check: () => record.kills.phantom || 0 },
   { id: 'bosses', name: 'BOSS HUNTER', desc: 'DESTROY {n} BOSSES', glyph: 'crown', tiers: [1, 10, 50], reward: [20, 50, 120], check: () => recSum(record.bosses) },
   { id: 'roster', name: 'BOSS ROSTER', desc: 'DESTROY {n} KINDS OF BOSS', glyph: 'crown', tiers: [1, 2, 3], reward: [20, 40, 70], check: () => Object.keys(record.bosses).length },
   { id: 'circuit', name: 'BOSS CIRCUIT', desc: 'DESTROY A BOSS IN {n} REGIONS', glyph: 'globe', tiers: [3, 6, 9], reward: [30, 60, 120], check: () => Object.keys(record.bossRegions).length },
@@ -3740,13 +4035,15 @@ function killEnemy(e) {
   e.dead = true;
   Rec.kill(e.type);
   if (e.entering) { e.entering = false; G.entering--; }
-  const moving = e.state === 'path' || e.state === 'join' || e.state === 'beam';
+  const moving = e.state === 'path' || e.state === 'join' || e.state === 'beam' || e.state === 'squad';
   const mult = e.bonus ? 1 : comboKill(), pts = (e.bonus ? 100 : moving ? e.T.divePts : e.T.pts) * mult;
   if (e.captive) releaseCaptive(e);
+  if (e.sq) squadHit(e);
   addScore(pts);
   abilityKill(moving);
   if (moving && !e.bonus) mission('dive');
   if (e.type === 'mini') mission('minis');
+  if (e.T.mission) mission(e.T.mission);
   if (moving || mult > 1) popups.push({ text: String(pts), x: e.x, y: e.y - 4, t: 0, c: mult > 1 ? comboColor(mult) : e.type === 'warden' ? PAL.y : PAL.w });
   explode(e.x, e.y, tcol(e.T.colors), 14, 60);
   Snd.boom();
@@ -3801,6 +4098,7 @@ function nova(dmg = 3, bossDmg = 12) {
   mines = [];
   for (const m of meteors) breakMeteor(m, 0);
   meteors = [];
+  clearBeams();
   for (const e of enemies) if (e.state !== 'wait') damageEnemy(e, dmg);
   if (boss) damageBoss(bossDmg);
   Snd.nova();
@@ -3847,6 +4145,7 @@ function respawn() {
   eshots = [];
   clearMines();
   clearMeteors();
+  clearBeams();
 }
 function waveClear() {
   if (G.lives <= 0) return;
@@ -4054,6 +4353,7 @@ function update(dt) {
 
   updatePlayer(dt);
   for (const e of enemies) updateEnemy(e, et);
+  updateElite(et);
   if (G.phase === 'active' && !boss && !G.bonus && G.entering <= 0) schedule(et);
   if (boss) updateBoss(et);
   updateAbility(dt);
@@ -4204,7 +4504,9 @@ function drawEnemies(tint) {
     if (e.dead || e.state === 'wait') continue;
     const fr = e.state === 'form' ? Math.floor(clock * 2.2) % 2 : Math.floor(e.anim * 6) % 2;
     const set = tinted(e.hp === 1 && e.T.hurt ? e.T.hurt : e.T.spr, tint);
+    if (e.alpha < 1) cx.globalAlpha = e.alpha;   // a cloaked phantom
     drawSpr(set[fr], e.x, e.y, Math.round(e.a / q) * q, e.flash > 0);
+    cx.globalAlpha = 1;
   }
 }
 function drawRelics() {
@@ -4399,6 +4701,7 @@ function draw() {
   for (const r of rings) ringPts(r.x, r.y, r.r, r.c, -1);
   for (const p of popups) if (p.t < 0.6 || Math.floor(clock * 10) % 2) txt(p.text, p.x, p.y - Math.max(0, p.t) * 14, p.c, 'center');
   if (G.event === 'dark' && inRun()) drawDark();
+  drawElite();
   cx.setTransform(1, 0, 0, 1, 0, 0);
   drawHudCanvas();
   if (flash > 0) { cx.fillStyle = 'rgba(244,233,216,' + Math.min(flash, 0.7) + ')'; cx.fillRect(0, 0, W, H); }
@@ -4605,6 +4908,7 @@ function resetGame(from) {
     G.bossCount = Math.floor(G.wave / 5);
     while (G.nextLife <= G.score) G.nextLife += EXTRA_EVERY;
   }
+  resetElite();
   nextWave();
 }
 function startGame() {
