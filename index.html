@@ -602,6 +602,29 @@
   .padmode .tile:focus, .padmode .hg-tab:focus { outline-offset: calc(var(--px) * -1.5); }
   .padmode .tab:focus { outline-offset: -2px; background: var(--bezel-hi); }
 
+  /* ---- versus: the lobby's room code and code field ---- */
+  .vs-room { display: flex; flex-direction: column; align-items: center; gap: var(--px); }
+  .vs-room-code { font-family: var(--display); font-size: calc(var(--px) * 26); line-height: .9; letter-spacing: .25em; padding-left: .25em; color: var(--amber); margin: 0; }
+  .vs-join { align-items: center; }
+  .vs-code {
+    font-family: var(--display);
+    font-size: max(16px, calc(var(--px) * 14));
+    line-height: 1;
+    width: 5.2em;
+    padding: var(--px) 0 var(--px) .3em;
+    letter-spacing: .3em;
+    text-align: center;
+    text-transform: uppercase;
+    color: var(--amber);
+    background: var(--bezel-lo);
+    border: 0;
+    border-bottom: var(--px) solid var(--bezel-hi);
+    border-radius: 0;
+  }
+  .vs-code::placeholder { color: var(--ink-dim); opacity: .6; }
+  .vs-code:focus { outline: 2px solid var(--amber); outline-offset: 1px; }
+  .vs-code:disabled { opacity: .4; }
+
   @media (prefers-reduced-motion: reduce) {
     .blink, .banner.warn .bt, .scores li.new span, .coin.spin, .crate-stage.shake > img { animation: none; }
   }
@@ -689,6 +712,7 @@
             <dt>HANGAR</dt><dd>H (TITLE + DEBRIEF)</dd>
             <dt>STAR MAP</dt><dd>G (TITLE)</dd>
             <dt>DAILY</dt><dd>C (TITLE)</dd>
+            <dt>VERSUS</dt><dd>V (TITLE)</dd>
             <dt>RECORDS</dt><dd>R (TITLE)</dd>
             <dt>OPTIONS</dt><dd>O (TITLE + PAUSE)</dd>
           </dl>
@@ -710,6 +734,7 @@
         <button class="btn sm" type="button" id="hangarBtn">HANGAR<span class="kh"> (H)</span></button>
         <button class="btn sm" type="button" id="mapBtn">MAP<span class="kh"> (G)</span></button>
         <button class="btn sm" type="button" id="dailyBtn">DAILY<span class="kh"> (C)</span></button>
+        <button class="btn sm" type="button" id="versusBtn">VERSUS<span class="kh"> (V)</span></button>
         <button class="btn sm" type="button" id="recordsBtn">RECORDS<span class="kh"> (R)</span><span class="c-amber" id="rcNew"></span></button>
         <button class="btn sm" type="button" id="optionsBtn">OPTIONS<span class="kh"> (O)</span></button>
       </div>
@@ -723,6 +748,7 @@
         <button class="btn" type="button" id="pauseOptBtn">OPTIONS<span class="kh"> (O)</span></button>
       </div>
       <p class="dimtxt" id="pauseHint">P OR ESC TO RESUME</p>
+      <p class="fine c-amber" id="pauseVs" hidden>VERSUS: YOUR RIVAL KEEPS FLYING WHILE YOU PAUSE.<br>FORFEIT ENDS THE MATCH AS A LOSS.</p>
       <p class="fine">MISSIONS</p>
       <ul class="missions" id="pauseMissions"></ul>
     </section>
@@ -904,6 +930,37 @@
       <div class="row">
         <button class="btn sm" type="button" id="optReset">RESET DEFAULTS</button>
         <button class="btn primary" type="button" id="optBack">BACK<span class="kh"> (ESC)</span></button>
+      </div>
+    </section>
+
+    <section class="ov solid" id="ovVersus" aria-label="Versus" hidden>
+      <div class="hg-head"><h2>VERSUS</h2><span class="wallet" id="vsWho"></span></div>
+      <p class="fine">YOU AND A RIVAL FLY THE SAME WAVES, EACH AGAINST YOUR OWN SWARM. COMBOS, NO-HIT WAVES, BOSSES AND OTHER FEATS SEND RAIDERS INTO THEIR SWARM, AND EACH RAIDER YOU SEND CANCELS ONE HEADED YOUR WAY. LAST SHIP FLYING WINS, OR BE FIRST TO CLEAR WAVE 10.</p>
+      <button class="btn primary" type="button" id="vsHost">HOST A MATCH</button>
+      <div class="vs-room" id="vsRoom" hidden>
+        <p class="fine">ROOM CODE</p>
+        <p class="vs-room-code" id="vsRoomCode">----</p>
+        <button class="btn sm" type="button" id="vsCopy">COPY INVITE LINK</button>
+      </div>
+      <p class="fine" id="vsJoinLbl">OR TYPE YOUR RIVAL'S ROOM CODE</p>
+      <div class="row vs-join">
+        <input class="vs-code" id="vsCode" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Room code" placeholder="CODE">
+        <button class="btn" type="button" id="vsJoin">JOIN</button>
+      </div>
+      <p class="fine" id="vsPadHint" hidden>D-PAD ON THE CODE: UP / DOWN PICKS A LETTER, RIGHT ADDS ONE, LEFT DELETES</p>
+      <p class="msg" id="vsStatus" aria-live="polite"></p>
+      <p class="fine">EVERYONE FLIES A STRIKER WITH NO LOADOUT. THE FREE PEERJS SERVICE FINDS YOUR RIVAL, THEN YOUR BROWSERS CONNECT DIRECTLY, SO EACH OF YOU CAN SEE THE OTHER'S IP ADDRESS.</p>
+      <button class="btn" type="button" id="vsBack"><span id="vsBackTxt">BACK</span><span class="kh"> (ESC)</span></button>
+    </section>
+
+    <section class="ov dim" id="ovVsResult" aria-label="Versus result" hidden>
+      <h2 class="big" id="vrTitle">YOU WIN</h2>
+      <p class="dimtxt" id="vrWhy"></p>
+      <dl class="results" id="vrLines"></dl>
+      <p class="msg" id="vrMsg" aria-live="polite"></p>
+      <div class="row">
+        <button class="btn" type="button" id="vrLeave">LEAVE<span class="kh"> (ESC)</span></button>
+        <button class="btn primary" type="button" id="vrRematch">REMATCH<span class="kh"> (SPACE)</span></button>
       </div>
     </section>
 
@@ -1870,7 +1927,7 @@ const hulls = (() => {
   return { owned, sel: HULLS[h.sel] && owned[h.sel] ? h.sel : 'striker' };
 })();
 const saveHulls = () => store.set(HULL_KEY, hulls);
-const runHull = () => daily ? 'striker' : hulls.sel;
+const runHull = () => fairRun() ? 'striker' : hulls.sel;
 const hullStat = () => HULLS[runHull()];
 
 const STATS_KEY = 'nova-swarm-stats-v1';
@@ -2176,6 +2233,12 @@ const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: fal
 let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [], scrapBits = [], relicDrops = [];
 let boss = null;
 let shakeAmt = 0, flash = 0, warp = 0, clock = 0, nebY = 0;
+// An online versus match (see the versus section). on: from the match start until its result screen is left.
+const vs = { on: false, peer: null, conn: null, role: '', code: '', ready: false, seed: 0, region: 'home',
+  rival: { name: '???', score: 0, wave: 1, lives: 3 }, countAt: 0, countN: 0, waitAt: 0, t0: 0, heard: 0, beat: 0, stT: 0, lastSt: '', autoT: 0,
+  inQ: 0, dropT: 0, sent: 0, got: 0, blocked: 0, mine: null, theirs: null, result: '', why: '', counted: '', again: false, theyAgain: false, libP: null };
+// Daily and versus runs are fair runs: a Striker with no loadout, hangar, gambles or wager, on seeded waves.
+const fairRun = () => !!daily || vs.on;
 // the region being flown, and its swarm tint (the Prism Rift shifts it every wave)
 const runReg = () => REGION[G.region];
 function runTint() {
@@ -2282,7 +2345,7 @@ function nextWave() {
   } else {
     G.phaseT = 1.7;
     const where = G.region === 'home' ? '' : runReg().name;
-    const first = daily ? 'DAILY CHALLENGE' + (where ? ': ' + where : '') : where || 'GET READY';
+    const first = vs.on ? 'VERSUS' + (where ? ': ' + where : '') : daily ? 'DAILY CHALLENGE' + (where ? ': ' + where : '') : where || 'GET READY';
     const foe = eliteIntro(G.wave), cv = convoyWave(G.wave);   // a new foe is announced like a sector event; an event or a convoy then moves to the toast
     banner('WAVE ' + G.wave, foe ? 'NEW FOE: ' + foe : cv ? CONVOY_NAME : G.event ? EVENTS[G.event].name : G.wave === 1 ? first : '', G.event || foe ? 'warn' : cv ? 'good' : '', G.event || foe || cv ? 2 : 1.5);
     if (foe && G.event) toast(EVENTS[G.event].name, EVENTS[G.event].color);
@@ -2369,6 +2432,7 @@ function bonusClear() {
   mission('bonus', hits);
   saveStats();
   Rec.bonusStage(perfect);
+  vsAttack(perfect ? 3 : hits >= 36 ? 1 : 0);
   if (perfect && awardTrophy('trophy-golden')) extra.push(['TROPHY CARD', 'GOLDEN DRONE']);
   const pc = runReg().perfectCard;
   if (perfect && pc && awardTrophy(pc)) extra.push(['TROPHY CARD', byId(pc).name]);
@@ -2446,6 +2510,7 @@ function updateEnemy(e, dt) {
       if (e.d >= e.path.len) {
         if (e.after === 'beam') { e.state = 'beam'; e.beamT = 0; e.pulse = -1; break; }
         e.diving = false;
+        if (e.after === 'raid') { raidAgain(e); break; }
         if (e.after === 'exit') { e.dead = true; break; }
         if (e.after === 'wrap') { const s = slotOf(e); e.x = s.x; e.y = -12; e.a = 0; }
         e.state = 'join';
@@ -2473,6 +2538,9 @@ function updateEnemy(e, dt) {
       break;
     case 'squad':
       updateSquad(e, dt);
+      break;
+    case 'raid':
+      if ((e.raidT -= dt) <= 0) startRaid(e);
       break;
   }
   if (e.captive) updateCaptive(e, dt);
@@ -2574,6 +2642,7 @@ function releaseCaptive(e) {
   rescue = { x: p.x, y: p.y, t: 0, side: 1 };
   mission('rescue');
   Rec.rescue();
+  vsAttack(1);
   addScore(1000);
   popups.push({ text: '1000', x: p.x, y: p.y - 6, t: -0.6, c: PAL.t });
   G.extra.push(['FIGHTER RESCUED', '+1000']);
@@ -2789,6 +2858,7 @@ function convoyClear() {
     RUN.nextPowers.push(k);
     c.pts += CONVOY_BONUS.pts; c.scrap += CONVOY_BONUS.scrap;
     c.extra.push(['SUPPLY CRATE', POWERS[k].name]);
+    vsAttack(2);
   }
 }
 // The supply crate: a random power-up, rolled like a drop and applied at the start of the next wave.
@@ -3114,6 +3184,7 @@ function squadHit(e) {
   addScore(SQUAD_BONUS);
   dropScrap(e.x, e.y, 3);
   mission('squad');
+  vsAttack(1);
   popups.push({ text: String(SQUAD_BONUS), x: e.x, y: e.y - 10, t: -0.3, c: PAL.y });
   G.extra.push(['SQUADRON BROKEN', '+' + SQUAD_BONUS]);
   toast('SQUADRON BROKEN!', PAL.y);
@@ -3411,6 +3482,7 @@ function killBoss(b) {
   if (reg.bossCard && b.kind === reg.boss && awardTrophy(reg.bossCard)) G.extra.push(['TROPHY CARD', reg.bossName]);
   mission('boss');
   Rec.boss(b);
+  vsAttack(3);
   if (b.kind === 'hive') G.extra.push(['HIVE MIND', 'DESTROYED']);
   G.extra.push(['BOSS SCRAP', '+' + (120 + 40 * b.k)]);
   Snd.bigBoom();
@@ -3851,6 +3923,7 @@ const REC_NUMS = ['runs', 'dailies', 'score', 'best', 'time', 'waves', 'bestWave
   'perfects', 'bestBonus', 'rescues', 'bombs', 'pierce', 'missions', 'relics', 'scrap', 'flawless', 'twinBosses'];
 const REC_MAPS = { kills: ETYPES, bosses: BOSSES, bossRegions: REGION, hullBest: HULLS };
 REC_NUMS.push('freighters', 'convoys');   // convoy escort: freighters through, whole convoys saved
+REC_NUMS.push('vsWins', 'vsLosses', 'vsDraws');   // versus: match results
 const emptyRec = () => {
   const r = { medals: {}, seen: {}, legacy: false, lastDaily: '' };
   for (const k of REC_NUMS) r[k] = 0;
@@ -4179,6 +4252,7 @@ function buildStats() {
     ...REGIONS.map(g => ['· IN ' + g.name, fmtNum(r.bossRegions[g.id] || 0)])]);
   group('EXTRAS', [['PERFECT STAGES', fmtNum(r.perfects)], ['FIGHTERS RESCUED', fmtNum(r.rescues)], ['MISSIONS COMPLETED', fmtNum(r.missions)], ['RELICS CAUGHT', fmtNum(r.relics)]]);
   group('CONVOYS', [['FREIGHTERS SAVED', fmtNum(r.freighters)], ['WHOLE CONVOYS SAVED', fmtNum(r.convoys)]]);
+  group('VERSUS', [['MATCHES', fmtNum(r.vsWins + r.vsLosses + r.vsDraws)], ['WINS', fmtNum(r.vsWins)], ['LOSSES', fmtNum(r.vsLosses)], ['DRAWS', fmtNum(r.vsDraws)]]);
 }
 function handleRecordsKey(e) {
   const c = e.code, a = document.activeElement, confirm = c === 'Space' || c === 'Enter';
@@ -4214,7 +4288,7 @@ function comboKill() {
   G.combo++;
   G.comboT = COMBO_WINDOW;
   const m = comboMult();
-  if (m > before) { Snd.combo(m); G.waveMult = Math.max(G.waveMult, m); G.bestMult = Math.max(G.bestMult, m); mission('combo', m); Rec.combo(m); }
+  if (m > before) { Snd.combo(m); G.waveMult = Math.max(G.waveMult, m); G.bestMult = Math.max(G.bestMult, m); mission('combo', m); Rec.combo(m); vsAttack(VS_COMBO[m] || 0); }
   return m;
 }
 function breakCombo() { G.combo = 0; G.comboT = 0; }
@@ -4256,6 +4330,7 @@ function killEnemy(e) {
   if (moving || mult > 1) popups.push({ text: String(pts), x: e.x, y: e.y - 4, t: 0, c: mult > 1 ? comboColor(mult) : e.type === 'warden' ? PAL.y : PAL.w });
   explode(e.x, e.y, tcol(e.T.colors), 14, 60);
   Snd.boom();
+  if (e.raider) return;   // a rival's raider pays points, never scrap, drops or relics
   dropScrap(e.x, e.y, (e.bonus ? 1 : e.T.scrap + (moving ? 1 : 0) + (G.event === 'surge' ? 1 : 0)) * (G.event === 'fast' ? 2 : 1));
   if (e.bonus) { G.bonusHits++; return; }
   if (e.type === 'splitter') splitInto(e);
@@ -4345,7 +4420,7 @@ function hitPlayer(hx) {
   shakeIt(5);
   flash = Math.max(flash, flashLvl(0.25, 0.1));
   Snd.die();
-  if (G.lives <= 0) G.overT = 2.2;
+  if (G.lives <= 0) { G.overT = 2.2; vsFinal('out'); }
   else player.respawnT = 1.8;
 }
 function respawn() {
@@ -4365,6 +4440,7 @@ function waveClear() {
   if (noHit) mission('nohit');
   Rec.waveClear(noHit);
   chartProgress();
+  vsCleared(noHit);
   if (G.event) G.extra.push(['SECTOR EVENT', EVENTS[G.event].tag]);
   if (G.waveMult > 1) G.extra.push(['BEST COMBO', 'X' + G.waveMult]);
   if (G.waveGrazes) G.extra.push(['GRAZES', String(G.waveGrazes)]);
@@ -4568,6 +4644,7 @@ function update(dt) {
   if (boss) updateBoss(et);
   updateAbility(dt);
   updateConvoy(dt);
+  vsUpdate(dt);
 
   for (const s of pshots) {
     s.x += s.vx * dt; s.y += s.vy * dt;
@@ -4839,6 +4916,7 @@ function drawHudCanvas() {
   }
   for (let i = 0; i < Math.min(G.bombs, 5); i++) drawSpr(BOMB_SPR, W - 5 - i * 7, H - 6);
   drawAbilityHud();
+  drawVsHud();
   let y = H - 17;
   for (const [k, t] of [['spread', player.spreadT], ['rapid', player.rapidT], ['warp', G.slowT]]) {
     if (t <= 0) continue;
@@ -4860,7 +4938,7 @@ function drawHudCanvas() {
   }
 }
 // The play field shows the ship and HUD only during a run (not on the title or the title's hangar).
-const inRun = () => !(state === 'title' || state === 'map' || state === 'records' || (state === 'hangar' && hangarPreRun()));
+const inRun = () => !(state === 'title' || state === 'map' || state === 'records' || state === 'versus' || (state === 'hangar' && hangarPreRun()));
 function draw() {
   const reg = viewReg(), tint = inRun() ? runTint() : null;
   cx.setTransform(1, 0, 0, 1, 0, 0);
@@ -4915,6 +4993,7 @@ function draw() {
   for (const p of popups) if (p.t < 0.6 || Math.floor(clock * 10) % 2) txt(p.text, p.x, p.y - Math.max(0, p.t) * 14, p.c, 'center');
   if (G.event === 'dark' && inRun()) drawDark();
   drawElite();
+  drawRaiders();
   cx.setTransform(1, 0, 0, 1, 0, 0);
   drawHudCanvas();
   if (flash > 0) { cx.fillStyle = 'rgba(244,233,216,' + Math.min(flash, 0.7) + ')'; cx.fillRect(0, 0, W, H); }
@@ -4924,7 +5003,7 @@ function draw() {
 const hudEls = { s: $('hudScore'), hi: $('hudHi'), w: $('hudWave') };
 const hudLast = {};
 function updateHud() {
-  const vals = { s: G.score, hi: Math.max(G.score, daily ? dailyBestNow : scores[0] ? scores[0].score : 0), w: Math.max(G.wave, 1) };
+  const vals = { s: G.score, hi: vs.on ? vs.rival.score : Math.max(G.score, daily ? dailyBestNow : scores[0] ? scores[0].score : 0), w: Math.max(G.wave, 1) };
   for (const k in vals) if (hudLast[k] !== vals[k]) { hudLast[k] = vals[k]; hudEls[k].textContent = vals[k]; }
 }
 const ui = { bannerT: 0, toastT: 0 };
@@ -4956,7 +5035,7 @@ function placeToast() {
 }
 function hideBanners() { ui.bannerT = ui.toastT = 0; $('banner').hidden = true; $('toast').hidden = true; }
 
-const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovHangar', 'ovWheel', 'ovMap', 'ovRecords', 'ovOptions', 'ovEnding'];
+const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovHangar', 'ovWheel', 'ovMap', 'ovRecords', 'ovOptions', 'ovEnding', 'ovVersus', 'ovVsResult'];
 function showOverlay(id) {
   for (const o of OVERLAYS) $(o).hidden = o !== id;
   opt.open = id === 'ovOptions';
@@ -5074,7 +5153,7 @@ function dailyBest(day = todayUTC()) {
   return d && d.day === day && Number.isFinite(d.best) ? d.best : 0;
 }
 let dailyBestNow = 0;
-function seedWave(tag) { if (daily) rng = seeded(hashStr(daily + ':' + tag)); }
+function seedWave(tag) { const s = daily || (vs.on && 'vs:' + vs.seed); if (s) rng = seeded(hashStr(s + ':' + tag)); }
 // The day's region, the same for everyone and open whether or not it is charted.
 const DAILY_POOL = REGIONS.filter(r => !r.finale);   // the Hive Heart is a destination, not a daily
 const dailyRegion = day => DAILY_POOL[Math.floor(seeded(hashStr(day + ':region'))() * DAILY_POOL.length)].id;
@@ -5107,7 +5186,7 @@ function resetGame(from) {
     scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
     combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0, missions: from ? rollMissions() : [],
     event: null, lastEvent: 0, meteorT: 0,
-    region: from && isRegion(from.region) ? from.region : daily ? dailyRegion(daily) : regions.sel, relics: 0, relicWave: false, windV: 0, windDir: 1, windT: 0 });
+    region: from && isRegion(from.region) ? from.region : daily ? dailyRegion(daily) : vs.on ? vs.region : regions.sel, relics: 0, relicWave: false, windV: 0, windDir: 1, windT: 0 });
   Object.assign(RUN, { fastFire: 0, spreadStart: false, magnet: false, shipsBought: 0, nextPowers: [] });
   resetAbility();
   if (from && from.run) Object.assign(RUN, { fastFire: clamp(from.run.fastFire | 0, 0, 2), spreadStart: !!from.run.spreadStart, magnet: !!from.run.magnet, shipsBought: from.run.shipsBought | 0 });
@@ -5145,6 +5224,8 @@ function pause() {
   keys.clear();
   touch.id = null;
   renderMissions($('pauseMissions'), G.missions, true);
+  $('pauseVs').hidden = !vs.on;
+  $('quitBtn').textContent = vs.on ? 'FORFEIT' : 'QUIT';
   showOverlay('ovPause');
   Snd.hold(true);
 }
@@ -5155,7 +5236,10 @@ function resume() {
   Snd.unlock();
   Snd.hold(false);
 }
+// Quitting a versus run forfeits the match (or, once it is decided, goes straight to its result).
+function quitRun() { if (!vs.on) showTitle(0); else if (vs.result) vsShowResult(); else vsFinal('quit'); }
 function showTitle(panel, hl) {
+  vsDrop();
   state = 'title';
   daily = null;
   rng = null;
@@ -5182,6 +5266,7 @@ function showTitle(panel, hl) {
   updateHud();
 }
 function showGameOver() {
+  if (vs.on) { vsShowResult(); return; }
   state = 'over';
   Snd.stop();
   Snd.over();
@@ -5239,6 +5324,7 @@ function imgOf(url, cls) { const i = document.createElement('img'); i.alt = ''; 
 
 /* ---- wave debrief + double or nothing ---- */
 function openDebrief() {
+  if (vs.on && vs.result) { vsShowResult(); return; }
   flushScrap();
   flushRelics();
   if (rescue && player.alive) dockRescue();
@@ -5256,6 +5342,7 @@ function openDebrief() {
   renderDebrief();
   showOverlay('ovDebrief');
   ui.readyAt = clock + 0.6;
+  if (vs.on) { vs.autoT = VS_AUTO; vsDebriefNote(); }   // the race is on: the debrief moves on by itself
 }
 function renderDebrief() {
   const c = G.clear, dl = $('dbLines');
@@ -5266,8 +5353,8 @@ function renderDebrief() {
     const dd = document.createElement('dd'); dd.textContent = v;
     dl.append(dt, dd);
   }
-  $('dbGamble').hidden = !!daily || c.gambled || c.banked || (c.pts <= 0 && c.scrap <= 0);
-  $('dbHangar').hidden = !!daily;
+  $('dbGamble').hidden = fairRun() || c.gambled || c.banked || (c.pts <= 0 && c.scrap <= 0);
+  $('dbHangar').hidden = fairRun();
   $('dbNext').disabled = $('dbHangar').disabled = !!c.busy;
 }
 function bankClear() {
@@ -5279,7 +5366,7 @@ function bankClear() {
 }
 function startGamble(kind) {
   const c = G.clear;
-  if (state !== 'debrief' || daily || !c || c.gambled || c.banked || c.busy) return false;
+  if (state !== 'debrief' || fairRun() || !c || c.gambled || c.banked || c.busy) return false;
   c.gambled = true; c.busy = true;
   renderDebrief();
   $('dbGame').hidden = false;
@@ -5334,7 +5421,7 @@ function stopReflex() {
 function proceedFromDebrief() {
   if (state !== 'debrief' || (G.clear && G.clear.busy)) return;
   bankClear();
-  if (G.pendingBonus && !daily && Wallet.scrap >= WAGER_STAKES[0]) openWager();
+  if (G.pendingBonus && !fairRun() && Wallet.scrap >= WAGER_STAKES[0]) openWager();
   else resumeRun();
 }
 function resumeRun() {
@@ -5385,7 +5472,7 @@ const PANES = ['hgShop', 'hgShips', 'hgSlots', 'hgCrate', 'hgAlbum'];
 const hangar = { from: 'title', pane: 'hgShop', sel: null, set: 'home' };
 const hangarPreRun = () => hangar.from !== 'debrief';
 function openHangar(from, set, pane) {
-  if (daily) return;
+  if (fairRun()) return;
   if (from === 'debrief') { if (G.clear && G.clear.busy) return; bankClear(); }
   hangar.from = from;
   hangar.set = set || (from === 'debrief' ? G.region : regions.sel);
@@ -6025,6 +6112,482 @@ function handleOptKey(e) {
   }
 }
 
+/* ================= versus: online duels over PeerJS, two pilots on the same waves ================= */
+// Each pilot flies their own run on the same seeded waves and region: a fair run, like the daily challenge.
+//  - Feats send raiders into the rival's swarm: a combo reaching x4 or x6 (1 each) or x8 (2), a no-hit wave, a broken
+//    squadron or a rescued fighter (1), a saved convoy (2), a boss or a PERFECT challenging stage (3; 36+ hits sends 1).
+//  - Raiders you send first cancel raiders queued against you. Queued raiders show as a red bar up the left edge and
+//    wait for a fair moment (formation landed, your ship flying, no bonus stage or dying boss), then dive in after a warning.
+//  - A raider loops from the top edge to the bottom until it is shot. It pays points and feeds the combo, never scrap or drops.
+//  - The match ends when a pilot loses their last ship (the rival wins) or clears wave VS_WAVES first. Pausing does not
+//    stop the rival, and quitting forfeits. When two finals cross in flight, the earlier one on the match clock decides.
+// GitHub Pages only serves files, so the page loads PeerJS (only once this screen opens), finds the rival through PeerJS's
+// free broker, then the two browsers talk directly over a WebRTC data channel. Everything a rival sends is checked first.
+const VS_LIB = ['https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js', 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js',
+  'https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js'];
+const VS_SRI = 'sha384-x0YgkOr/3UOZP2CRDxGW9e0Q+2Qjyr3uJrm4xU32Y7ZCNAo7Cc7bjhrZMi/dwczu';
+const VS_PROTO = 1;                                  // bump when messages change, so mismatched pages refuse each other
+const VS_PREFIX = 'nova-swarm-vs-';                  // a room code's PeerJS id
+const VS_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // room codes skip I, O, 0 and 1
+const VS_WAVES = 10, VS_COUNT = 3, VS_AUTO = 4;      // the finish wave; countdown seconds; seconds before a debrief moves on
+const VS_QUEUE = 12, VS_LIVE = 6, VS_WARN = 2;       // raiders queued at most, on screen at most; seconds of warning
+const VS_COMBO = { 4: 1, 6: 1, 8: 2 };               // raiders sent when a combo reaches x4, x6 and x8
+const VS_TIMEOUT = 20, VS_CONNECT = 20;              // seconds of silence before a rival counts as gone; seconds to link up
+const VS_REC = { win: 'vsWins', lose: 'vsLosses', draw: 'vsDraws' };
+const VS_WHY = {
+  'my-out': 'YOU RAN OUT OF SHIPS', 'my-quit': 'YOU FORFEITED', 'my-clear': 'YOU CLEARED WAVE ' + VS_WAVES + ' FIRST',
+  'their-out': 'YOUR RIVAL RAN OUT OF SHIPS', 'their-quit': 'YOUR RIVAL FORFEITED', 'their-clear': 'YOUR RIVAL CLEARED WAVE ' + VS_WAVES + ' FIRST',
+  left: 'YOUR RIVAL LEFT THE MATCH', lost: 'LOST CONTACT WITH YOUR RIVAL'
+};
+const VS_ERR = {
+  'peer-unavailable': 'NO ROOM WITH THAT CODE. CHECK IT AND TRY AGAIN.',
+  'unavailable-id': 'COULD NOT OPEN A ROOM. TRY AGAIN.',
+  'browser-incompatible': 'THIS BROWSER CANNOT PLAY ONLINE.',
+  network: 'COULD NOT REACH THE MATCHMAKING SERVER. CHECK YOUR CONNECTION.',
+  'server-error': 'THE MATCHMAKING SERVER IS BUSY. TRY AGAIN SOON.',
+  'socket-error': 'LOST THE MATCHMAKING SERVER. TRY AGAIN.',
+  'socket-closed': 'LOST THE MATCHMAKING SERVER. TRY AGAIN.',
+  webrtc: 'THE DIRECT LINK FAILED. TRY AGAIN.',
+  version: 'YOUR RIVAL HAS ANOTHER VERSION OF THE GAME. BOTH RELOAD THE PAGE.',
+  full: 'THAT ROOM ALREADY HAS TWO PILOTS.',
+  timeout: 'COULD NOT CONNECT. ONE OF YOUR NETWORKS MAY BLOCK DIRECT LINKS.',
+  lib: 'COULD NOT LOAD THE ONLINE PLAY LIBRARY. CHECK YOUR CONNECTION.'
+};
+const vsNum = (v, lo, hi) => Number.isFinite(v) ? clamp(Math.floor(v), lo, hi) : lo;
+const vsName = () => { const n = store.get('nova-swarm-initials', ''); return typeof n === 'string' && /^[A-Z]{3}$/.test(n) ? n : '???'; };
+const vsClean = str => [...String(str).toUpperCase()].filter(ch => VS_ABC.includes(ch)).join('').slice(0, 4);
+const vsLink = () => /^https?:$/.test(location.protocol) && vs.code ? location.origin + location.pathname + '#vs=' + vs.code : '';
+const vsNow = () => (performance.now() - vs.t0) / 1000;   // the match clock
+
+/* ---- the lobby: load PeerJS, host a room or join one ---- */
+function vsLoadLib() {
+  if (window.Peer) return Promise.resolve();
+  if (!vs.libP) vs.libP = new Promise((res, rej) => {
+    const next = i => {
+      if (i >= VS_LIB.length) { vs.libP = null; rej(new Error('lib')); return; }
+      const sc = document.createElement('script');
+      sc.src = VS_LIB[i]; sc.integrity = VS_SRI; sc.crossOrigin = 'anonymous';
+      sc.onload = () => { if (window.Peer) res(); else next(i + 1); };
+      sc.onerror = () => { sc.remove(); next(i + 1); };   // blocked, missing or tampered with: try the next CDN
+      document.head.appendChild(sc);
+    };
+    next(0);
+  });
+  return vs.libP;
+}
+function openVersus(code) {
+  if (state !== 'title') return;
+  state = 'versus';
+  $('vsCode').value = code || '';
+  vsSay(code ? '' : 'HOST A MATCH AND SEND YOUR RIVAL THE CODE, OR JOIN THEIRS.');
+  showOverlay('ovVersus');
+  vsRender();
+  ui.readyAt = clock + 0.3;
+  if (code) vsJoin();
+}
+// An invite link (#vs=CODE) opens the lobby and joins that room.
+function vsInvite() {
+  const m = /^#vs=([a-z0-9]{4})$/i.exec(location.hash);
+  if (!m) return;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* the hash stays: harmless */ }
+  const code = vsClean(m[1]);
+  if (code.length === 4) openVersus(code);
+}
+function vsSay(text) { $('vsStatus').textContent = text; }
+function vsRender() {
+  const busy = !!vs.role;
+  $('vsHost').disabled = $('vsJoin').disabled = $('vsCode').disabled = busy;
+  $('vsRoom').hidden = !(vs.role === 'host' && vs.peer && vs.peer.open && !vs.conn);
+  $('vsRoomCode').textContent = vs.code || '----';
+  $('vsCopy').hidden = !vsLink();
+  $('vsCopy').textContent = coarse && navigator.share ? 'SHARE INVITE LINK' : 'COPY INVITE LINK';
+  $('vsBackTxt').textContent = busy || vs.countAt ? 'CANCEL' : 'BACK';
+  $('vsWho').textContent = 'PILOT ' + vsName();
+}
+function vsHost() {
+  if (state !== 'versus' || vs.role) return;
+  vs.role = 'host';
+  vsSay('OPENING A ROOM...');
+  vsRender();
+  vsLoadLib().then(() => vsOpenRoom(0), () => vsFail('lib'));
+}
+function vsOpenRoom(tries) {
+  if (state !== 'versus' || vs.role !== 'host' || vs.peer) return;
+  vs.code = Array.from({ length: 4 }, () => VS_ABC[Math.floor(Math.random() * VS_ABC.length)]).join('');
+  const p = vs.peer = new Peer(VS_PREFIX + vs.code);
+  p.on('open', () => { if (p !== vs.peer) return; vsSay('WAITING FOR YOUR RIVAL TO JOIN...'); vsRender(); });
+  p.on('connection', c => {
+    if (p !== vs.peer) return;
+    if (vs.conn) { c.on('open', () => { c.send({ t: 'full' }); setTimeout(() => c.close(), 500); }); return; }   // a room holds two pilots
+    vsBind(c);
+    vsRender();
+  });
+  p.on('disconnected', () => { if (p === vs.peer && !vs.conn && !p.destroyed) p.reconnect(); });   // keep the room findable while waiting
+  p.on('error', err => {
+    if (p !== vs.peer) return;
+    if (err.type === 'unavailable-id' && tries < 3) { vs.peer = null; p.destroy(); vsOpenRoom(tries + 1); return; }
+    vsPeerError(err);
+  });
+}
+function vsJoin() {
+  if (state !== 'versus' || vs.role) return;
+  const code = vsClean($('vsCode').value);
+  $('vsCode').value = code;
+  if (code.length !== 4) { vsSay('TYPE THE 4-CHARACTER ROOM CODE YOUR RIVAL SEES.'); return; }
+  vs.role = 'guest'; vs.code = code;
+  vsSay('LOOKING FOR ROOM ' + code + '...');
+  vsRender();
+  vsLoadLib().then(() => {
+    if (state !== 'versus' || vs.role !== 'guest' || vs.peer) return;
+    const p = vs.peer = new Peer();
+    vs.waitAt = performance.now() + VS_CONNECT * 1000;
+    p.on('open', () => { if (p === vs.peer && !vs.conn) vsBind(p.connect(VS_PREFIX + code, { reliable: true, serialization: 'json' })); });
+    p.on('error', err => { if (p === vs.peer) vsPeerError(err); });
+  }, () => vsFail('lib'));
+}
+// Once the two browsers are linked the broker is no longer needed, so its hiccups never end a match.
+function vsPeerError(err) {
+  if (vs.ready) return;
+  const t = err && err.type;
+  vsFail(VS_ERR[t] ? t : 'webrtc');
+}
+function vsBind(c) {
+  vs.conn = c;
+  vs.waitAt = performance.now() + VS_CONNECT * 1000;
+  c.on('open', () => {
+    if (c !== vs.conn) return;
+    vs.heard = performance.now();
+    vsSend({ t: 'hello', v: VS_PROTO, name: vsName() });
+    clearInterval(vs.beat);
+    vs.beat = setInterval(vsBeat, 1000);   // a timer, not the frame loop, so a hidden tab still keeps in touch
+    vsSay('RIVAL FOUND. SAYING HELLO...');
+    vsRender();
+  });
+  c.on('data', d => { if (c === vs.conn) vsMsg(d); });
+  c.on('close', () => { if (c === vs.conn) vsLost(false); });
+  c.on('error', () => { if (c === vs.conn) vsLost(false); });
+}
+function vsSend(m) { const c = vs.conn; if (c && c.open) try { c.send(m); } catch (e) { /* the close event follows */ } }
+function vsBeat() {
+  if (!vs.conn || !vs.conn.open) return;
+  if (performance.now() - vs.heard > VS_TIMEOUT * 1000) { vsLost(false); return; }
+  vsSendStatus(true);
+}
+function vsSendStatus(force) {
+  const st = vs.on ? G.score + '/' + G.wave + '/' + G.lives : '';
+  if (!force && st === vs.lastSt) return;
+  vs.lastSt = st;
+  vsSend(vs.on ? { t: 'st', s: G.score, w: G.wave, l: Math.max(0, G.lives) } : { t: 'ping' });
+}
+// Messages from the rival: hello, start, st (status), atk (raiders), fin (a final), again (rematch), full, bye, ping.
+function vsMsg(d) {
+  if (!d || typeof d !== 'object' || typeof d.t !== 'string') return;
+  vs.heard = performance.now();
+  switch (d.t) {
+    case 'hello':
+      if (d.v !== VS_PROTO) { vsFail('version'); return; }
+      vs.rival.name = typeof d.name === 'string' && /^[A-Z?]{3}$/.test(d.name) ? d.name : '???';
+      if (vs.ready) return;
+      vs.ready = true;
+      if (vs.role === 'host') vsDeal();
+      else vsSay('LINKED WITH ' + vs.rival.name + '. THE HOST IS STARTING THE MATCH...');
+      break;
+    case 'start': if (vs.role === 'guest' && vs.ready && (state === 'versus' || state === 'vsover')) vsCountdown(d); break;
+    case 'st': if (vs.on) vsRivalStatus(d); break;
+    case 'atk': vsIncoming(d.n); break;
+    case 'fin': vsTheirFinal(d); break;
+    case 'again': vs.theyAgain = true; vsRematchCheck(); break;
+    case 'full': vsFail('full'); break;
+    case 'bye': vsLost(true); break;
+  }
+}
+// The host deals the match: the seed for the waves and a region (never the Hive Heart), for a first match or a rematch.
+function vsDeal() {
+  const m = { t: 'start', seed: Math.floor(Math.random() * 4294967296), region: DAILY_POOL[Math.floor(Math.random() * DAILY_POOL.length)].id };
+  vsSend(m);
+  vsCountdown(m);
+}
+function vsCountdown(m) {
+  vs.seed = vsNum(m.seed, 0, 4294967295);
+  vs.region = DAILY_POOL.some(r => r.id === m.region) ? m.region : 'home';
+  vs.on = false; vs.again = vs.theyAgain = false;
+  vs.countAt = performance.now() + VS_COUNT * 1000;
+  vs.countN = 0;
+  state = 'versus';
+  showOverlay('ovVersus');
+  vsRender();
+}
+function vsBegin() {
+  vs.countAt = 0;
+  Object.assign(vs, { on: true, t0: performance.now(), inQ: 0, dropT: 0, sent: 0, got: 0, blocked: 0, mine: null, theirs: null,
+    result: '', why: '', counted: '', autoT: 0, stT: 0, lastSt: '' });
+  Object.assign(vs.rival, { score: 0, wave: 1, lives: 3 });
+  daily = null;
+  Snd.unlock();
+  state = 'play';
+  resetGame();                 // no loadout: both pilots start equal, in a Striker, on the same seeded waves
+  Rec.runStart();
+  G.missions = rollMissions(seeded(hashStr('vs:' + vs.seed + ':missions')));
+  $('hudHiLbl').textContent = 'RIVAL W1';
+  showOverlay(null);
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  toast('FIRST TO CLEAR WAVE ' + VS_WAVES + ' WINS', PAL.a);
+}
+function vsRivalStatus(d) {
+  const r = vs.rival, lives = vsNum(d.l, 0, 9), w = vsNum(d.w, 1, 999);
+  if (state === 'play' && !vs.result && lives > 0 && lives < r.lives) toast(lives === 1 ? 'YOUR RIVAL IS ON THEIR LAST SHIP' : 'YOUR RIVAL LOST A SHIP', PAL.a);
+  r.score = vsNum(d.s, 0, 1e9);
+  r.lives = lives;
+  if (w !== r.wave) { r.wave = w; if (state !== 'vsover') $('hudHiLbl').textContent = 'RIVAL W' + w; }
+}
+
+/* ---- raiders: sent by feats, cancelled by your own sends, flown in when the moment is fair ---- */
+function vsAttack(n) {
+  if (!vs.on || !n || vs.mine || vs.result || G.lives <= 0) return;
+  const block = Math.min(n, vs.inQ), x = clamp(player.x, 22, W - 22);
+  vs.inQ -= block; vs.blocked += block; n -= block;
+  if (block) popups.push({ text: 'BLOCKED ' + block, x, y: player.y - 22, t: -0.4, c: PAL.t });
+  if (n) { vsSend({ t: 'atk', n }); vs.sent += n; popups.push({ text: 'SENT ' + n, x, y: player.y - 14, t: -0.4, c: PAL.y }); Snd.blip(); }
+}
+function vsIncoming(n) {
+  if (!vs.on || vs.mine || vs.result) return;
+  n = vsNum(n, 1, 6);
+  vs.got += n;
+  vs.inQ = Math.min(VS_QUEUE, vs.inQ + n);
+  if (vs.dropT <= 0) vs.dropT = VS_WARN;
+  if (state === 'play') toast('INCOMING: ' + vs.inQ + ' RAIDER' + (vs.inQ > 1 ? 'S' : ''), PAL.c);
+}
+function vsUpdate(dt) {
+  if (!vs.on || !vs.inQ || vs.mine || vs.result || G.lives <= 0) return;
+  if (G.phase !== 'active' || G.bonus || G.entering > 0 || !player.alive || (boss && boss.state !== 'fight')) return;   // wait for a fair moment
+  if ((vs.dropT -= dt) > 0) return;
+  const n = Math.min(vs.inQ, 3, VS_LIVE - enemies.filter(e => e.raider && !e.dead).length);
+  if (n <= 0) { vs.dropT = 0.5; return; }
+  vs.inQ -= n;
+  for (let i = 0; i < n; i++) enemies.push(makeRaider(i * 0.35));
+  vs.dropT = vs.inQ ? VS_WARN : 0;
+}
+// Raiders never join the formation and roll nothing on rng(), so the seeded waves stay the same for both pilots.
+function makeRaider(delay) {
+  const e = makeEnemy(G.wave >= 4 && Math.random() < 0.5 ? 'stinger' : 'drone', -1, -1);
+  return Object.assign(e, { raider: true, state: 'raid', raidT: delay, x: frand(16, W - 16), y: -12 });
+}
+// A raider dives at the ship from a random spot on the top edge, leaves at the bottom, waits a moment and comes again.
+function startRaid(e) {
+  const n = G.wave, px = player.x, x0 = frand(16, W - 16), dir = x0 < px ? 1 : -1;
+  let pts, speed;
+  if (e.type === 'stinger') {
+    pts = [{ x: x0, y: -12 }, { x: cxk(px - dir * 20), y: H * 0.32 }, { x: cxk(px + dir * 20), y: H * 0.5 }, { x: cxk(px - dir * 14), y: H * 0.68 }, { x: cxk(px), y: H + 14 }];
+    speed = Math.min(90 + n * 3, 135);
+  } else {
+    pts = [{ x: x0, y: -12 }, { x: cxk(lerp(x0, px, 0.5)), y: H * 0.36 }, { x: cxk(px + frand(-14, 14)), y: H * 0.74 }, { x: cxk(px + dir * 34), y: H + 14 }];
+    speed = Math.min(80 + n * 3, 120);
+  }
+  followPath(e, pts, 'raid', speed * runReg().mods.speed);
+  e.shots = [e.path.len * frand(0.22, 0.45)];
+  if (n >= 6) e.shots.push(e.path.len * frand(0.5, 0.6));
+  Snd.dive();
+}
+function raidAgain(e) { Object.assign(e, { state: 'raid', raidT: frand(0.8, 1.6), x: frand(16, W - 16), y: -12, a: 0, shots: [] }); }
+function drawRaiders() {
+  if (!vs.on) return;
+  const d = Math.floor(clock * 10) % 3;
+  for (const e of enemies) if (e.raider && !e.dead && e.state === 'path') ringPts(e.x, e.y, 7, PAL.r, d);
+}
+// Queued raiders: a red bar up the left edge, one notch each, blinking just before they fly in.
+function drawVsHud() {
+  if (!vs.on || !vs.inQ) return;
+  cx.fillStyle = vs.dropT > 0 && vs.dropT < 0.8 && Math.floor(clock * 8) % 2 ? PAL.w : PAL.r;
+  for (let i = 0; i < vs.inQ; i++) cx.fillRect(1, H - 17 - i * 5, 2, 4);
+}
+
+/* ---- the end of a match: finals, the result screen, rematches ---- */
+function vsCleared(noHit) {
+  if (noHit) vsAttack(1);
+  if (G.wave >= VS_WAVES) vsFinal('clear');
+}
+// A final: this pilot ran out of ships ('out'), cleared the finish wave ('clear') or forfeited ('quit').
+function vsFinal(k) {
+  if (!vs.on || vs.mine || vs.result) return;
+  vs.mine = { k, at: vsNow() };
+  vsSend({ t: 'fin', k, at: vs.mine.at, s: G.score, w: G.wave });
+  vsResolve();
+}
+function vsTheirFinal(d) {
+  if (!vs.on || vs.theirs) return;
+  vs.theirs = { k: d.k === 'clear' || d.k === 'quit' ? d.k : 'out', at: Number.isFinite(d.at) ? d.at : Infinity };
+  if (Number.isFinite(d.s)) vs.rival.score = vsNum(d.s, 0, 1e9);
+  if (Number.isFinite(d.w)) vs.rival.wave = vsNum(d.w, 1, 999);
+  if (vs.theirs.k !== 'clear') vs.rival.lives = 0;
+  vsResolve();
+}
+// The earlier final decides: an 'out' or a 'quit' hands the win to the other pilot, a 'clear' takes it.
+function vsResolve() {
+  const a = vs.mine, b = vs.theirs;
+  if (a && b && a.at === b.at) {
+    vs.result = (a.k === 'clear') === (b.k === 'clear') ? 'draw' : a.k === 'clear' ? 'win' : 'lose';
+    vs.why = vs.result !== 'draw' ? VS_WHY[a.k === 'clear' ? 'my-clear' : 'their-clear'] : a.k === 'clear' ? 'YOU BOTH CLEARED WAVE ' + VS_WAVES + ' AT ONCE' : 'YOU BOTH WENT DOWN AT ONCE';
+  } else {
+    const f = a && (!b || a.at < b.at) ? a : b;
+    vs.result = (f.k === 'clear') === (f === a) ? 'win' : 'lose';
+    vs.why = VS_WHY[(f === a ? 'my-' : 'their-') + f.k];
+  }
+  // your own last ship or finish wave plays out first (the game over or the debrief then shows the result)
+  if (state === 'vsover' || !(a && ((a.k === 'out' && G.overT > 0) || (a.k === 'clear' && G.phase === 'clear')))) vsShowResult();
+}
+function vsShowResult() {
+  if (!vs.result) return;
+  if (state !== 'vsover') {
+    if (state === 'debrief') bankClear();
+    state = 'vsover';
+    keys.clear();
+    touch.id = null;
+    Snd.hold(false);
+    Snd.stop();
+    if (vs.result === 'win') Snd.win(); else if (vs.result === 'lose') Snd.over(); else Snd.jingle();
+    hideBanners();
+    flushScrap();
+    if (G.lives > 0) flushRelics();
+    rng = null;
+    Rec.over();
+    vsSendStatus(true);   // the rival's result screen shows your final score
+    showOverlay('ovVsResult');
+    ui.readyAt = clock + 0.8;
+  }
+  vsCount();
+  updateHud();
+  vsRenderResult();
+}
+// Results go in the pilot record; a crossed final that flips the result moves the count with it.
+function vsCount() {
+  if (vs.counted === vs.result) return;
+  if (vs.counted) record[VS_REC[vs.counted]] = Math.max(0, record[VS_REC[vs.counted]] - 1);
+  vs.counted = vs.result;
+  record[VS_REC[vs.result]]++;
+  Rec.save();
+}
+function vsRenderResult() {
+  const r = vs.result, dl = $('vrLines');
+  $('vrTitle').textContent = r === 'win' ? 'YOU WIN' : r === 'lose' ? 'YOU LOSE' : 'DRAW';
+  $('vrTitle').className = 'big ' + (r === 'win' ? 'c-amber' : r === 'lose' ? 'c-coral' : 'c-teal');
+  $('vrWhy').textContent = vs.why;
+  dl.textContent = '';
+  const rows = [['YOUR SCORE', G.score], ['RIVAL ' + vs.rival.name, vs.rival.score], ['WAVE (YOU / RIVAL)', Math.max(1, G.wave) + ' / ' + vs.rival.wave],
+    ['RAIDERS SENT', vs.sent], ['RAIDERS BLOCKED', vs.blocked], ['RAIDERS RECEIVED', vs.got], ['SCRAP EARNED', G.scrapRun],
+    ['VERSUS RECORD', record.vsWins + 'W ' + record.vsLosses + 'L' + (record.vsDraws ? ' ' + record.vsDraws + 'D' : '')]];
+  for (const [k, v] of rows) {
+    const dt = document.createElement('dt'); dt.textContent = k;
+    const dd = document.createElement('dd'); dd.textContent = String(v);
+    dl.append(dt, dd);
+  }
+  vsRematchUi();
+}
+function vsRematchUi() {
+  const linked = !!(vs.conn && vs.conn.open);
+  $('vrRematch').disabled = !linked || vs.again;
+  $('vrMsg').textContent = !linked ? 'YOUR RIVAL HAS LEFT.' : vs.again ? 'WAITING FOR ' + vs.rival.name + '...' : vs.theyAgain ? vs.rival.name + ' WANTS A REMATCH!' : '';
+}
+function vsRematch() {
+  if (state !== 'vsover' || vs.again || !vs.conn || !vs.conn.open) return;
+  vs.again = true;
+  vsSend({ t: 'again' });
+  vsRematchCheck();
+}
+function vsRematchCheck() {
+  if (state !== 'vsover') return;
+  if (vs.again && vs.theyAgain && vs.role === 'host') vsDeal();
+  else vsRematchUi();
+}
+// The link is gone: mid-match the pilot still flying wins; anywhere else it is just reported.
+function vsLost(left) {
+  vsClose();
+  if (vs.on && !vs.result) { vs.result = 'win'; vs.why = left ? VS_WHY.left : VS_WHY.lost; vsShowResult(); }
+  else if (state === 'vsover') vsRematchUi();
+  else if (state === 'versus' && vs.role) { vsDrop(); vsSay(left ? 'YOUR RIVAL LEFT.' : 'LOST CONTACT WITH YOUR RIVAL.'); vsRender(); }
+}
+function vsFail(kind) {
+  if (vs.on && !vs.result) { vsLost(false); return; }
+  vsDrop();
+  if (state === 'versus') { vsSay(VS_ERR[kind] || VS_ERR.webrtc); vsRender(); }
+  else if (state === 'vsover') vsRematchUi();
+}
+function vsClose() {
+  clearInterval(vs.beat);
+  vs.beat = 0;
+  const c = vs.conn;
+  vs.conn = null;
+  if (c) try { c.close(); } catch (e) { /* already closed */ }
+}
+// Leave for good: say bye (given a moment to arrive), then close the link and the room.
+function vsDrop() {
+  const c = vs.conn, p = vs.peer;
+  if (c && c.open) vsSend({ t: 'bye' });
+  clearInterval(vs.beat);
+  Object.assign(vs, { conn: null, peer: null, beat: 0, role: '', code: '', ready: false, on: false, countAt: 0, waitAt: 0,
+    inQ: 0, mine: null, theirs: null, result: '', again: false, theyAgain: false });
+  if (c || p) setTimeout(() => { try { if (c) c.close(); if (p) p.destroy(); } catch (e) { /* already gone */ } }, 300);
+}
+function vsBack() {
+  if (state === 'versus' && (vs.role || vs.countAt)) { vsDrop(); vsSay('MATCH CANCELLED.'); vsRender(); }
+  else if (state === 'versus' || state === 'vsover') showTitle(0);
+}
+function vsShare() {
+  const url = vsLink();
+  if (!url) return;
+  if (coarse && navigator.share) { navigator.share({ title: 'Nova Swarm versus', url }).catch(() => { /* the sheet was closed */ }); return; }
+  const done = () => vsSay('INVITE LINK COPIED. SEND IT TO YOUR RIVAL.\nWAITING FOR YOUR RIVAL TO JOIN...');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => vsSay(url));
+  else vsSay(url);
+}
+function vsCodeInput() { const el = $('vsCode'), v = vsClean(el.value); if (v !== el.value) el.value = v; }
+// With a pad on the code field: up / down turn the last character, right adds one, left deletes one.
+function vsPadCode(dir) {
+  const el = $('vsCode'), v = el.value;
+  if (el.disabled) return false;
+  if (dir === 'u' || dir === 'd') {
+    const at = v ? VS_ABC.indexOf(v[v.length - 1]) : dir === 'u' ? -1 : 0;
+    el.value = v.slice(0, -1) + VS_ABC[wrapIdx(at + (dir === 'u' ? 1 : -1), VS_ABC.length)];
+  } else if (dir === 'r' && v.length < 4) el.value = v + VS_ABC[0];
+  else if (dir === 'l' && v) el.value = v.slice(0, -1);
+  else return false;   // a full code moves on to JOIN, an empty one to whatever is left of it
+  Snd.tick();
+  return true;
+}
+function vsDebriefNote() { if (G.clear) $('dbNote').textContent = G.clear.note + ' · NEXT IN ' + Math.ceil(vs.autoT); }
+function handleVersusKey(e) {
+  const c = e.code, a = document.activeElement, field = a === $('vsCode');
+  if (c === 'Escape') { e.preventDefault(); if (!e.repeat && clock >= ui.readyAt) vsBack(); return; }
+  if (field) { if (c === 'Enter') { e.preventDefault(); if (!e.repeat) vsJoin(); } return; }   // typing stays in the field
+  if (state === 'versus' && !vs.role && !vs.countAt && /^(Key[A-Z]|Digit[2-9])$/.test(c)) { $('vsCode').focus(); return; }   // typing a code anywhere fills it in
+  if (c === 'KeyM') { e.preventDefault(); if (!e.repeat) cycleSound(); return; }
+  if (c !== 'Space' && c !== 'Enter') return;
+  if (a && a.tagName === 'BUTTON' && !a.disabled && !a.closest('[hidden]')) return;   // a focused button keeps its own Space / Enter
+  e.preventDefault();
+  if (e.repeat || clock < ui.readyAt) return;
+  if (state === 'vsover') vsRematch(); else vsHost();
+}
+// Runs every frame: the countdown, the connect timeout, the debrief that moves on by itself, and status for the rival.
+function vsTick(dt) {
+  if (vs.countAt) {
+    const left = vs.countAt - performance.now();
+    if (left <= 0) vsBegin();
+    else if (Math.ceil(left / 1000) !== vs.countN) {
+      vs.countN = Math.ceil(left / 1000);
+      vsSay(vsName() + ' VS ' + vs.rival.name + ' IN ' + REGION[vs.region].name + '\nSTARTING IN ' + vs.countN);
+      Snd.tick();
+    }
+  }
+  if (vs.waitAt && !vs.ready && performance.now() >= vs.waitAt) vsFail('timeout');
+  if (!vs.on) return;
+  if (state === 'debrief' && vs.autoT > 0) {
+    const was = Math.ceil(vs.autoT);
+    if ((vs.autoT -= dt) <= 0) proceedFromDebrief();
+    else if (Math.ceil(vs.autoT) !== was) vsDebriefNote();
+  }
+  if (state === 'play' && !vs.result && (vs.stT -= dt) <= 0) { vs.stT = 0.25; vsSendStatus(false); }
+}
+addEventListener('pagehide', () => { if (vs.conn) vsSend({ t: 'bye' }); });
+
 /* ================= gamepad: standard-mapping controller, menu focus, hints, rumble ================= */
 // Buttons follow the standard mapping: 0 A, 1 B, 2 X, 3 Y, 4 LB, 5 RB, 8 Back, 9 Start, 12-15 d-pad.
 const pad = { gp: null, active: false, mx: 0, my: 0, fire: false, armed: false, prev: [], dir: '', dirT: 0, fi: -1, fov: '' };
@@ -6052,7 +6615,8 @@ function padConfirm() {
   if (state === 'entry' && !opt.open) { padKey('Space'); return; }
   if (state === 'debrief' && reflex.on) { if (document.activeElement) document.activeElement.blur(); padKey('Space'); return; }
   const a = padFocused(ovId());
-  if (a) a.click(); else padKey('Space');
+  if (a && a.id === 'vsCode') vsJoin();
+  else if (a) a.click(); else padKey('Space');
 }
 function padTab(d) {
   if (opt.open) return;
@@ -6062,13 +6626,13 @@ function padTab(d) {
 }
 const ovId = () => OVERLAYS.find(o => !$(o).hidden) || null;
 const padVisible = b => !b.disabled && b.getClientRects().length > 0 && !b.closest('[hidden]');
-const padCands = id => [...$(id).querySelectorAll('button')].filter(padVisible);
+const padCands = id => [...$(id).querySelectorAll('button, input')].filter(padVisible);   // the versus code field is the only input
 function padFocused(id) {
   const a = document.activeElement;
-  return id && a && a.tagName === 'BUTTON' && $(id).contains(a) && padVisible(a) ? a : null;
+  return id && a && (a.tagName === 'BUTTON' || a.tagName === 'INPUT') && $(id).contains(a) && padVisible(a) ? a : null;
 }
 const PAD_HOME = { ovTitle: '#startBtn', ovPause: '#resumeBtn', ovOver: '#overBtn', ovDebrief: '#dbNext', ovWager: '#wgSkip', ovWheel: '#wheelSpin',
-  ovHangar: '.hg-tab[aria-selected="true"]', ovMap: '#mpGo', ovOptions: '.opt-next' };
+  ovHangar: '.hg-tab[aria-selected="true"]', ovMap: '#mpGo', ovOptions: '.opt-next', ovVersus: '#vsHost', ovVsResult: '#vrRematch' };
 function padHome(id, list) {
   const h = $(id).querySelector(PAD_HOME[id] || '.primary');
   return h && list.includes(h) ? h : list.find(b => b.classList.contains('primary')) || list[0];
@@ -6103,6 +6667,7 @@ function padFocus(dir) {
 }
 function padMove(dir) {
   if (clock < (ui.readyAt || 0) && state === 'entry') return;
+  if (document.activeElement === $('vsCode') && vsPadCode(dir)) return;
   if (opt.open || state === 'entry' || (state === 'map' && (dir === 'l' || dir === 'r'))) padKey(ARROW[dir]);
   else padFocus(dir);
 }
@@ -6124,6 +6689,7 @@ function padHints() {
   if (!keysHintHtml) keysHintHtml = $('keysHint').innerHTML;
   $('keysHint').innerHTML = on ? PAD_KEYS : keysHintHtml;
   $('pauseHint').textContent = on ? 'START OR B TO RESUME' : 'P OR ESC TO RESUME';
+  $('vsPadHint').hidden = !on;
   if (!coarse) $('entryHint').innerHTML = on ? 'D-PAD: PICK LETTERS<br>A: NEXT / SAVE &middot; B: BACK' : 'TYPE LETTERS OR USE ARROWS<br>ENTER TO SAVE';
   document.querySelectorAll('.kh').forEach(el => {
     if (el.dataset.k === undefined) el.dataset.k = el.textContent;
@@ -6207,13 +6773,14 @@ addEventListener('keydown', e => {
   if (opt.open) { handleOptKey(e); return; }
   if (state === 'entry') { handleEntryKey(e); return; }
   if (MENU_STATES.has(state)) { handleMenuKey(e); return; }
-  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || c === 'KeyX' || ((c === 'KeyH' || c === 'KeyC' || c === 'KeyG' || c === 'KeyR') && state === 'title')) e.preventDefault();
+  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || c === 'KeyX' || ((c === 'KeyH' || c === 'KeyC' || c === 'KeyG' || c === 'KeyR' || c === 'KeyV') && state === 'title')) e.preventDefault();
   if (c === 'KeyM') { if (!e.repeat) cycleSound(); return; }
   if (state === 'title') {
     if ((FIRE.has(c) || c === 'Enter') && !e.repeat) startGame();
     else if (c === 'KeyH' && !e.repeat) openHangar('title');
     else if (c === 'KeyG' && !e.repeat) openMap();
     else if (c === 'KeyC' && !e.repeat) startDaily();
+    else if (c === 'KeyV' && !e.repeat) openVersus();
     else if (c === 'KeyR' && !e.repeat) openRecords();
     else if (c === 'KeyO' && !e.repeat) openOptions();
     else if (MOVE[c] === 'l') showPanel(panelIdx - 1);
@@ -6226,7 +6793,7 @@ addEventListener('keydown', e => {
     if (c === 'KeyV' && !e.repeat) useAbility();
   } else if (state === 'paused') {
     if (!e.repeat && (c === 'KeyP' || c === 'Escape' || c === 'Enter' || FIRE.has(c))) resume();
-    else if (c === 'KeyQ') showTitle(0);
+    else if (c === 'KeyQ') quitRun();
     else if (c === 'KeyO' && !e.repeat) openOptions();
   } else if (state === 'over') {
     if (!e.repeat && (FIRE.has(c) || c === 'Enter')) continueFromOver();
@@ -6236,9 +6803,10 @@ addEventListener('keydown', e => {
 });
 // Menus between waves: Space/Enter is the safe default (continue, skip, no bet).
 // A button the player has tabbed to keeps its own Space/Enter behaviour.
-const MENU_STATES = new Set(['debrief', 'wager', 'hangar', 'wheel', 'map', 'records']);
+const MENU_STATES = new Set(['debrief', 'wager', 'hangar', 'wheel', 'map', 'records', 'versus', 'vsover']);
 function handleMenuKey(e) {
   const c = e.code, a = document.activeElement;
+  if (state === 'versus' || state === 'vsover') { handleVersusKey(e); return; }   // first: M is a room-code letter there
   if (c === 'KeyM') { e.preventDefault(); if (!e.repeat) cycleSound(); return; }
   if (state === 'records') { handleRecordsKey(e); return; }
   const confirm = c === 'Space' || c === 'Enter';
@@ -6309,7 +6877,7 @@ const onClick = (id, fn) => $(id).addEventListener('click', e => { fn(e); e.curr
 onClick('startBtn', startGame);
 $('ovEnding').addEventListener('click', skipEnding);
 onClick('resumeBtn', resume);
-onClick('quitBtn', () => showTitle(0));
+onClick('quitBtn', quitRun);
 onClick('overBtn', continueFromOver);
 onClick('saveBtn', saveEntry);
 onClick('soundBtn', cycleSound);
@@ -6336,6 +6904,14 @@ $('mapCv').addEventListener('click', e => {   // pick the nearest node; a second
 document.querySelectorAll('.js-set-prev').forEach(b => b.addEventListener('click', () => { shiftSet(-1); b.blur(); }));
 document.querySelectorAll('.js-set-next').forEach(b => b.addEventListener('click', () => { shiftSet(1); b.blur(); }));
 onClick('dailyBtn', startDaily);
+onClick('versusBtn', () => openVersus());
+onClick('vsHost', vsHost);
+onClick('vsJoin', vsJoin);
+onClick('vsCopy', vsShare);
+onClick('vsBack', vsBack);
+onClick('vrRematch', vsRematch);
+onClick('vrLeave', vsBack);
+$('vsCode').addEventListener('input', vsCodeInput);
 onClick('optionsBtn', openOptions);
 onClick('pauseOptBtn', openOptions);
 onClick('optReset', resetOptions);
@@ -6443,6 +7019,7 @@ function frame(now) {
   last = now;
   clock += dt;
   pollPad(dt);
+  vsTick(dt);
   if (state === 'play' || state === 'over' || state === 'entry') update(dt);
   else if (state !== 'paused') updateFx(dt);
   if (state === 'ending') tickEnding(dt);
@@ -6473,7 +7050,10 @@ function start(data) {
     state = 'play';
     resetGame(r);
     pause();
-  } else showTitle(0);
+  } else {
+    showTitle(0);
+    vsInvite();
+  }
   last = performance.now();
   requestAnimationFrame(frame);
 }
@@ -6482,7 +7062,7 @@ try {
   window.claude?.hot?.snapshot?.(() => {
     // between waves, resume at the next wave (the pending bonus is banked first)
     const between = state === 'debrief' || state === 'wager' || (state === 'hangar' && !hangarPreRun());
-    if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0 || daily) return {};
+    if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0 || fairRun()) return {};
     if (between) bankClear();
     return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, twin: player.twin, wings: player.wings, bombs: G.bombs, region: G.region, run: { ...RUN } } };
   });
