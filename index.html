@@ -6378,7 +6378,8 @@ function vsUpdate(dt) {
   for (let i = 0; i < n; i++) enemies.push(makeRaider(i * 0.35));
   vs.dropT = vs.inQ ? VS_WARN : 0;
 }
-// Raiders never join the formation and roll nothing on rng(), so the seeded waves stay the same for both pilots.
+// Raiders never join the formation, and their own rolls (type, spot, timing) use Math.random. Their shots aim like any
+// enemy's, through rng(), but every wave re-seeds it, so each wave still starts the same for both pilots.
 function makeRaider(delay) {
   const e = makeEnemy(G.wave >= 4 && Math.random() < 0.5 ? 'stinger' : 'drone', -1, -1);
   return Object.assign(e, { raider: true, state: 'raid', raidT: delay, x: frand(16, W - 16), y: -12 });
