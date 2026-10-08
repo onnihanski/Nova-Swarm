@@ -423,8 +423,9 @@
   .pit-opts .btn { display: flex; flex-direction: column; align-items: center; gap: var(--px); }
   .pit-opts .btn .fine { color: inherit; opacity: .75; }
   .rush-split { color: var(--teal); }
-  .title-actions .btn.sm { padding: calc(var(--px) * 1.5 + 2px) calc(var(--px) * 2.5 + 2px); }
-  /* six menu buttons: on a narrow screen they drop their key hints (the Menus panel lists the keys) to stay in two rows */
+  /* eight menu buttons: tight spacing keeps them in two rows under the start line, and on a narrow screen they also drop
+     their key hints (the Menus panel lists the keys) */
+  .title-actions .btn.sm { padding: calc(var(--px) * 1.5 + 2px) calc(var(--px) * 1.5 + 2px); letter-spacing: .04em; }
   @media (max-width: 400px) { .title-actions .kh { display: none; } }
   .odds {
     list-style: none;
@@ -749,6 +750,7 @@
             <dt>DAILY</dt><dd>C (TITLE)</dd>
             <dt>BOSS RUSH</dt><dd>B (TITLE)</dd>
             <dt>VERSUS</dt><dd>V (TITLE)</dd>
+            <dt>CO-OP</dt><dd>T (TITLE)</dd>
             <dt>RECORDS</dt><dd>R (TITLE)</dd>
             <dt>OPTIONS</dt><dd>O (TITLE + PAUSE)</dd>
           </dl>
@@ -772,6 +774,7 @@
         <button class="btn sm" type="button" id="dailyBtn">DAILY<span class="kh"> (C)</span></button>
         <button class="btn sm" type="button" id="rushBtn" aria-label="Boss Rush: every boss back to back against the clock">BOSS RUSH<span class="kh"> (B)</span></button>
         <button class="btn sm" type="button" id="versusBtn">VERSUS<span class="kh"> (V)</span></button>
+        <button class="btn sm" type="button" id="coopBtn" aria-label="Co-op: fly with a friend against the swarm">CO-OP<span class="kh"> (T)</span></button>
         <button class="btn sm" type="button" id="recordsBtn">RECORDS<span class="kh"> (R)</span><span class="c-amber" id="rcNew"></span></button>
         <button class="btn sm" type="button" id="optionsBtn">OPTIONS<span class="kh"> (O)</span></button>
       </div>
@@ -785,7 +788,7 @@
         <button class="btn" type="button" id="pauseOptBtn">OPTIONS<span class="kh"> (O)</span></button>
       </div>
       <p class="dimtxt" id="pauseHint">P OR ESC TO RESUME</p>
-      <p class="fine c-amber" id="pauseVs" hidden>VERSUS: YOUR RIVAL KEEPS FLYING WHILE YOU PAUSE.<br>FORFEIT ENDS THE MATCH AS A LOSS.</p>
+      <p class="fine c-amber" id="pauseVs" hidden></p>
       <p class="fine" id="pauseMissionsLbl">MISSIONS</p>
       <ul class="missions" id="pauseMissions"></ul>
       <p class="fine" id="pausePerksLbl">PERKS</p>
@@ -997,23 +1000,23 @@
       </div>
     </section>
 
-    <section class="ov solid" id="ovVersus" aria-label="Versus" hidden>
-      <div class="hg-head"><h2>VERSUS</h2><span class="wallet" id="vsWho"></span></div>
-      <p class="fine">YOU AND A RIVAL FLY THE SAME WAVES, EACH AGAINST YOUR OWN SWARM. COMBOS, NO-HIT WAVES, BOSSES AND OTHER FEATS SEND RAIDERS INTO THEIR SWARM, AND EACH RAIDER YOU SEND CANCELS ONE HEADED YOUR WAY. LAST SHIP FLYING WINS, OR BE FIRST TO CLEAR WAVE 10.</p>
+    <section class="ov solid" id="ovVersus" aria-label="Online match" hidden>
+      <div class="hg-head"><h2 id="vsHead">VERSUS</h2><span class="wallet" id="vsWho"></span></div>
+      <p class="fine" id="vsAbout"></p>
       <button class="btn primary" type="button" id="vsHost">HOST A MATCH</button>
       <div class="vs-room" id="vsRoom" hidden>
         <p class="fine">ROOM CODE</p>
         <p class="vs-room-code" id="vsRoomCode">----</p>
         <button class="btn sm" type="button" id="vsCopy">COPY INVITE LINK</button>
       </div>
-      <p class="fine" id="vsJoinLbl">OR TYPE YOUR RIVAL'S ROOM CODE</p>
+      <p class="fine" id="vsJoinLbl"></p>
       <div class="row vs-join">
         <input class="vs-code" id="vsCode" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Room code" placeholder="CODE">
         <button class="btn" type="button" id="vsJoin">JOIN</button>
       </div>
       <p class="fine" id="vsPadHint" hidden>D-PAD ON THE CODE: UP / DOWN PICKS A LETTER, RIGHT ADDS ONE, LEFT DELETES</p>
       <p class="msg" id="vsStatus" aria-live="polite"></p>
-      <p class="fine">EVERYONE FLIES A STRIKER WITH NO LOADOUT. THE FREE PEERJS SERVICE FINDS YOUR RIVAL, THEN YOUR BROWSERS CONNECT DIRECTLY, SO EACH OF YOU CAN SEE THE OTHER'S IP ADDRESS.</p>
+      <p class="fine" id="vsFine"></p>
       <button class="btn" type="button" id="vsBack"><span id="vsBackTxt">BACK</span><span class="kh"> (ESC)</span></button>
     </section>
 
@@ -1991,7 +1994,7 @@ const hulls = (() => {
   return { owned, sel: HULLS[h.sel] && owned[h.sel] ? h.sel : 'striker' };
 })();
 const saveHulls = () => store.set(HULL_KEY, hulls);
-const runHull = () => fairRun() ? 'striker' : hulls.sel;
+const runHull = () => daily || (vs.on && vs.mode === 'versus') ? 'striker' : hulls.sel;   // co-op pilots fly their own hull
 const hullStat = () => HULLS[runHull()];
 
 const STATS_KEY = 'nova-swarm-stats-v1';
@@ -2297,12 +2300,14 @@ const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: fal
 let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [], scrapBits = [], relicDrops = [];
 let boss = null;
 let shakeAmt = 0, flash = 0, warp = 0, clock = 0, nebY = 0;
-// An online versus match (see the versus section). on: from the match start until its result screen is left.
-const vs = { on: false, peer: null, conn: null, role: '', code: '', ready: false, seed: 0, region: 'home',
-  rival: { name: '???', score: 0, wave: 1, lives: 3 }, countAt: 0, countN: 0, waitAt: 0, t0: 0, heard: 0, beat: 0, stT: 0, lastSt: '', autoT: 0,
+// An online match (see the versus and co-op sections). on: from the match start until its result screen is left.
+// mode is 'versus' or 'coop'; rival is the other pilot either way (in co-op, your wingmate).
+const vs = { on: false, mode: 'versus', peer: null, conn: null, role: '', code: '', ready: false, seed: 0, region: 'home',
+  rival: { name: '???', score: 0, wave: 1, lives: 3, hull: 'striker', paint: null, phase: 0, foes: -1, boss: -1, bonus: false, down: false }, countAt: 0, countN: 0, waitAt: 0, t0: 0, heard: 0, beat: 0, stT: 0, lastSt: '', autoT: 0,
   inQ: 0, dropT: 0, sent: 0, got: 0, blocked: 0, mine: null, theirs: null, result: '', why: '', counted: '', again: false, theyAgain: false, deal: null, libP: null };
 // Daily and versus runs are fair runs: a Striker with no loadout, hangar, gambles or wager, on seeded waves.
 const fairRun = () => !!daily || vs.on;
+const coop = () => vs.on && vs.mode === 'coop';
 // the region being flown, and its swarm tint (the Prism Rift shifts it every wave)
 const runReg = () => REGION[G.region];
 function runTint() {
@@ -2411,7 +2416,7 @@ function nextWave() {
   } else {
     G.phaseT = 1.7;
     const where = G.region === 'home' ? '' : runReg().name;
-    const first = vs.on ? 'VERSUS' + (where ? ': ' + where : '') : daily ? 'DAILY CHALLENGE' + (where ? ': ' + where : '') : where || 'GET READY';
+    const first = vs.on ? (vs.mode === 'coop' ? 'CO-OP' : 'VERSUS') + (where ? ': ' + where : '') : daily ? 'DAILY CHALLENGE' + (where ? ': ' + where : '') : where || 'GET READY';
     const foe = eliteIntro(G.wave), cv = convoyWave(G.wave);   // a new foe is announced like a sector event; an event or a convoy then moves to the toast
     banner('WAVE ' + G.wave, foe ? 'NEW FOE: ' + foe : cv ? CONVOY_NAME : G.event ? EVENTS[G.event].name : G.wave === 1 ? first : '', G.event || foe ? 'warn' : cv ? 'good' : '', G.event || foe || cv ? 2 : 1.5);
     if (foe && G.event) toast(EVENTS[G.event].name, EVENTS[G.event].color);
@@ -2498,7 +2503,7 @@ function bonusClear() {
   mission('bonus', hits);
   saveStats();
   Rec.bonusStage(perfect);
-  vsAttack(perfect ? 3 : hits >= 36 ? 1 : 0);
+  vsFeat(perfect ? 3 : hits >= 36 ? 1 : 0);
   if (perfect && awardTrophy('trophy-golden')) extra.push(['TROPHY CARD', 'GOLDEN DRONE']);
   const pc = runReg().perfectCard;
   if (perfect && pc && awardTrophy(pc)) extra.push(['TROPHY CARD', byId(pc).name]);
@@ -2708,7 +2713,7 @@ function releaseCaptive(e) {
   rescue = { x: p.x, y: p.y, t: 0, side: 1 };
   mission('rescue');
   Rec.rescue();
-  vsAttack(1);
+  vsFeat(1);
   addScore(1000);
   popups.push({ text: '1000', x: p.x, y: p.y - 6, t: -0.6, c: PAL.t });
   G.extra.push(['FIGHTER RESCUED', '+1000']);
@@ -2924,7 +2929,7 @@ function convoyClear() {
     RUN.nextPowers.push(k);
     c.pts += CONVOY_BONUS.pts; c.scrap += CONVOY_BONUS.scrap;
     c.extra.push(['SUPPLY CRATE', POWERS[k].name]);
-    vsAttack(2);
+    vsFeat(2);
   }
 }
 // The supply crate: a random power-up, rolled like a drop and applied at the start of the next wave.
@@ -3250,7 +3255,7 @@ function squadHit(e) {
   addScore(SQUAD_BONUS);
   dropScrap(e.x, e.y, 3);
   mission('squad');
-  vsAttack(1);
+  vsFeat(1);
   popups.push({ text: String(SQUAD_BONUS), x: e.x, y: e.y - 10, t: -0.3, c: PAL.y });
   G.extra.push(['SQUADRON BROKEN', '+' + SQUAD_BONUS]);
   toast('SQUADRON BROKEN!', PAL.y);
@@ -3343,6 +3348,7 @@ function spawnBoss() {
     hp = boss.core.hp + boss.parts.reduce((a, p) => a + p.hp, 0);
     boss.hp = boss.max = hp;
   }
+  coopToughen(boss);
 }
 const ATTACKS = {
   queen: [['fan', 'stream', 'spawn'], ['fan2', 'stream', 'spawn', 'fan'], ['spiral', 'fan2', 'stream', 'spawn']],
@@ -3360,6 +3366,7 @@ function damagePart(b, p, n) {
   const d = Math.min(n, p.hp);
   if (d <= 0) return;
   p.hp -= d; b.hp -= d; p.flash = b.flash = 0.06;
+  coopDealt(b, b.parts.indexOf(p), d);
   abilityCharge(d / b.max * AB_BOSS);
   Snd.bossHit();
   if (p.hp > 0) return;
@@ -3374,6 +3381,7 @@ function damageCore(b, n) {
   const c = b.core, d = Math.min(n, c.hp);
   if (d <= 0) return;
   c.hp -= d; b.hp -= d; c.flash = b.flash = 0.06;
+  coopDealt(b, -1, d);
   abilityCharge(d / b.max * AB_BOSS);
   Snd.bossHit();
   if (c.hp <= 0) killBoss(b);
@@ -3533,6 +3541,7 @@ function damageBoss(n) {
   }
   if (b.kind === 'hive') { hiveHit(b, n); return; }
   b.hp -= n; b.flash = 0.06;
+  coopDealt(b, -2, Math.min(n, b.hp + n));
   abilityCharge(Math.min(n, b.hp + n) / b.max * AB_BOSS);
   Snd.bossHit();
   if (b.hp > 0) return;
@@ -3552,7 +3561,7 @@ function killBoss(b) {
   if (reg.bossCard && b.kind === reg.boss && awardTrophy(reg.bossCard)) G.extra.push(['TROPHY CARD', reg.bossName]);
   mission('boss');
   Rec.boss(b);
-  vsAttack(3);
+  vsFeat(3);
   if (b.kind === 'hive') G.extra.push(['HIVE MIND', 'DESTROYED']);
   G.extra.push(['BOSS SCRAP', '+' + (120 + 40 * b.k)]);
   Snd.bigBoom();
@@ -3569,6 +3578,7 @@ function hiveHit(b, n) {
   const floor = b.stage === 1 ? b.seg[1] + b.seg[2] : b.seg[2];
   const was = b.hp;
   b.hp = Math.max(floor, b.hp - n); b.flash = 0.06;
+  coopDealt(b, -2, was - b.hp);
   abilityCharge((was - b.hp) / b.max * AB_BOSS);
   Snd.bossHit();
   if (b.hp <= floor) startHivePhase(b);
@@ -3958,7 +3968,7 @@ function endAbility() { ab.od = ab.dash = ab.barrier = ab.lance = ab.window = 0;
 // Long effects lock the meter; the dash is short enough to fill it again.
 const abLocked = () => ab.od > 0 || ab.barrier > 0 || ab.lance > 0;
 function abilityCharge(v) {
-  if (ab.ready || abLocked() || G.lives <= 0) return;
+  if (ab.ready || abLocked() || G.lives <= 0 || co.mirror) return;
   ab.meter = Math.min(AB_FULL, ab.meter + v);
   if (ab.meter >= AB_FULL) { ab.ready = true; ab.flashT = 1; Snd.abilityReady(); }
 }
@@ -4174,6 +4184,7 @@ const REC_NUMS = ['runs', 'dailies', 'score', 'best', 'time', 'waves', 'bestWave
 const REC_MAPS = { kills: ETYPES, bosses: BOSSES, bossRegions: REGION, hullBest: HULLS };
 REC_NUMS.push('freighters', 'convoys');   // convoy escort: freighters through, whole convoys saved
 REC_NUMS.push('vsWins', 'vsLosses', 'vsDraws');   // versus: match results
+REC_NUMS.push('coopRuns', 'coopBest', 'coopRevives');   // co-op: runs, best wave reached, wingmates brought back
 const emptyRec = () => {
   const r = { medals: {}, seen: {}, legacy: false, lastDaily: '' };
   for (const k of REC_NUMS) r[k] = 0;
@@ -4283,7 +4294,9 @@ const MEDALS = [
   { id: 'escort', name: 'ESCORT', desc: 'GET {n} FREIGHTERS THROUGH', glyph: 'plus', tiers: [5, 25, 100], reward: [20, 40, 80], check: () => record.freighters },
   { id: 'convoy', name: 'CONVOY CAPTAIN', desc: 'SAVE {n} WHOLE CONVOYS', glyph: 'shield', tiers: [1, 5, 20], reward: [30, 60, 100], check: () => record.convoys },
   { id: 'drafter', name: 'SALVAGE CREW', desc: 'DRAFT {n} PERKS', glyph: 'gem', tiers: [25, 100, 250], reward: [20, 50, 100], check: () => record.perks },
-  { id: 'build', name: 'FULL BUILD', desc: 'HOLD {n} PERKS IN ONE RUN', glyph: 'plus', tiers: [6], reward: 60, check: () => record.bestRunPerks }
+  { id: 'build', name: 'FULL BUILD', desc: 'HOLD {n} PERKS IN ONE RUN', glyph: 'plus', tiers: [6], reward: 60, check: () => record.bestRunPerks },
+  { id: 'wingmates', name: 'WINGMATES', desc: 'REACH WAVE {n} IN CO-OP', glyph: 'arrow', tiers: [10, 15, 20], reward: [30, 60, 100], check: () => record.coopBest },
+  { id: 'lifeline', name: 'LIFELINE', desc: 'BRING A DOWNED WINGMATE BACK {n} TIMES', glyph: 'cross', tiers: [3, 15, 50], reward: [20, 50, 100], check: () => record.coopRevives }
 ];
 const medalTone = (m, i) => m.tiers.length === 1 ? 2 : i;
 const medalReward = (m, i) => Array.isArray(m.reward) ? m.reward[i] : m.reward;
@@ -4511,6 +4524,7 @@ function buildStats() {
     ['PERKS DRAFTED', fmtNum(r.perks)], ['MOST PERKS IN ONE RUN', fmtNum(r.bestRunPerks)]]);
   group('CONVOYS', [['FREIGHTERS SAVED', fmtNum(r.freighters)], ['WHOLE CONVOYS SAVED', fmtNum(r.convoys)]]);
   group('VERSUS', [['MATCHES', fmtNum(r.vsWins + r.vsLosses + r.vsDraws)], ['WINS', fmtNum(r.vsWins)], ['LOSSES', fmtNum(r.vsLosses)], ['DRAWS', fmtNum(r.vsDraws)]]);
+  group('CO-OP', [['RUNS', fmtNum(r.coopRuns)], ['BEST WAVE', fmtNum(r.coopBest)], ['WINGMATES BROUGHT BACK', fmtNum(r.coopRevives)]]);
 }
 function handleRecordsKey(e) {
   const c = e.code, a = document.activeElement, confirm = c === 'Space' || c === 'Enter';
@@ -4546,7 +4560,7 @@ function comboKill() {
   G.combo++;
   G.comboT = comboWin();
   const m = comboMult();
-  if (m > before) { Snd.combo(m); G.waveMult = Math.max(G.waveMult, m); G.bestMult = Math.max(G.bestMult, m); mission('combo', m); Rec.combo(m); vsAttack(VS_COMBO[m] || 0); }
+  if (m > before) { Snd.combo(m); G.waveMult = Math.max(G.waveMult, m); G.bestMult = Math.max(G.bestMult, m); mission('combo', m); Rec.combo(m); vsFeat(VS_COMBO[m] || 0); }
   return m;
 }
 function breakCombo() { G.combo = 0; G.comboT = 0; }
@@ -4928,20 +4942,20 @@ function update(dt) {
       if (Math.abs(s.x - e.x) <= sp.w / 2 + 0.5 && Math.abs(s.y - e.y) <= sp.h / 2 + 2) {
         s.dead = true;
         if (deflects(e, s)) { spark(s.x, s.y); Snd.ting(); break; }
-        G.hits++; damageEnemy(e, s.dmg || 1); break;
+        if (!s.ally) G.hits++; damageEnemy(e, s.dmg || 1); break;
       }
     }
-    if (!s.dead) for (const m of mines) if (!m.dead && Math.abs(s.x - m.x) <= 3 && Math.abs(s.y - m.y) <= 4) { s.dead = true; G.hits++; popMine(m, 30); break; }
-    if (!s.dead) for (const m of meteors) if (!m.dead && Math.abs(s.x - m.x) <= 4 && Math.abs(s.y - m.y) <= 4.5) { s.dead = true; G.hits++; hitMeteor(m, s.dmg || 1); break; }
-    if (!s.dead) for (const e of enemies) {
+    if (!s.dead) for (const m of mines) if (!m.dead && Math.abs(s.x - m.x) <= 3 && Math.abs(s.y - m.y) <= 4) { s.dead = true; if (!s.ally) G.hits++; popMine(m, 30); break; }
+    if (!s.dead) for (const m of meteors) if (!m.dead && Math.abs(s.x - m.x) <= 4 && Math.abs(s.y - m.y) <= 4.5) { s.dead = true; if (!s.ally) G.hits++; hitMeteor(m, s.dmg || 1); break; }
+    if (!s.dead && !s.ally) for (const e of enemies) {   // a co-op assist ship never shoots down your captured fighter
       if (e.dead || !e.captive) continue;
       const c = captivePos(e);
       if (Math.abs(s.x - c.x) <= 5.5 && Math.abs(s.y - c.y) <= 6) { s.dead = true; loseCaptive(e); break; }
     }
     if (!s.dead && boss && boss.state === 'fight') {
       const sp = boss.B.spr;
-      if (boss.parts) { const r = hitMother(boss, s); if (r) { s.dead = true; if (r === 'hit') G.hits++; } }
-      else if (Math.abs(s.x - boss.x) <= sp.w * 0.42 && Math.abs(s.y - boss.y) <= sp.h * 0.4) { s.dead = true; G.hits++; spark(s.x, s.y); damageBoss(boltBoss(s)); }
+      if (boss.parts) { const r = hitMother(boss, s); if (r) { s.dead = true; if (r === 'hit' && !s.ally) G.hits++; } }
+      else if (Math.abs(s.x - boss.x) <= sp.w * 0.42 && Math.abs(s.y - boss.y) <= sp.h * 0.4) { s.dead = true; if (!s.ally) G.hits++; spark(s.x, s.y); damageBoss(boltBoss(s)); }
     }
   }
   pshots = pshots.filter(s => !s.dead);
@@ -5509,7 +5523,9 @@ function pause() {
   renderPerkList($('pausePerks'));
   $('pausePerksLbl').hidden = $('pausePerks').hidden = rush.on;   // a rush deals no perks
   $('pauseVs').hidden = !vs.on;
-  $('quitBtn').textContent = vs.on ? 'FORFEIT' : 'QUIT';
+  $('pauseVs').innerHTML = coop() ? 'CO-OP: YOUR WINGMATE KEEPS FLYING WHILE YOU PAUSE.<br>LEAVE ENDS YOUR RUN, AND THEY FLY ON SOLO.'
+    : 'VERSUS: YOUR RIVAL KEEPS FLYING WHILE YOU PAUSE.<br>FORFEIT ENDS THE MATCH AS A LOSS.';
+  $('quitBtn').textContent = coop() ? 'LEAVE' : vs.on ? 'FORFEIT' : 'QUIT';
   showOverlay('ovPause');
   Snd.hold(true);
 }
@@ -5520,8 +5536,8 @@ function resume() {
   Snd.unlock();
   Snd.hold(false);
 }
-// Quitting a versus run forfeits the match (or, once it is decided, goes straight to its result).
-function quitRun() { if (!vs.on) showTitle(0); else if (vs.result) vsShowResult(); else vsFinal('quit'); }
+// Quitting a versus run forfeits the match, and leaving a co-op run ends yours (or, once it is decided, goes straight to its result).
+function quitRun() { if (!vs.on) showTitle(0); else if (vs.result) vsShowResult(); else if (coop()) coopLeave(); else vsFinal('quit'); }
 function showTitle(panel, hl) {
   vsDrop();
   state = 'title';
@@ -5553,8 +5569,9 @@ function showTitle(panel, hl) {
   updateHud();
 }
 function showGameOver() {
-  if (vs.on) { vsShowResult(); return; }
   if (rush.on) { rushResults(); return; }
+  if (coop() && !vs.result) { coopOut(); return; }
+  if (vs.on) { vsShowResult(); return; }
   state = 'over';
   Snd.stop();
   Snd.over();
@@ -5710,7 +5727,7 @@ function dealHand(rnd) {
 }
 // Returns false when there is nothing to deal (every perk maxed), so the flow carries on.
 function openDraft() {
-  const rnd = runSeed() ? seeded(hashStr(runSeed() + ':draft:' + G.wave)) : Math.random;   // daily and versus pilots get the same hands
+  const rnd = runSeed() ? seeded(hashStr(runSeed() + ':draft:' + G.wave)) : Math.random;   // daily and online pilots get the same hands
   draft.hand = dealHand(rnd);
   if (!draft.hand.length) { G.clear.drafted = true; return false; }
   state = 'draft';
@@ -5849,8 +5866,8 @@ function imgOf(url, cls) { const i = document.createElement('img'); i.alt = ''; 
 
 /* ---- wave debrief + double or nothing ---- */
 function openDebrief() {
-  if (vs.on && vs.result) { vsShowResult(); return; }
   if (rush.on) { rushAfterFight(); return; }
+  if (vs.on && vs.result) { vsShowResult(); return; }
   flushScrap();
   flushRelics();
   if (rescue && player.alive) dockRescue();
@@ -5956,6 +5973,7 @@ function resumeRun() {
   state = 'play';
   keys.clear();
   showOverlay(null);
+  if (coopHold()) return;
   if (G.pendingBonus) startBonusIntro(); else nextWave();
 }
 
@@ -6653,7 +6671,7 @@ function handleOptKey(e) {
 const VS_LIB = ['https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js', 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js',
   'https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js'];
 const VS_SRI = 'sha384-x0YgkOr/3UOZP2CRDxGW9e0Q+2Qjyr3uJrm4xU32Y7ZCNAo7Cc7bjhrZMi/dwczu';
-const VS_PROTO = 1;                                  // bump when messages change, so mismatched pages refuse each other
+const VS_PROTO = 2;                                  // bump when messages change, so mismatched pages refuse each other
 const VS_PREFIX = 'nova-swarm-vs-';                  // a room code's PeerJS id
 const VS_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // room codes skip I, O, 0 and 1
 const VS_WAVES = 10, VS_COUNT = 3, VS_AUTO = 4;      // the finish wave; countdown seconds; seconds before a debrief moves on
@@ -6661,6 +6679,14 @@ const VS_QUEUE = 12, VS_LIVE = 6, VS_WARN = 2;       // raiders queued at most, 
 const VS_COMBO = { 4: 1, 6: 1, 8: 2 };               // raiders sent when a combo reaches x4, x6 and x8
 const VS_TIMEOUT = 20, VS_CONNECT = 20;              // seconds of silence before the link counts as lost; seconds to link up
 const VS_REC = { win: 'vsWins', lose: 'vsLosses', draw: 'vsDraws' };
+// The lobby's words for each mode; mate is what the other pilot is called.
+const VS_TEXT = {
+  versus: { head: 'VERSUS', mate: 'RIVAL', about: 'YOU AND A RIVAL FLY THE SAME WAVES, EACH AGAINST YOUR OWN SWARM. COMBOS, NO-HIT WAVES, BOSSES AND OTHER FEATS SEND RAIDERS INTO THEIR SWARM, AND EACH RAIDER YOU SEND CANCELS ONE HEADED YOUR WAY. LAST SHIP FLYING WINS, OR BE FIRST TO CLEAR WAVE ' + VS_WAVES + '.',
+    fine: 'EVERYONE FLIES A STRIKER WITH NO LOADOUT.' },
+  coop: { head: 'CO-OP', mate: 'WINGMATE', about: 'YOU AND A WINGMATE TAKE ON THE SWARM TOGETHER, EACH ON YOUR OWN SCREEN. EVERY WAVE STARTS FOR BOTH OF YOU AT ONCE, A BOSS TAKES THE DAMAGE YOU BOTH DEAL, FEATS SEND YOUR SHIP TO FIGHT AT THEIR SIDE, AND A PILOT WHO GOES DOWN IS BACK ONCE THE OTHER CLEARS THE WAVE. IT ENDS WHEN YOU ARE BOTH DOWN.',
+    fine: "EACH OF YOU FLIES YOUR OWN HULL WITH NO LOADOUT, ON THE HOST'S COURSE." }
+};
+const vsMate = () => VS_TEXT[vs.mode].mate;
 const VS_WHY = {
   'my-out': 'YOU RAN OUT OF SHIPS', 'my-quit': 'YOU FORFEITED', 'my-clear': 'YOU CLEARED WAVE ' + VS_WAVES + ' FIRST',
   'their-out': 'YOUR RIVAL RAN OUT OF SHIPS', 'their-quit': 'YOUR RIVAL FORFEITED', 'their-clear': 'YOUR RIVAL CLEARED WAVE ' + VS_WAVES + ' FIRST',
@@ -6675,7 +6701,7 @@ const VS_ERR = {
   'socket-error': 'LOST THE MATCHMAKING SERVER. TRY AGAIN.',
   'socket-closed': 'LOST THE MATCHMAKING SERVER. TRY AGAIN.',
   webrtc: 'THE DIRECT LINK FAILED. TRY AGAIN.',
-  version: 'YOUR RIVAL HAS ANOTHER VERSION OF THE GAME. BOTH RELOAD THE PAGE.',
+  version: 'THE OTHER PILOT HAS ANOTHER VERSION OF THE GAME. BOTH RELOAD THE PAGE.',
   full: 'THAT ROOM ALREADY HAS TWO PILOTS.',
   timeout: 'COULD NOT CONNECT. ONE OF YOUR NETWORKS MAY BLOCK DIRECT LINKS.',
   lib: 'COULD NOT LOAD THE ONLINE PLAY LIBRARY. CHECK YOUR CONNECTION.'
@@ -6683,7 +6709,7 @@ const VS_ERR = {
 const vsNum = (v, lo, hi) => Number.isFinite(v) ? clamp(Math.floor(v), lo, hi) : lo;
 const vsName = () => { const n = store.get('nova-swarm-initials', ''); return typeof n === 'string' && /^[A-Z]{3}$/.test(n) ? n : '???'; };
 const vsClean = str => [...String(str).toUpperCase()].filter(ch => VS_ABC.includes(ch)).join('').slice(0, 4);
-const vsLink = () => /^https?:$/.test(location.protocol) && vs.code ? location.origin + location.pathname + '#vs=' + vs.code : '';
+const vsLink = () => /^https?:$/.test(location.protocol) && vs.code ? location.origin + location.pathname + (vs.mode === 'coop' ? '#co=' : '#vs=') + vs.code : '';
 const vsNow = () => (performance.now() - vs.t0) / 1000;   // the match clock
 
 /* ---- the lobby: load PeerJS, host a room or join one ---- */
@@ -6702,27 +6728,33 @@ function vsLoadLib() {
   });
   return vs.libP;
 }
-function openVersus(code) {
+// The lobby, for a versus match or a co-op run. A guest takes the host's mode once linked.
+function openVersus(mode, code) {
   if (state !== 'title') return;
   state = 'versus';
+  vs.mode = mode === 'coop' ? 'coop' : 'versus';
   $('vsCode').value = code || '';
-  vsSay(code ? '' : 'HOST A MATCH AND SEND YOUR RIVAL THE CODE, OR JOIN THEIRS.');
+  vsSay(code ? '' : 'HOST A MATCH AND SEND YOUR ' + vsMate() + ' THE CODE, OR JOIN THEIRS.');
   showOverlay('ovVersus');
   vsRender();
   ui.readyAt = clock + 0.3;
   if (code) vsJoin();
 }
-// An invite link (#vs=CODE) opens the lobby and joins that room.
+// An invite link (#vs=CODE for versus, #co=CODE for co-op) opens the lobby and joins that room.
 function vsInvite() {
-  const m = /^#vs=([a-z0-9]{4})$/i.exec(location.hash);
+  const m = /^#(vs|co)=([a-z0-9]{4})$/i.exec(location.hash);
   if (!m) return;
   try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* the hash stays: harmless */ }
-  const code = vsClean(m[1]);
-  if (code.length === 4) openVersus(code);
+  const code = vsClean(m[2]);
+  if (code.length === 4) openVersus(m[1].toLowerCase() === 'co' ? 'coop' : 'versus', code);
 }
 function vsSay(text) { $('vsStatus').textContent = text; }
 function vsRender() {
-  const busy = !!vs.role;
+  const busy = !!vs.role, tx = VS_TEXT[vs.mode];
+  $('vsHead').textContent = tx.head;
+  $('vsAbout').textContent = tx.about;
+  $('vsJoinLbl').textContent = 'OR TYPE YOUR ' + tx.mate + "'S ROOM CODE";
+  $('vsFine').textContent = tx.fine + ' THE FREE PEERJS SERVICE FINDS YOUR ' + tx.mate + ", THEN YOUR BROWSERS CONNECT DIRECTLY, SO EACH OF YOU CAN SEE THE OTHER'S IP ADDRESS.";
   $('vsHost').disabled = $('vsJoin').disabled = $('vsCode').disabled = busy;
   $('vsRoom').hidden = !(vs.role === 'host' && vs.peer && vs.peer.open && !vs.conn);
   $('vsRoomCode').textContent = vs.code || '----';
@@ -6742,7 +6774,7 @@ function vsOpenRoom(tries) {
   if (state !== 'versus' || vs.role !== 'host' || vs.peer) return;
   vs.code = Array.from({ length: 4 }, () => VS_ABC[Math.floor(Math.random() * VS_ABC.length)]).join('');
   const p = vs.peer = new Peer(VS_PREFIX + vs.code);
-  p.on('open', () => { if (p !== vs.peer) return; vsSay('WAITING FOR YOUR RIVAL TO JOIN...'); vsRender(); });
+  p.on('open', () => { if (p !== vs.peer) return; vsSay('WAITING FOR YOUR ' + vsMate() + ' TO JOIN...'); vsRender(); });
   p.on('connection', c => {
     if (p !== vs.peer) return;
     if (vs.conn || vs.ready) { c.on('open', () => { c.send({ t: 'full' }); setTimeout(() => c.close(), 500); }); return; }   // a room holds two pilots, once
@@ -6760,7 +6792,7 @@ function vsJoin() {
   if (state !== 'versus' || vs.role) return;
   const code = vsClean($('vsCode').value);
   $('vsCode').value = code;
-  if (code.length !== 4) { vsSay('TYPE THE 4-CHARACTER ROOM CODE YOUR RIVAL SEES.'); return; }
+  if (code.length !== 4) { vsSay('TYPE THE 4-CHARACTER ROOM CODE YOUR ' + vsMate() + ' SEES.'); return; }
   vs.role = 'guest'; vs.code = code;
   vsSay('LOOKING FOR ROOM ' + code + '...');
   vsRender();
@@ -6787,14 +6819,16 @@ function vsBind(c) {
     vsHello();
     clearInterval(vs.beat);
     vs.beat = setInterval(vsBeat, 1000);   // a timer, not the frame loop, so a hidden tab still keeps in touch
-    vsSay('RIVAL FOUND. SAYING HELLO...');
+    vsSay('PILOT FOUND. SAYING HELLO...');
     vsRender();
   });
   c.on('data', d => { if (c === vs.conn) vsMsg(d); });
   c.on('close', () => { if (c === vs.conn) vsLost(false); });
   c.on('error', () => { if (c === vs.conn) vsLost(false); });
 }
-function vsHello() { vsSend({ t: 'hello', v: VS_PROTO, name: vsName() }); }
+// A hello names the pilot and the room's mode, plus the hull and paint a co-op wingmate's assists fly in (a guest's mode is ignored).
+const vsHelloMsg = () => ({ t: 'hello', v: VS_PROTO, name: vsName(), mode: vs.mode, hull: hulls.sel, paint: album.equip.paint || '' });
+function vsHello() { vsSend(vsHelloMsg()); }
 function vsSend(m) { const c = vs.conn; if (c && c.open) try { c.send(m); } catch (e) { /* the close event follows */ } }
 function vsBeat() {
   if (!vs.conn || !vs.conn.open) return;
@@ -6803,13 +6837,17 @@ function vsBeat() {
   if (!vs.ready || (vs.role === 'guest' && state === 'versus' && !vs.countAt && !vs.on)) vsHello();
   vsSendStatus(true);
 }
+// Status: score, wave and ships; in co-op also how the wave is going (foes left, the boss's health, a challenging stage).
 function vsSendStatus(force) {
-  const st = vs.on ? G.score + '/' + G.wave + '/' + G.lives : '';
+  const m = vs.on ? { t: 'st', s: G.score, w: G.wave, l: Math.max(0, G.lives) } : { t: 'ping' };
+  if (coop()) Object.assign(m, coopProgress());
+  const st = JSON.stringify(m);
   if (!force && st === vs.lastSt) return;
   vs.lastSt = st;
-  vsSend(vs.on ? { t: 'st', s: G.score, w: G.wave, l: Math.max(0, G.lives) } : { t: 'ping' });
+  vsSend(m);
 }
-// Messages from the rival: hello, start, st (status), atk (raiders), fin (a final), again (rematch), full, bye, ping.
+// Messages from the other pilot: hello, start, st (status), atk (raiders), fin (a final), again (rematch), full, bye, ping,
+// and in co-op cs (ready for a step), dn (down), rv (revived), as (an assist), bd (boss damage) and left.
 function vsMsg(d) {
   if (!d || typeof d !== 'object' || typeof d.t !== 'string') return;
   vs.heard = performance.now();
@@ -6818,36 +6856,44 @@ function vsMsg(d) {
       if (!vsGreet(d)) return;
       if (vs.role === 'host' && vs.countAt) vsSend(Object.assign({}, vs.deal, { left: vs.countAt - performance.now() }));   // the guest missed the start
       else if (vs.role === 'host' && !vs.on && state === 'versus') vsDeal();
-      else if (vs.role === 'guest' && !vs.countAt && !vs.on) vsSay('LINKED WITH ' + vs.rival.name + '. THE HOST IS STARTING THE MATCH...');
+      else if (vs.role === 'guest' && !vs.countAt && !vs.on) { vsSay('LINKED WITH ' + vs.rival.name + (vs.mode === 'coop' ? ' FOR CO-OP' : '') + '. THE HOST IS STARTING THE MATCH...'); vsRender(); }
       break;
-    case 'start':   // it carries the host's hello too, in case that one was lost
+    case 'start':   // it carries the host's hello too (name, mode, hull, paint), in case that one was lost
       if (vs.role === 'guest' && (state === 'versus' || state === 'vsover') && !(vs.countAt && d.seed === vs.seed) && vsGreet(d)) vsCountdown(d);
       break;
     case 'st': if (vs.on) vsRivalStatus(d); break;
     case 'atk': vsIncoming(d.n); break;
     case 'fin': vsTheirFinal(d); break;
     case 'again': vs.theyAgain = true; vsRematchCheck(); break;
+    case 'cs': case 'dn': case 'rv': case 'as': case 'bd': case 'left': coopMsg(d); break;
     case 'full': vsFail('full'); break;
     case 'bye': vsLost(true); break;
   }
 }
-// The host deals the match: the seed for the waves and a region (never the Hive Heart), for a first match or a rematch.
+// The host deals the match: the seed for the waves and a region, for a first match or a rematch. Versus picks one at random
+// (never the Hive Heart); co-op flies the host's course, so a friend can take you anywhere they have charted.
 function vsDeal() {
-  const m = vs.deal = { t: 'start', v: VS_PROTO, name: vsName(), seed: Math.floor(Math.random() * 4294967296), region: DAILY_POOL[Math.floor(Math.random() * DAILY_POOL.length)].id };
+  const region = vs.mode === 'coop' ? regions.sel : DAILY_POOL[Math.floor(Math.random() * DAILY_POOL.length)].id;
+  const m = vs.deal = Object.assign(vsHelloMsg(), { t: 'start', seed: Math.floor(Math.random() * 4294967296), region });
   vsSend(m);
   vsCountdown(m);
 }
-// A hello (or a start, which carries one): check the version, take the rival's name, and mark the pair linked.
+// A hello (or a start, which carries one): check the version, take the rival's name, hull and paint (a guest also takes
+// the room's mode), and mark the pair linked.
 // Linked pilots no longer need the broker, so the room code is released: nobody else can join a match in progress.
 function vsGreet(d) {
-  if (d.v !== VS_PROTO) { vsFail('version'); return false; }
-  vs.rival.name = typeof d.name === 'string' && /^[A-Z?]{3}$/.test(d.name) ? d.name : '???';
+  if (d.v !== VS_PROTO) { if (!vs.ready) vsFail('version'); return false; }   // once linked, a stray hello is just ignored
+  const r = vs.rival, paint = typeof d.paint === 'string' && byId(d.paint);
+  r.name = typeof d.name === 'string' && /^[A-Z?]{3}$/.test(d.name) ? d.name : '???';
+  r.hull = typeof d.hull === 'string' && Object.prototype.hasOwnProperty.call(HULLS, d.hull) ? d.hull : 'striker';
+  r.paint = paint && paint.kind === 'paint' ? d.paint : null;
+  if (vs.role === 'guest' && Object.prototype.hasOwnProperty.call(VS_TEXT, d.mode)) vs.mode = d.mode;   // the host's room decides the mode
   if (!vs.ready) { vs.ready = true; if (vs.peer && !vs.peer.disconnected) vs.peer.disconnect(); }
   return true;
 }
 function vsCountdown(m) {
   vs.seed = vsNum(m.seed, 0, 4294967295);
-  vs.region = DAILY_POOL.some(r => r.id === m.region) ? m.region : 'home';
+  vs.region = (vs.mode === 'coop' ? REGIONS : DAILY_POOL).some(r => r.id === m.region) ? m.region : 'home';
   vs.on = false; vs.again = vs.theyAgain = false;
   vs.countAt = performance.now() + (Number.isFinite(m.left) ? clamp(m.left, 0, VS_COUNT * 1000) : VS_COUNT * 1000);
   vs.countN = 0;
@@ -6859,36 +6905,43 @@ function vsBegin() {
   vs.countAt = 0;
   Object.assign(vs, { on: true, t0: performance.now(), inQ: 0, dropT: 0, sent: 0, got: 0, blocked: 0, mine: null, theirs: null,
     result: '', why: '', counted: '', autoT: 0, stT: 0, lastSt: '' });
-  Object.assign(vs.rival, { score: 0, wave: 1, lives: 3 });
+  Object.assign(vs.rival, { score: 0, wave: 1, lives: 3, phase: 0, foes: -1, boss: -1, bonus: false, down: false });
+  coopReset();
   daily = null;
   Snd.unlock();
   state = 'play';
   resetGame();                 // no loadout: both pilots start equal, in a Striker, on the same seeded waves
   Rec.runStart();
   G.missions = rollMissions(seeded(hashStr(runSeed() + ':missions')));
-  $('hudHiLbl').textContent = 'RIVAL W1';
+  $('hudHiLbl').textContent = vsHiLbl();
   showOverlay(null);
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  toast('FIRST TO CLEAR WAVE ' + VS_WAVES + ' WINS', PAL.a);
+  if (vs.mode === 'coop') toast('CO-OP WITH ' + vs.rival.name, PAL.t);
+  else toast('FIRST TO CLEAR WAVE ' + VS_WAVES + ' WINS', PAL.a);
 }
+// The HUD's high-score slot shows the other pilot: their wave (or, in co-op, that they are down).
+const vsHiLbl = () => vs.mode === 'coop' ? vs.rival.name + (co.solo ? ' GONE' : vs.rival.down ? ' DOWN' : ' W' + vs.rival.wave) : 'RIVAL W' + vs.rival.wave;
 function vsRivalStatus(d) {
-  const r = vs.rival, lives = vsNum(d.l, 0, 9), w = vsNum(d.w, 1, 999);
-  if (state === 'play' && !vs.result && lives > 0 && lives < r.lives) toast(lives === 1 ? 'YOUR RIVAL IS ON THEIR LAST SHIP' : 'YOUR RIVAL LOST A SHIP', PAL.a);
+  const r = vs.rival, lives = vsNum(d.l, 0, 9), w = vsNum(d.w, 1, 999), who = vs.mode === 'coop' ? r.name : 'YOUR RIVAL';
+  if (state === 'play' && !vs.result && lives > 0 && lives < r.lives) toast(who + (lives === 1 ? ' IS ON THEIR LAST SHIP' : ' LOST A SHIP'), PAL.a);
   r.score = vsNum(d.s, 0, 1e9);
   r.lives = lives;
-  if (w !== r.wave) { r.wave = w; if (state !== 'vsover') $('hudHiLbl').textContent = 'RIVAL W' + w; }
+  r.wave = w;
+  if (vs.mode === 'coop') coopStatus(d);
+  if (state !== 'vsover') $('hudHiLbl').textContent = vsHiLbl();
 }
 
 /* ---- raiders: sent by feats, cancelled by your own sends, flown in when the moment is fair ---- */
-function vsAttack(n) {
+function vsFeat(n) {
   if (!vs.on || !n || vs.mine || vs.result || G.lives <= 0) return;
+  if (vs.mode === 'coop') { coopFeat(n); return; }   // in co-op a feat sends help instead
   const block = Math.min(n, vs.inQ), x = clamp(player.x, 22, W - 22);
   vs.inQ -= block; vs.blocked += block; n -= block;
   if (block) popups.push({ text: 'BLOCKED ' + block, x, y: player.y - 22, t: -0.4, c: PAL.t });
   if (n) { vsSend({ t: 'atk', n }); vs.sent += n; popups.push({ text: 'SENT ' + n, x, y: player.y - 14, t: -0.4, c: PAL.y }); Snd.blip(); }
 }
 function vsIncoming(n) {
-  if (!vs.on || vs.mine || vs.result) return;
+  if (!vs.on || vs.mode !== 'versus' || vs.mine || vs.result) return;
   n = vsNum(n, 1, 6);
   vs.got += n;
   vs.inQ = Math.min(VS_QUEUE, vs.inQ + n);
@@ -6896,6 +6949,7 @@ function vsIncoming(n) {
   if (state === 'play') toast('INCOMING: ' + vs.inQ + ' RAIDER' + (vs.inQ > 1 ? 'S' : ''), PAL.c);
 }
 function vsUpdate(dt) {
+  if (coop()) { coopUpdate(dt); return; }
   if (!vs.on || !vs.inQ || vs.mine || vs.result || G.lives <= 0) return;
   if (G.phase !== 'active' || G.bonus || G.entering > 0 || !player.alive || (boss && boss.state !== 'fight')) return;   // wait for a fair moment
   if ((vs.dropT -= dt) > 0) return;
@@ -6929,12 +6983,14 @@ function startRaid(e) {
 }
 function raidAgain(e) { Object.assign(e, { state: 'raid', raidT: frand(0.8, 1.6), x: frand(16, W - 16), y: -12, a: 0, shots: [] }); }
 function drawRaiders() {
+  if (coop()) { drawAlly(); return; }
   if (!vs.on) return;
   const d = Math.floor(clock * 10) % 3;
   for (const e of enemies) if (e.raider && !e.dead && e.state === 'path') ringPts(e.x, e.y, 7, PAL.r, d);
 }
 // Queued raiders: a red bar up the left edge, one notch each, blinking just before they fly in.
 function drawVsHud() {
+  if (coop()) { drawCoopHud(); return; }
   if (!vs.on || !vs.inQ) return;
   cx.fillStyle = vs.dropT > 0 && vs.dropT < 0.8 && Math.floor(clock * 8) % 2 ? PAL.w : PAL.r;
   for (let i = 0; i < vs.inQ; i++) cx.fillRect(1, H - 17 - i * 5, 2, 4);
@@ -6942,18 +6998,19 @@ function drawVsHud() {
 
 /* ---- the end of a match: finals, the result screen, rematches ---- */
 function vsCleared(noHit) {
-  if (noHit) vsAttack(1);
-  if (G.wave >= VS_WAVES) vsFinal('clear');
+  if (noHit) vsFeat(1);
+  if (coop()) coopCleared();
+  else if (vs.on && G.wave >= VS_WAVES) vsFinal('clear');
 }
 // A final: this pilot ran out of ships ('out'), cleared the finish wave ('clear') or forfeited ('quit').
 function vsFinal(k) {
-  if (!vs.on || vs.mine || vs.result) return;
+  if (!vs.on || vs.mode !== 'versus' || vs.mine || vs.result) return;
   vs.mine = { k, at: vsNow() };
   vsSend({ t: 'fin', k, at: vs.mine.at, s: G.score, w: G.wave });
   vsResolve();
 }
 function vsTheirFinal(d) {
-  if (!vs.on || vs.theirs) return;
+  if (!vs.on || vs.mode !== 'versus' || vs.theirs) return;
   vs.theirs = { k: d.k === 'clear' || d.k === 'quit' ? d.k : 'out', at: Number.isFinite(d.at) ? d.at : Infinity };
   if (Number.isFinite(d.s)) vs.rival.score = vsNum(d.s, 0, 1e9);
   if (Number.isFinite(d.w)) vs.rival.wave = vsNum(d.w, 1, 999);
@@ -6983,7 +7040,7 @@ function vsShowResult() {
     touch.id = null;
     Snd.hold(false);
     Snd.stop();
-    if (vs.result === 'win') Snd.win(); else if (vs.result === 'lose') Snd.over(); else if (vs.result === 'draw') Snd.jingle(); else Snd.lose();
+    if (vs.result === 'win') Snd.win(); else if (vs.result === 'lose' || vs.result === 'over') Snd.over(); else if (vs.result === 'draw') Snd.jingle(); else Snd.lose();
     hideBanners();
     flushScrap();
     if (G.lives > 0) flushRelics();
@@ -6999,6 +7056,7 @@ function vsShowResult() {
 }
 // Results go in the pilot record (no contest is not counted); a crossed final that flips the result moves the count with it.
 function vsCount() {
+  if (vs.mode === 'coop') { coopCount(); return; }
   if (vs.counted === vs.result) return;
   if (VS_REC[vs.counted]) record[VS_REC[vs.counted]] = Math.max(0, record[VS_REC[vs.counted]] - 1);
   vs.counted = vs.result;
@@ -7006,6 +7064,7 @@ function vsCount() {
   Rec.save();
 }
 function vsRenderResult() {
+  if (vs.mode === 'coop') { coopRenderResult(); return; }
   const r = vs.result, dl = $('vrLines');
   $('vrTitle').textContent = r === 'win' ? 'YOU WIN' : r === 'lose' ? 'YOU LOSE' : r === 'draw' ? 'DRAW' : 'NO CONTEST';
   $('vrTitle').className = 'big ' + (r === 'win' ? 'c-amber' : r === 'lose' ? 'c-coral' : r === 'draw' ? 'c-teal' : 'c-dim');
@@ -7024,7 +7083,8 @@ function vsRenderResult() {
 function vsRematchUi() {
   const linked = !!(vs.conn && vs.conn.open);
   $('vrRematch').disabled = !linked || vs.again;
-  $('vrMsg').textContent = !linked ? 'YOUR RIVAL HAS LEFT.' : vs.again ? 'WAITING FOR ' + vs.rival.name + '...' : vs.theyAgain ? vs.rival.name + ' WANTS A REMATCH!' : '';
+  $('vrMsg').textContent = !linked ? 'YOUR ' + vsMate() + ' HAS LEFT.' : vs.again ? 'WAITING FOR ' + vs.rival.name + '...' : vs.theyAgain ? vs.rival.name + ' WANTS A REMATCH!'
+    : coop() && !vs.rival.down ? vs.rival.name + ' IS STILL FLYING.' : '';
 }
 function vsRematch() {
   if (state !== 'vsover' || vs.again || !vs.conn || !vs.conn.open) return;
@@ -7037,13 +7097,15 @@ function vsRematchCheck() {
   if (vs.again && vs.theyAgain && vs.role === 'host') vsDeal();
   else vsRematchUi();
 }
-// The link is gone. Mid-match, a rival who said bye (left the page) hands the pilot still flying the win; a link that
-// just went silent or dropped is no contest, since both sides lose contact and neither can tell whose end failed.
+// The link is gone. In co-op, the pilot still flying flies on solo. In versus, mid-match, a rival who said bye (left the page)
+// hands the pilot still flying the win, while a link that just went silent or dropped is no contest: both sides lose contact
+// and neither can tell whose end failed. Anywhere else it is just reported.
 function vsLost(left) {
   vsClose();
-  if (vs.on && !vs.result) { vs.result = left ? 'win' : 'none'; vs.why = left ? VS_WHY.left : VS_WHY.lost; vsShowResult(); }
+  if (coop() && !vs.result) coopSolo(left ? 'left' : 'lost');
+  else if (vs.on && !vs.result) { vs.result = left ? 'win' : 'none'; vs.why = left ? VS_WHY.left : VS_WHY.lost; vsShowResult(); }
   else if (state === 'vsover') vsRematchUi();
-  else if (state === 'versus' && vs.role) { vsDrop(); vsSay(left ? 'YOUR RIVAL LEFT.' : 'LOST CONTACT WITH YOUR RIVAL.'); vsRender(); }
+  else if (state === 'versus' && vs.role) { vsDrop(); vsSay(left ? 'YOUR ' + vsMate() + ' LEFT.' : 'LOST CONTACT WITH YOUR ' + vsMate() + '.'); vsRender(); }
 }
 function vsFail(kind) {
   if (vs.on && !vs.result) { vsLost(false); return; }
@@ -7074,8 +7136,8 @@ function vsBack() {
 function vsShare() {
   const url = vsLink();
   if (!url) return;
-  if (coarse && navigator.share) { navigator.share({ title: 'Nova Swarm versus', url }).catch(() => { /* the sheet was closed */ }); return; }
-  const done = () => vsSay('INVITE LINK COPIED. SEND IT TO YOUR RIVAL.\nWAITING FOR YOUR RIVAL TO JOIN...');
+  if (coarse && navigator.share) { navigator.share({ title: 'Nova Swarm ' + (vs.mode === 'coop' ? 'co-op' : 'versus'), url }).catch(() => { /* the sheet was closed */ }); return; }
+  const done = () => vsSay('INVITE LINK COPIED. SEND IT TO YOUR ' + vsMate() + '.\nWAITING FOR YOUR ' + vsMate() + ' TO JOIN...');
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => vsSay(url));
   else vsSay(url);
 }
@@ -7113,7 +7175,7 @@ function vsTick(dt) {
     if (left <= 0) vsBegin();
     else if (Math.ceil(left / 1000) !== vs.countN) {
       vs.countN = Math.ceil(left / 1000);
-      vsSay(vsName() + ' VS ' + vs.rival.name + ' IN ' + REGION[vs.region].name + '\nSTARTING IN ' + vs.countN);
+      vsSay(vsName() + (vs.mode === 'coop' ? ' AND ' : ' VS ') + vs.rival.name + ' IN ' + REGION[vs.region].name + '\nSTARTING IN ' + vs.countN);
       Snd.tick();
     }
   }
@@ -7125,8 +7187,315 @@ function vsTick(dt) {
     else if (Math.ceil(vs.autoT) !== was) vsDebriefNote();
   }
   if (state === 'play' && !vs.result && (vs.stT -= dt) <= 0) { vs.stT = 0.25; vsSendStatus(false); }
+  if (coop()) coopTick(dt);
 }
 addEventListener('pagehide', () => { if (vs.conn) vsSend({ t: 'bye' }); });
+
+/* ================= co-op: two pilots against the swarm, over the versus link ================= */
+// The same lobby, link and fair-run rules as versus (each pilot flies their own hull), but the two runs help each other:
+//  - Lockstep: each wave and challenging stage starts for both pilots at once. The first to finish waits in an empty sky.
+//  - A linked boss: damage either pilot deals to a boss is sent over and dealt to the other's too, so you bring it down
+//    together. While both are flying, a boss is CO_BOSS times as tough. A wingmate's damage never fills your ability meter.
+//  - Assists: the feats that send raiders in versus send your ship to your wingmate's screen instead. It flies at their side
+//    and fires for CO_ASSIST seconds of fighting per assist. It can't be hit, and what it destroys counts as theirs.
+//  - Down, not out: out of ships while your wingmate flies on, you are down. Once they clear the wave you are back, with one
+//    ship, for the next. Both down at once, or down with no wingmate left, ends the run.
+//  - A wingmate who leaves or loses contact leaves you flying solo: no waiting, no linked boss, no revives.
+// Steps number the waves and stages in order, the same for both pilots: wave n is 2n, the challenging stage after it 2n + 1.
+// A pilot announces each step they are ready to start (cs) and starts it once the wingmate is ready too (or down, or gone).
+const CO_ASSIST = 6, CO_BANK = 24, CO_FIRE = 0.3;   // seconds of fighting per assist; most seconds held at once; the assist ship's fire rate
+const CO_BOSS = 1.6, CO_SYNC = 0.15;                // a linked boss's toughness; seconds between boss-damage messages
+const CO_PHASES = ['intro', 'active', 'clear', 'hold'];
+const CO_WHY = { both: 'YOU WERE BOTH DOWN', quit: 'YOU LEFT THE RUN', solo: 'YOU WENT DOWN WITH NO WINGMATE TO BRING YOU BACK' };
+const co = { next: 0, mateNext: 0, mateDown: 0, down: false, solo: false, bank: 0, sent: 0, got: 0, revived: 0, saved: 0,
+  mirror: false, dmg: null, dmgSt: 0, dmgW: 0, dmgT: 0, end: '', counted: false, ally: { on: false, t: 0, x: 0, y: 0, cd: 0, tag: 0, side: 1 } };
+function coopReset() {
+  Object.assign(co, { next: 0, mateNext: 0, mateDown: 0, down: false, solo: false, bank: 0, sent: 0, got: 0, revived: 0, saved: 0,
+    mirror: false, dmg: null, dmgSt: 0, dmgW: 0, dmgT: 0, end: '', counted: false });
+  Object.assign(co.ally, { on: false, t: 0, tag: 0 });
+}
+const coopLinked = () => coop() && !co.solo && !co.down && !vs.rival.down;
+const coStep = () => G.wave * 2 + (G.bonus ? 1 : 0);                                // the step being flown
+const coAfter = n => n % 2 === 0 && (n / 2) % 5 === 3 ? n + 1 : (Math.floor(n / 2) + 1) * 2;   // a stage follows waves 3, 8, 13...
+
+/* ---- lockstep: wait for the wingmate between steps ---- */
+// After the debrief (and any draft): announce the next step, and hold in an empty sky until the wingmate is ready for it.
+function coopHold() {
+  if (!coop() || vs.result) return false;
+  co.next = G.pendingBonus ? G.wave * 2 + 1 : (G.wave + 1) * 2;
+  vsSend({ t: 'cs', n: co.next });
+  if (coopReady()) { co.next = 0; return false; }
+  G.phase = 'hold';
+  return true;
+}
+// A downed pilot is back only once the wingmate clears the step; a flying one goes when the wingmate is ready, down or gone.
+function coopReady() {
+  if (co.down) return !co.solo && co.mateNext >= co.next;
+  return co.solo || co.mateNext >= co.next || (vs.rival.down && co.mateDown >= co.next);
+}
+function coopGo() {
+  const n = co.next;
+  co.next = 0;
+  vsSend({ t: 'cs', n });   // a revived pilot never held, so the wingmate hears it here
+  if (co.down) coopRevive();
+  G.wave = n % 2 ? (n - 1) / 2 : n / 2 - 1;
+  if (n % 2) startBonusIntro(); else { G.bonus = false; nextWave(); }
+}
+// Runs every frame of a co-op run: start the next step when both are ready, send boss damage, and keep the best wave.
+function coopTick(dt) {
+  if (co.next && state === 'play' && !vs.result && coopReady()) coopGo();
+  if (co.dmg && (co.dmgT -= dt) <= 0) coopFlush();
+  if (state === 'play' && G.lives > 0) recMax(record, 'coopBest', G.wave);
+}
+
+/* ---- down, revived, or out ---- */
+// Out of ships (after the game-over beat): down while the wingmate flies on, otherwise the run is over.
+function coopOut() {
+  co.next = coAfter(coStep());
+  if (co.solo) { coopEnd('solo'); return; }
+  vsSend({ t: 'dn', n: co.next });
+  if (vs.rival.down) { coopEnd('both'); return; }
+  co.down = true;
+  co.bank = 0;
+  co.ally.t = 0;
+  Snd.warn();   // the HUD says so until you are back (drawCoopHud)
+  $('hudHiLbl').textContent = vsHiLbl();
+}
+// Back with one ship: the abandoned wave is swept away (its scrap and relics are paid) and the next step starts.
+function coopRevive() {
+  co.down = false;
+  co.revived++;
+  flushScrap();
+  flushRelics();
+  for (const b of eshots) spark(b.x, b.y);
+  enemies = []; eshots = []; pickups = []; boss = null; hiveNote = null; rescue = null;
+  clearMines();
+  clearMeteors();
+  convoyReset();
+  Object.assign(G, { lives: 1, overT: 0, bonus: false, pendingBonus: false, entering: 0 });
+  respawn();
+  vsSend({ t: 'rv' });
+  toast(vs.rival.name + ' BROUGHT YOU BACK', PAL.t);
+}
+function coopEnd(k) {
+  if (vs.result) return;
+  co.end = k;
+  co.next = 0;
+  vs.result = 'over';
+  vs.why = CO_WHY[k] + ' ON WAVE ' + Math.max(1, G.wave);
+  vsShowResult();
+}
+// Leave from the pause screen: your run ends, and your wingmate flies on solo (the link stays up for a rematch).
+function coopLeave() {
+  vsSend({ t: 'left' });
+  coopEnd('quit');
+}
+// The wingmate left or went silent: fly on alone, or, if you are down, the run is over.
+function coopSolo(why) {
+  if (co.solo || !coop()) return;
+  co.solo = true;
+  co.dmg = null;
+  vs.rival.down = true;
+  if (state !== 'vsover') $('hudHiLbl').textContent = vsHiLbl();
+  if (vs.result) return;
+  if (co.down) { coopEnd('solo'); return; }
+  toast(why === 'lost' ? 'LOST CONTACT WITH ' + vs.rival.name + '. FLYING SOLO' : vs.rival.name + ' LEFT. FLYING SOLO', PAL.a);
+}
+function coopCleared() { if (vs.rival.down && !co.solo) G.extra.push([vs.rival.name, 'REVIVED']); }
+
+/* ---- messages and status ---- */
+function coopMsg(d) {
+  if (!coop()) return;
+  const r = vs.rival, n = vsNum(d.n, 0, 9999);
+  switch (d.t) {
+    case 'cs': co.mateNext = Math.max(co.mateNext, n); break;
+    case 'dn':
+      r.down = true;
+      co.mateDown = Math.max(co.mateDown, n);
+      if (vs.result) break;
+      if (co.down) { coopEnd('both'); return; }
+      toast(r.name + ' IS DOWN. CLEAR THE WAVE TO BRING THEM BACK', PAL.c);
+      break;
+    case 'rv':
+      r.down = false;
+      if (vs.result) break;
+      co.saved++;
+      record.coopRevives++;
+      toast(r.name + ' IS BACK IN THE FIGHT', PAL.t);
+      break;
+    case 'as': coopAssistIn(n); break;
+    case 'bd': coopBossTake(d); break;
+    case 'left': coopSolo('left'); break;
+  }
+  if (state === 'vsover') vsRenderResult();
+  else $('hudHiLbl').textContent = vsHiLbl();
+}
+// What the wingmate sees of your step: its phase, foes left, the boss's health and whether it is a challenging stage.
+function coopProgress() {
+  return { ph: Math.max(0, CO_PHASES.indexOf(G.phase)), f: enemies.reduce((k, e) => k + (e.dead || e.raider ? 0 : 1), 0),
+    h: boss ? Math.round(100 * boss.hp / boss.max) : -1, b: G.bonus ? 1 : 0 };
+}
+function coopStatus(d) {
+  const r = vs.rival;
+  r.phase = vsNum(d.ph, 0, 3);
+  r.foes = vsNum(d.f, 0, 999);
+  r.boss = Number.isFinite(d.h) ? clamp(Math.round(d.h), -1, 100) : -1;
+  r.bonus = d.b === 1;
+  if (state === 'vsover') vsRenderResult();   // a wingmate still flying after you left: their score keeps counting
+}
+function coopMateLine() {
+  const r = vs.rival, w = 'WAVE ' + r.wave + ' - ';
+  if (co.solo) return 'FLYING SOLO';
+  if (r.down) return r.name + ' IS DOWN';
+  if (r.phase === 3) return r.name + ' IS WAITING';
+  if (r.phase === 2) return w + 'CLEARED';
+  if (r.phase === 0) return w + 'STARTING';
+  if (r.bonus) return w + 'CHALLENGING STAGE';
+  if (r.boss >= 0) return w + 'BOSS';
+  return w + r.foes + ' FOE' + (r.foes === 1 ? '' : 'S') + ' LEFT';
+}
+
+/* ---- the linked boss ---- */
+function coopToughen(b) {
+  if (!coopLinked()) return;
+  const k = v => Math.round(v * CO_BOSS);
+  if (b.seg) b.seg = b.seg.map(k);   // the Hive Mind's phases (its last one's nodes are cut from the third segment)
+  if (b.parts) {
+    for (const p of b.parts.concat(b.core)) p.hp = p.max = k(p.max);
+    b.hp = b.max = b.core.hp + b.parts.reduce((a, p) => a + p.hp, 0);
+  } else b.hp = b.max = b.seg ? b.seg[0] + b.seg[1] + b.seg[2] : k(b.max);
+}
+// Damage you deal: p is the part (its index), -1 the core, -2 the boss itself. Sent in small batches, by wave and phase.
+function coopDealt(b, p, d) {
+  if (co.mirror || !(d > 0) || !coopLinked()) return;
+  if (co.dmg && (co.dmgSt !== b.stage || co.dmgW !== G.wave)) coopFlush();
+  if (!co.dmg) { co.dmg = {}; co.dmgSt = b.stage; co.dmgW = G.wave; co.dmgT = CO_SYNC; }
+  co.dmg[p] = (co.dmg[p] || 0) + d;
+}
+function coopFlush() {
+  const m = co.dmg;
+  co.dmg = null;
+  if (m) vsSend({ t: 'bd', w: co.dmgW, st: co.dmgSt, d: Object.keys(m).map(p => [Number(p), Math.round(m[p] * 100) / 100]) });
+}
+// The wingmate's damage, dealt to your boss if it is the same fight in the same phase (and dropped otherwise).
+function coopBossTake(d) {
+  const b = boss;
+  if (!coopLinked() || !b || b.state !== 'fight' || d.w !== G.wave || d.st !== b.stage || !Array.isArray(d.d)) return;
+  co.mirror = true;
+  try {
+    for (const it of d.d.slice(0, 8)) {
+      if (boss !== b || b.state !== 'fight') break;
+      const p = Array.isArray(it) ? it[0] : NaN, n = Array.isArray(it) ? Math.min(Number(it[1]), 200) : NaN;
+      if (!(n > 0)) continue;
+      if (p >= 0 && b.parts) { const q = b.parts[p]; if (q && q.hp > 0) damagePart(b, q, n); }
+      else if (p === -1 && b.core) { if (!shielded(b)) damageCore(b, n); }
+      else if (p === -2 && !b.parts) damageBoss(n);
+    }
+  } finally { co.mirror = false; }
+}
+
+/* ---- assists: your ship, flying at your wingmate's side ---- */
+function coopFeat(n) {
+  if (co.solo || vs.rival.down || co.down) return;   // nobody to help right now
+  vsSend({ t: 'as', n });
+  co.sent += n;
+  popups.push({ text: 'ASSIST ' + n, x: clamp(player.x, 22, W - 22), y: player.y - 14, t: -0.4, c: PAL.t });
+  Snd.blip();
+}
+function coopAssistIn(n) {
+  if (vs.result || co.down || G.lives <= 0) return;
+  n = clamp(n, 1, 6);
+  co.got += n;
+  co.bank = Math.min(CO_BANK, co.bank + n * CO_ASSIST);
+  if (state === 'play') toast('ASSIST FROM ' + vs.rival.name, PAL.t);
+}
+// Held seconds fly in once a wave is under way (never in a challenging stage). The ship hovers beside yours, under the
+// nearest foe within reach, and fires; its time only runs down while there is something to shoot.
+function coopUpdate(dt) {
+  const a = co.ally;
+  if (co.bank > 0 && G.lives > 0 && player.alive && G.phase === 'active' && !G.bonus) {
+    if (!a.on || a.t <= 0) {
+      a.side = player.x < W / 2 ? 1 : -1;
+      if (!a.on) Object.assign(a, { on: true, x: clamp(player.x + a.side * 22, 8, W - 8), y: H + 12, cd: 0.6, tag: 1.6 });
+      Snd.power();
+    }
+    a.t = Math.min(CO_BANK, a.t + co.bank);
+    co.bank = 0;
+  }
+  if (!a.on) return;
+  if (a.tag > 0) a.tag -= dt;
+  if (a.t <= 0 || G.lives <= 0 || G.bonus) {   // its time is up: it peels off down the screen
+    a.y += 100 * dt;
+    if (a.y > H + 14) a.on = false;
+    return;
+  }
+  const fight = boss ? boss.state === 'fight' : enemies.some(e => !e.dead && e.state !== 'wait');
+  const live = fight && (G.phase === 'active' || G.phase === 'clear');
+  if (live) a.t -= dt;
+  let bx = player.x + a.side * 22, best = Infinity;
+  const near = x => { const d = Math.abs(x - player.x - a.side * 22); if (d < best && Math.abs(x - player.x) < 50) { best = d; bx = x; } };
+  for (const e of enemies) if (!e.dead && e.state !== 'wait' && !e.captive && e.y < player.y - 10) near(e.x);
+  if (boss && boss.state === 'fight') near(boss.x);
+  if (Math.abs(bx - player.x) < 12) bx = player.x + a.side * 12;   // never on top of your ship
+  a.x += (clamp(bx, 8, W - 8) - a.x) * Math.min(1, dt * 4);
+  a.y += (Math.min(player.y + 4, H - 12) - a.y) * Math.min(1, dt * 3);
+  if (live && (a.cd -= dt) <= 0) {
+    a.cd = CO_FIRE;
+    pshots.push({ x: Math.round(a.x), y: a.y - 7, vx: 0, vy: -230, ally: true });   // ally: kept out of your hit-miss ratio
+  }
+}
+function drawAlly() {
+  const a = co.ally, r = vs.rival;
+  if (!a.on) return;
+  if (!(a.t > 0 && a.t < 1.5 && Math.floor(clock * 10) % 2)) {   // it blinks as its time runs out
+    cx.globalAlpha = 0.8;
+    drawSpr(shipFor(r.paint, r.hull).ship, a.x, a.y);
+    cx.globalAlpha = 1;
+  }
+  if (Math.floor(clock * 20) % 2) { cx.fillStyle = PAL.t; cx.fillRect(Math.round(a.x) - 2, Math.round(a.y) + 6, 1, 1); cx.fillRect(Math.round(a.x) + 2, Math.round(a.y) + 6, 1, 1); }
+  if (a.tag > 0) txt(r.name, a.x, a.y - 14, PAL.t, 'center');
+}
+// The HUD: held assists as teal notches up the left edge, a linked boss's tag, and what the wingmate is up to while you wait.
+function drawCoopHud() {
+  cx.fillStyle = PAL.t;
+  for (let i = 0; i < Math.ceil(co.bank / CO_ASSIST); i++) cx.fillRect(1, H - 17 - i * 5, 2, 4);
+  if (boss && boss.state !== 'dying' && coopLinked()) txt('LINKED', 143, 26, PAL.t);
+  const lines = co.down ? [['YOU ARE DOWN', PAL.c], [vs.rival.name + ' CAN BRING YOU BACK', PAL.w]]
+    : G.phase === 'hold' && G.lives > 0 ? [['WAITING FOR ' + vs.rival.name, PAL.t]] : null;
+  if (!lines) return;
+  const y = Math.round(H * 0.4), r = vs.rival;
+  lines.forEach(([l, c], i) => txt(l, W / 2, y + i * 8, c, 'center'));
+  const yy = y + lines.length * 8 + 4;
+  txt(coopMateLine(), W / 2, yy, PAL.a, 'center');
+  if (!co.solo && !r.down && r.phase === 1 && !r.bonus && r.boss >= 0) {   // their boss's health
+    cx.fillStyle = '#241a52'; cx.fillRect(W / 2 - 21, yy + 8, 42, 4);
+    cx.fillStyle = PAL.r; cx.fillRect(W / 2 - 20, yy + 9, Math.ceil(40 * r.boss / 100), 2);
+  }
+}
+
+/* ---- the end of a run ---- */
+function coopCount() {
+  if (co.counted) return;
+  co.counted = true;
+  record.coopRuns++;
+  Rec.save();
+}
+function coopRenderResult() {
+  const r = vs.rival, dl = $('vrLines'), flying = !co.solo && !r.down;
+  $('vrTitle').textContent = co.end === 'quit' ? 'YOU LEFT' : 'GAME OVER';
+  $('vrTitle').className = 'big c-teal';
+  $('vrWhy').textContent = vs.why;
+  dl.textContent = '';
+  const rows = [['TEAM SCORE', G.score + r.score], ['YOUR SCORE', G.score], ['WINGMATE ' + r.name, r.score + (flying ? ' (FLYING)' : '')],
+    ['WAVE (YOU / WINGMATE)', Math.max(1, G.wave) + ' / ' + r.wave], ['ASSISTS SENT', co.sent], ['ASSISTS RECEIVED', co.got],
+    ['REVIVES (GIVEN / GOT)', co.saved + ' / ' + co.revived], ['SCRAP EARNED', G.scrapRun], ['CO-OP BEST WAVE', record.coopBest]];
+  for (const [k, v] of rows) {
+    const dt = document.createElement('dt'); dt.textContent = k;
+    const dd = document.createElement('dd'); dd.textContent = String(v);
+    dl.append(dt, dd);
+  }
+  vsRematchUi();
+}
 
 /* ================= gamepad: standard-mapping controller, menu focus, hints, rumble ================= */
 // Buttons follow the standard mapping: 0 A, 1 B, 2 X, 3 Y, 4 LB, 5 RB, 8 Back, 9 Start, 12-15 d-pad.
@@ -7172,7 +7541,8 @@ function padFocused(id) {
   return id && a && (a.tagName === 'BUTTON' || a.tagName === 'INPUT') && $(id).contains(a) && padVisible(a) ? a : null;
 }
 const PAD_HOME = { ovTitle: '#startBtn', ovPause: '#resumeBtn', ovOver: '#overBtn', ovDebrief: '#dbNext', ovWager: '#wgSkip', ovDraft: '.perk', ovWheel: '#wheelSpin',
-  ovHangar: '.hg-tab[aria-selected="true"]', ovMap: '#mpGo', ovOptions: '.opt-next', ovPit: '#pitOpts .btn', ovRush: '#rushDone', ovVersus: '#vsHost', ovVsResult: '#vrRematch' };
+  ovHangar: '.hg-tab[aria-selected="true"]', ovMap: '#mpGo', ovOptions: '.opt-next', ovPit: '#pitOpts .btn', ovRush: '#rushDone',
+  ovVersus: '#vsHost', ovVsResult: '#vrRematch' };
 function padHome(id, list) {
   const h = $(id).querySelector(PAD_HOME[id] || '.primary');
   return h && list.includes(h) ? h : list.find(b => b.classList.contains('primary')) || list[0];
@@ -7314,7 +7684,7 @@ addEventListener('keydown', e => {
   if (opt.open) { handleOptKey(e); return; }
   if (state === 'entry') { handleEntryKey(e); return; }
   if (MENU_STATES.has(state)) { handleMenuKey(e); return; }
-  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || c === 'KeyX' || ((c === 'KeyH' || c === 'KeyC' || c === 'KeyG' || c === 'KeyR' || c === 'KeyB' || c === 'KeyV') && state === 'title')) e.preventDefault();
+  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || c === 'KeyX' || ((c === 'KeyH' || c === 'KeyC' || c === 'KeyG' || c === 'KeyR' || c === 'KeyB' || c === 'KeyV' || c === 'KeyT') && state === 'title')) e.preventDefault();
   if (c === 'KeyM') { if (!e.repeat) cycleSound(); return; }
   if (state === 'title') {
     if ((FIRE.has(c) || c === 'Enter') && !e.repeat) startGame();
@@ -7322,7 +7692,8 @@ addEventListener('keydown', e => {
     else if (c === 'KeyG' && !e.repeat) openMap();
     else if (c === 'KeyC' && !e.repeat) startDaily();
     else if (c === 'KeyB' && !e.repeat) startRush();
-    else if (c === 'KeyV' && !e.repeat) openVersus();
+    else if (c === 'KeyV' && !e.repeat) openVersus('versus');
+    else if (c === 'KeyT' && !e.repeat) openVersus('coop');
     else if (c === 'KeyR' && !e.repeat) openRecords();
     else if (c === 'KeyO' && !e.repeat) openOptions();
     else if (MOVE[c] === 'l') showPanel(panelIdx - 1);
@@ -7455,7 +7826,8 @@ document.querySelectorAll('.js-set-next').forEach(b => b.addEventListener('click
 onClick('dailyBtn', startDaily);
 onClick('rushBtn', startRush);
 onClick('rushDone', rushLeave);
-onClick('versusBtn', () => openVersus());
+onClick('versusBtn', () => openVersus('versus'));
+onClick('coopBtn', () => openVersus('coop'));
 onClick('vsHost', vsHost);
 onClick('vsJoin', vsJoin);
 onClick('vsCopy', vsShare);
@@ -7614,7 +7986,7 @@ try {
   window.claude?.hot?.snapshot?.(() => {
     // between waves, resume at the next wave (the pending bonus is banked first)
     const between = state === 'debrief' || state === 'wager' || state === 'draft' || (state === 'hangar' && !hangarPreRun());
-    if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0 || fairRun() || rush.on) return {};   // a rush or a versus match is not resumable
+    if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0 || fairRun() || rush.on) return {};   // a rush or an online match is not resumable
     if (between) bankClear();
     return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, twin: player.twin, wings: player.wings, bombs: G.bombs, region: G.region, perks: { ...G.perks }, run: { ...RUN } } };
   });
