@@ -60,7 +60,7 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
   - **Scoring:** Combo Keeper (the combo window lasts 40% longer), Lucky Stars (power-ups drop 30% more often), Salvager (diving kills drop one more scrap, stacks twice).
   - **Ability:** Quick Charge (kills and grazes fill the ability meter 15% faster, stacks twice; damage to a boss fills it as before), Afterglow (rare: your hull ability lasts 30% longer; the Lance's cap on a boss still holds, Overdrive is not stretched while a boss is on screen, and Phase Dash gets a slightly longer invulnerability).
   - Every perk works with all four hulls, both fire modes, twin fighters, wingmen and every power-up. The pause screen lists your perks and ranks under the missions, the game-over results show your build as a row of icons, and the HUD shows a small perk count. The one-run hangar upgrades are unchanged.
-  - **The swarm adapts:** your first two perk ranks are free, and every rank after them makes the swarm 6% faster (its fire, dives, bullets and bosses), so a deep build can't run away with the run. The draft screen says so.
+  - **The swarm adapts:** every perk rank beyond the first two you hold makes the swarm 6% faster (its fire, dives, bullets and bosses), so a build can't run away with the run. The first two perks are free. The draft screen says so.
 - **Weapons:**
   - **Smart bombs:** two per run, bought in the shop for 40 scrap each (up to five). A bomb clears enemy fire and hits every enemy on screen.
   - **Charge shot:** fire a piercing bolt through a whole column.

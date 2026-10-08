@@ -855,7 +855,7 @@
     <section class="ov dim" id="ovDraft" aria-label="Salvage draft" hidden>
       <h2 class="big c-teal">SALVAGE DRAFT</h2>
       <p class="dimtxt">PICK ONE PERK FOR THE REST OF THE RUN</p>
-      <p class="fine">FROM YOUR THIRD PERK ON, EACH ONE<br>MAKES THE SWARM 6% FASTER</p>
+      <p class="fine">EACH PERK BEYOND THE FIRST TWO MAKES THE SWARM 6% FASTER</p>
       <div class="perk-hand" id="dfHand"></div>
       <button class="btn sm" type="button" id="dfSkip">SKIP</button>
       <p class="fine" id="dfHint">KEYS 1 TO 3 PICK A CARD<br>OR ARROWS, THEN SPACE</p>
@@ -5553,9 +5553,7 @@ const perkMeter = () => 1 + 0.15 * perkRank('qc');
 const perkLong = () => 1 + 0.3 * perkRank('glow');
 const comboWin = () => COMBO_WINDOW * (1 + 0.4 * perkRank('combo'));
 const bombCap = () => 5 + perkRank('bay');
-// the swarm adapts: every perk held past the first HEAT_FREE makes it this much faster (fire, dives, bullets, bosses), which keeps a deep build
-// from running away while the first two drafts are pure gain
-const HEAT = 0.06, HEAT_FREE = 2;
+const HEAT = 0.06, HEAT_FREE = 2;   // the swarm adapts: every perk beyond the first two makes it this much faster (fire, dives, bullets, bosses), which keeps a build from running away
 const perkHeat = () => 1 + HEAT * Math.max(0, perkCount() - HEAT_FREE);
 // a held perk map from a hot-reload snapshot, kept only for known perks and legal ranks
 function restorePerks(m) {
