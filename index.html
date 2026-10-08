@@ -6881,7 +6881,7 @@ function vsDeal() {
 // the room's mode), and mark the pair linked.
 // Linked pilots no longer need the broker, so the room code is released: nobody else can join a match in progress.
 function vsGreet(d) {
-  if (d.v !== VS_PROTO) { vsFail('version'); return false; }
+  if (d.v !== VS_PROTO) { if (!vs.ready) vsFail('version'); return false; }   // once linked, a stray hello is just ignored
   const r = vs.rival, paint = typeof d.paint === 'string' && byId(d.paint);
   r.name = typeof d.name === 'string' && /^[A-Z?]{3}$/.test(d.name) ? d.name : '???';
   r.hull = typeof d.hull === 'string' && Object.prototype.hasOwnProperty.call(HULLS, d.hull) ? d.hull : 'striker';
