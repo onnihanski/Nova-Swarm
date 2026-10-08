@@ -6132,7 +6132,7 @@ const VS_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // room codes skip I, O, 0 
 const VS_WAVES = 10, VS_COUNT = 3, VS_AUTO = 4;      // the finish wave; countdown seconds; seconds before a debrief moves on
 const VS_QUEUE = 12, VS_LIVE = 6, VS_WARN = 2;       // raiders queued at most, on screen at most; seconds of warning
 const VS_COMBO = { 4: 1, 6: 1, 8: 2 };               // raiders sent when a combo reaches x4, x6 and x8
-const VS_TIMEOUT = 20, VS_CONNECT = 20;              // seconds of silence before a rival counts as gone; seconds to link up
+const VS_TIMEOUT = 20, VS_CONNECT = 20;              // seconds of silence before the link counts as lost; seconds to link up
 const VS_REC = { win: 'vsWins', lose: 'vsLosses', draw: 'vsDraws' };
 const VS_WHY = {
   'my-out': 'YOU RAN OUT OF SHIPS', 'my-quit': 'YOU FORFEITED', 'my-clear': 'YOU CLEARED WAVE ' + VS_WAVES + ' FIRST',
@@ -6455,7 +6455,7 @@ function vsShowResult() {
     touch.id = null;
     Snd.hold(false);
     Snd.stop();
-    if (vs.result === 'win') Snd.win(); else if (vs.result === 'lose') Snd.over(); else Snd.jingle();
+    if (vs.result === 'win') Snd.win(); else if (vs.result === 'lose') Snd.over(); else if (vs.result === 'draw') Snd.jingle(); else Snd.lose();
     hideBanners();
     flushScrap();
     if (G.lives > 0) flushRelics();
@@ -6469,18 +6469,18 @@ function vsShowResult() {
   updateHud();
   vsRenderResult();
 }
-// Results go in the pilot record; a crossed final that flips the result moves the count with it.
+// Results go in the pilot record (no contest is not counted); a crossed final that flips the result moves the count with it.
 function vsCount() {
   if (vs.counted === vs.result) return;
-  if (vs.counted) record[VS_REC[vs.counted]] = Math.max(0, record[VS_REC[vs.counted]] - 1);
+  if (VS_REC[vs.counted]) record[VS_REC[vs.counted]] = Math.max(0, record[VS_REC[vs.counted]] - 1);
   vs.counted = vs.result;
-  record[VS_REC[vs.result]]++;
+  if (VS_REC[vs.result]) record[VS_REC[vs.result]]++;
   Rec.save();
 }
 function vsRenderResult() {
   const r = vs.result, dl = $('vrLines');
-  $('vrTitle').textContent = r === 'win' ? 'YOU WIN' : r === 'lose' ? 'YOU LOSE' : 'DRAW';
-  $('vrTitle').className = 'big ' + (r === 'win' ? 'c-amber' : r === 'lose' ? 'c-coral' : 'c-teal');
+  $('vrTitle').textContent = r === 'win' ? 'YOU WIN' : r === 'lose' ? 'YOU LOSE' : r === 'draw' ? 'DRAW' : 'NO CONTEST';
+  $('vrTitle').className = 'big ' + (r === 'win' ? 'c-amber' : r === 'lose' ? 'c-coral' : r === 'draw' ? 'c-teal' : 'c-dim');
   $('vrWhy').textContent = vs.why;
   dl.textContent = '';
   const rows = [['YOUR SCORE', G.score], ['RIVAL ' + vs.rival.name, vs.rival.score], ['WAVE (YOU / RIVAL)', Math.max(1, G.wave) + ' / ' + vs.rival.wave],
@@ -6509,10 +6509,11 @@ function vsRematchCheck() {
   if (vs.again && vs.theyAgain && vs.role === 'host') vsDeal();
   else vsRematchUi();
 }
-// The link is gone: mid-match the pilot still flying wins; anywhere else it is just reported.
+// The link is gone. Mid-match, a rival who said bye (left the page) hands the pilot still flying the win; a link that
+// just went silent or dropped is no contest, since both sides lose contact and neither can tell whose end failed.
 function vsLost(left) {
   vsClose();
-  if (vs.on && !vs.result) { vs.result = 'win'; vs.why = left ? VS_WHY.left : VS_WHY.lost; vsShowResult(); }
+  if (vs.on && !vs.result) { vs.result = left ? 'win' : 'none'; vs.why = left ? VS_WHY.left : VS_WHY.lost; vsShowResult(); }
   else if (state === 'vsover') vsRematchUi();
   else if (state === 'versus' && vs.role) { vsDrop(); vsSay(left ? 'YOUR RIVAL LEFT.' : 'LOST CONTACT WITH YOUR RIVAL.'); vsRender(); }
 }
