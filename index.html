@@ -423,8 +423,9 @@
   .pit-opts .btn { display: flex; flex-direction: column; align-items: center; gap: var(--px); }
   .pit-opts .btn .fine { color: inherit; opacity: .75; }
   .rush-split { color: var(--teal); }
-  .title-actions .btn.sm { padding: calc(var(--px) * 1.5 + 2px) calc(var(--px) * 2.5 + 2px); }
-  /* eight menu buttons: on a narrow screen they drop their key hints (the Menus panel lists the keys) to stay in two rows */
+  /* eight menu buttons: tight spacing keeps them in two rows under the start line, and on a narrow screen they also drop
+     their key hints (the Menus panel lists the keys) */
+  .title-actions .btn.sm { padding: calc(var(--px) * 1.5 + 2px) calc(var(--px) * 1.5 + 2px); letter-spacing: .04em; }
   @media (max-width: 400px) { .title-actions .kh { display: none; } }
   .odds {
     list-style: none;
