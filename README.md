@@ -1,12 +1,12 @@
 # Nova Swarm
 
-A retro pixel space shooter in the spirit of Galaga. It runs in the browser from a single file with no build step and no dependencies.
+A retro pixel space shooter in the spirit of Galaga. It runs in the browser from a single file with no build step and nothing to install.
 
 The hive has reached Sector 9. Enemies fly in along swooping paths, lock into formation, then peel off to dive at you. Survive the waves, bank power-ups, and beat the boss that guards every fifth wave. Then chart a course across the star map to nine new regions, each with its own swarm, twist and set of collectibles, ending at the Hive Heart, where the swarm comes from.
 
 ## Play
 
-Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), or open `index.html` in any modern browser. Everything lives in that one file: the pixel sprites are drawn in code and the chiptune music and sound effects are synthesized with WebAudio. The two pixel fonts load from Google Fonts, and the game falls back to a monospace font when offline.
+Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), or open `index.html` in any modern browser. Everything lives in that one file: the pixel sprites are drawn in code and the chiptune music and sound effects are synthesized with WebAudio. The two pixel fonts load from Google Fonts, and the game falls back to a monospace font when offline. Online versus loads one library, PeerJS, from a CDN, and only when you open the versus screen.
 
 | Action | Keyboard | Gamepad | Touch |
 | --- | --- | --- | --- |
@@ -22,6 +22,7 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
 | Star map | G (title screen) | Map button | Map button |
 | Daily challenge | C (title screen) | Daily button | Daily button |
 | Boss Rush | B (title screen) | Boss Rush button | Boss Rush button |
+| Versus (online) | V (title screen) | Versus button | Versus button |
 | Records | R (title screen) | Records button | Records button |
 | Skip the ending | Space / Enter / Esc (after a moment) | A, B or Start | Tap |
 | Salvage draft | 1, 2, 3 take a card; arrows then Space / Enter take the highlighted card or the skip button. Esc does nothing | D-pad moves, A takes. B and Start do nothing | Tap a card |
@@ -81,6 +82,7 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
 - **Missions:** three random goals per run (for example: reach a x4 combo, rescue a captured fighter, shoot 5 mines, use your ability 3 times, shoot 3 phantoms, break 2 squadrons, get 5 freighters through, save a whole convoy), each paying scrap. The title screen shows the next run's missions and the pause screen shows your progress.
 - **Daily challenge:** the same seeded region, waves, events, convoys, drops and missions for everyone on a given (UTC) day. The day's region is open even if you haven't charted it yet; the Hive Heart is never the day's region, so the finale stays something you reach. Everyone flies a Striker with no loadout, hangar, gambles or wager. The day's best score is kept separately from the top-10 table.
 - **Boss Rush:** every boss back to back against the clock, with a pit stop between fights and best times saved (see below).
+- **Online versus:** race a friend over the internet on the same waves. Your feats send raiders into their swarm (see below).
 - **Pilot record and medals:** lifetime stats and 42 medals in bronze, silver and gold, each tier paying scrap once (see below).
 - **Top 10 table** with 3-letter initials, saved in your browser's local storage.
 - **Chiptune soundtrack** with separate boss, bonus-stage and Hive Mind themes, generated live with no audio files.
@@ -114,6 +116,29 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
 | Sentry | 250 | never dives |
 
 The same table is on the title screen. Splitter minis are worth 40 and a broken squadron's leader pays 1,000 on top.
+
+## Versus (online)
+
+Press V (or the Versus button) on the title screen to fly against a friend over the internet. You each fly your own run against your own swarm, on the same waves in the same region, and what you do well lands in your rival's swarm.
+
+- **Getting together:** one pilot picks **Host a match** and gets a 4-character room code, plus a Copy (or, on phones, Share) Invite Link button. The other types the code and picks Join, or just opens the invite link, which joins by itself. A 3-second countdown follows, then both runs start.
+- **Fair runs:** like the daily challenge, both pilots fly a Striker with no loadout, hangar, gambles or wager. Both get the same seeded waves, events, convoys, missions and salvage hands, in a region the host's game picks (never the Hive Heart). Paint jobs, trails and badges still show. The debrief moves on by itself after 4 seconds.
+- **Raiders:** feats send raiders into the rival's swarm:
+
+  | Feat | Raiders |
+  | --- | --- |
+  | Combo reaches x4 / x6 / x8 | 1 / 1 / 2 |
+  | No-hit wave, broken squadron or rescued fighter | 1 |
+  | Whole convoy saved | 2 |
+  | Boss destroyed, or a PERFECT challenging stage | 3 |
+  | 36 or more hits in a challenging stage | 1 |
+
+  - **Blocking:** each raider you send first cancels one queued against you (BLOCKED), so playing well is also your defense.
+  - **The queue:** incoming raiders show as red notches up the left edge, with an INCOMING toast. They wait for a fair moment: the formation has landed, your ship is flying, and it isn't a challenging stage or a dying boss. Then the notches blink and the raiders dive in, at most 3 at a time and 6 on screen, with up to 12 waiting.
+  - **A raider:** a drone or (from wave 4) a stinger ringed in red. It dives at your ship from the top edge, leaves at the bottom and comes back until you shoot it. While raiders fly, the wave can't end. A raider pays points and feeds your combo, but never scrap, drops or relics. A smart bomb or Nova Blast takes out raiders too.
+- **Winning:** the last ship flying wins, or be the first to clear wave 10 (beat its boss). The HUD shows your rival's score and wave where the high score usually is, and a toast tells you when they lose a ship. Pausing doesn't stop your rival, and Forfeit on the pause screen ends the match as a loss. A rival who leaves, or goes silent for 20 seconds, hands you the win.
+- **After the match:** the result screen compares scores and waves and counts the raiders sent, blocked and received. Rematch deals new waves once both pilots press it; Leave goes back to the title. Wins, losses and draws go in the pilot record's stats, and a match counts toward every other stat and medal, like a daily challenge. Versus scores don't enter the top-10 table, and there is no prize wheel.
+- **How it works on GitHub Pages:** Pages only serves files, so there is no game server. When you open the versus screen, the page loads PeerJS 1.5.5 from cdnjs (with jsDelivr and unpkg as fallbacks, all checked with Subresource Integrity). PeerJS's free public service finds your rival from the room code, then your two browsers talk directly over a WebRTC data channel. When a network blocks direct links, PeerJS falls back to its own free relay servers. Because the link is direct, each of you can see the other's IP address, so play with people you know. Each game trusts what the other reports, which is fine between friends but means a modified page could cheat. If PeerJS's free service is down, versus can't connect; the rest of the game is unaffected.
 
 ## Regions and the star map
 
@@ -158,7 +183,7 @@ Press B (or the Boss Rush button) on the title screen to fly the bosses back to 
 Press R (or the Records button) on the title screen to open your pilot record. It has two views, switched with the tabs or the 1 and 2 keys:
 
 - **Medals:** 42 medals in a grid of pixel icons, colored bronze, silver or gold by the tier you hold, each with a progress bar toward the next tier. Pick one (tap it, or use the arrow keys) to see what it asks for, your progress and what the next tier pays. A small amber corner marks a medal you haven't looked at yet, and the title screen's Records button counts them.
-- **Stats:** your lifetime record: runs started (daily challenges and Boss Rushes included), time flown, waves cleared, total and best score, enemies destroyed by type, bosses destroyed by kind and by region, best combo, grazes, smart bombs used, best charge-shot pierce, perfect challenging stages, fighters rescued, missions completed, relics caught, freighters saved, whole convoys saved, perks drafted, most perks held in one run and scrap earned, plus a Boss Rush section with your clears and best times.
+- **Stats:** your lifetime record: runs started (daily challenges, Boss Rushes and versus matches included), time flown, waves cleared, total and best score, enemies destroyed by type, bosses destroyed by kind and by region, best combo, grazes, smart bombs used, best charge-shot pierce, perfect challenging stages, fighters rescued, missions completed, relics caught, freighters saved, whole convoys saved, perks drafted, most perks held in one run and scrap earned, plus a Boss Rush section with your clears and best times and versus matches, wins, losses and draws.
 
 Medals come in tiers: most have bronze, silver and gold (for example 500 / 5,000 / 25,000 enemies destroyed, reaching wave 10 / 15 / 20, collecting 50 / 150 / all album items, completing 25 / 100 / 300 missions, getting 5 / 25 / 100 freighters through). Some have a single tier, such as holding 6 perks in one run, flying the Interceptor, the Bulwark or the Lancer past wave 10, or destroying the Hive Mind. Four are secret and show as "???" until you earn them. Each tier pays scrap once, 20 to 150 depending on how hard it is; all 104 tiers together pay 6,565 scrap, against roughly 200 to 1,000 for a run. Medals never award album items and never change gameplay. The daily challenge counts toward every stat and medal.
 
