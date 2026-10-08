@@ -6,7 +6,7 @@ The hive has reached Sector 9. Enemies fly in along swooping paths, lock into fo
 
 ## Play
 
-Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), or open `index.html` in any modern browser. Everything lives in that one file: the pixel sprites are drawn in code and the chiptune music and sound effects are synthesized with WebAudio. The two pixel fonts load from Google Fonts, and the game falls back to a monospace font when offline. Online versus loads one library, PeerJS, from a CDN, and only when you open the versus screen.
+Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), or open `index.html` in any modern browser. Everything lives in that one file: the pixel sprites are drawn in code and the chiptune music and sound effects are synthesized with WebAudio. The two pixel fonts load from Google Fonts, and the game falls back to a monospace font when offline. Online versus and co-op load one library, PeerJS, from a CDN, and only when you open their lobby.
 
 | Action | Keyboard | Gamepad | Touch |
 | --- | --- | --- | --- |
@@ -23,6 +23,7 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
 | Daily challenge | C (title screen) | Daily button | Daily button |
 | Boss Rush | B (title screen) | Boss Rush button | Boss Rush button |
 | Versus (online) | V (title screen) | Versus button | Versus button |
+| Co-op (online) | T (title screen) | Co-op button | Co-op button |
 | Records | R (title screen) | Records button | Records button |
 | Skip the ending | Space / Enter / Esc (after a moment) | A, B or Start | Tap |
 | Salvage draft | 1, 2, 3 take a card; arrows then Space / Enter take the highlighted card or the skip button. Esc does nothing | D-pad moves, A takes. B and Start do nothing | Tap a card |
@@ -83,7 +84,8 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
 - **Daily challenge:** the same seeded region, waves, events, convoys, drops and missions for everyone on a given (UTC) day. The day's region is open even if you haven't charted it yet; the Hive Heart is never the day's region, so the finale stays something you reach. Everyone flies a Striker with no loadout, hangar, gambles or wager. The day's best score is kept separately from the top-10 table.
 - **Boss Rush:** every boss back to back against the clock, with a pit stop between fights and best times saved (see below).
 - **Online versus:** race a friend over the internet on the same waves. Your feats send raiders into their swarm (see below).
-- **Pilot record and medals:** lifetime stats and 42 medals in bronze, silver and gold, each tier paying scrap once (see below).
+- **Online co-op:** take on the swarm with a friend over the internet. Waves start for you both at once, bosses take the damage you both deal, your feats send your ship to fight at your wingmate's side, and a pilot who goes down is back once the other clears the wave (see below).
+- **Pilot record and medals:** lifetime stats and 44 medals in bronze, silver and gold, each tier paying scrap once (see below).
 - **Top 10 table** with 3-letter initials, saved in your browser's local storage.
 - **Chiptune soundtrack** with separate boss, bonus-stage and Hive Mind themes, generated live with no audio files.
 - **CRT scanlines**, screen shake, and pixel explosions. All motion effects respect the reduced-motion setting, and the options screen can tune them (see below).
@@ -138,7 +140,32 @@ Press V (or the Versus button) on the title screen to fly against a friend over 
   - **A raider:** a drone or (from wave 4) a stinger ringed in red. It dives at your ship from the top edge, leaves at the bottom and comes back until you shoot it. While raiders fly, the wave can't end. A raider pays points and feeds your combo, but never scrap, drops or relics. A smart bomb or Nova Blast takes out raiders too.
 - **Winning:** the last ship flying wins, or be the first to clear wave 10 (beat its boss). The HUD shows your rival's score and wave where the high score usually is, and a toast tells you when they lose a ship. Pausing doesn't stop your rival, and Forfeit on the pause screen ends the match as a loss. A rival who leaves, or goes silent for 20 seconds, hands you the win.
 - **After the match:** the result screen compares scores and waves and counts the raiders sent, blocked and received. Rematch deals new waves once both pilots press it; Leave goes back to the title. Wins, losses and draws go in the pilot record's stats, and a match counts toward every other stat and medal, like a daily challenge. Versus scores don't enter the top-10 table, and there is no prize wheel.
-- **How it works on GitHub Pages:** Pages only serves files, so there is no game server. When you open the versus screen, the page loads PeerJS 1.5.5 from cdnjs (with jsDelivr and unpkg as fallbacks, all checked with Subresource Integrity). PeerJS's free public service finds your rival from the room code, then your two browsers talk directly over a WebRTC data channel. When a network blocks direct links, PeerJS falls back to its own free relay servers. Because the link is direct, each of you can see the other's IP address, so play with people you know. Each game trusts what the other reports, which is fine between friends but means a modified page could cheat. If PeerJS's free service is down, versus can't connect; the rest of the game is unaffected.
+- **How it works on GitHub Pages:** Pages only serves files, so there is no game server. When you open the versus or co-op lobby, the page loads PeerJS 1.5.5 from cdnjs (with jsDelivr and unpkg as fallbacks, all checked with Subresource Integrity). PeerJS's free public service finds your rival from the room code, then your two browsers talk directly over a WebRTC data channel. When a network blocks direct links, PeerJS falls back to its own free relay servers. Because the link is direct, each of you can see the other's IP address, so play with people you know. Each game trusts what the other reports, which is fine between friends but means a modified page could cheat. If PeerJS's free service is down, versus and co-op can't connect; the rest of the game is unaffected.
+
+## Co-op (online)
+
+Press T (or the Co-op button) on the title screen to take on the swarm with a friend over the internet. You each fly your own run on your own screen, on the same waves, but the two runs are linked: you start every wave together, fight every boss together, and stay in until you are both down.
+
+- **Getting together:** the same lobby as versus. One pilot hosts and shares the 4-character room code or the invite link; the other joins. The joining pilot takes the host's mode, so a code or link from a co-op room always starts co-op, whichever lobby it was typed into.
+- **The run:** each pilot flies their own hull with its ability, paint job and trail, but with no loadout, hangar, gambles or wager. You fly the host's course (any region the host has charted, the Hive Heart included), and both get the same seeded waves, events, convoys, missions and salvage hands. The debrief moves on by itself after 4 seconds.
+- **Lockstep:** every wave and challenging stage starts for both pilots at once. Whoever finishes first waits in an empty sky (WAITING FOR ...) with a line showing how the wingmate's wave is going: foes left, a boss with its health bar, or a challenging stage. The HUD shows your wingmate's score and wave where the high score usually is.
+- **Linked bosses:** you both fight the same boss, and the damage each of you deals is dealt to the other's boss too, so it falls on both screens together. The Mothership's parts, its shield and the Hive Mind's phases change on both screens as well. While you are both flying, a co-op boss is 60% tougher, and LINKED shows next to its health bar. Your wingmate's hits never fill your ability meter.
+- **Assists:** the feats that send raiders in versus send help in co-op: your ship flies onto your wingmate's screen, in your hull and paint, and fights at their side.
+
+  | Feat | Assists |
+  | --- | --- |
+  | Combo reaches x4 / x6 / x8 | 1 / 1 / 2 |
+  | No-hit wave, broken squadron or rescued fighter | 1 |
+  | Whole convoy saved | 2 |
+  | Boss destroyed, or a PERFECT challenging stage | 3 |
+  | 36 or more hits in a challenging stage | 1 |
+
+  - **Timing:** each assist is 6 seconds of fighting, and up to 24 seconds are held at once, shown as teal notches up the left edge. The ship flies in once a wave is under way (never in a challenging stage), and its time only runs down while there is something to shoot. It blinks before it leaves.
+  - **The ship:** it hovers beside your ship, under the nearest foe within reach, and fires straight up. It can't be hit and never shoots a captured fighter. What it destroys counts as yours, and its shots stay out of your hit-miss ratio. No assists are sent while your wingmate is down.
+- **Down, not out:** lose your last ship while your wingmate flies on and you are down; your screen says so and shows how their wave is going. When they clear the wave or stage, you are back with one ship for the next (the wave you were on is swept away, and its scrap and relics are paid). Go down while they are already waiting and you are back at once. The debrief after their wave shows you as REVIVED.
+- **The end:** the run is over when you are both down at once. Leave on the pause screen ends your run, and your wingmate flies on solo; pausing doesn't stop your wingmate. A wingmate who leaves, or goes silent for 20 seconds, leaves you flying solo too: no waiting, no linked boss and no revives, so losing your last ship ends the run.
+- **After the run:** the result screen shows the team score, both scores and waves, assists sent and received, revives given and received, scrap earned and your best co-op wave. A wingmate still flying keeps their score updating there. Rematch starts a new run once both pilots press it; Leave goes back to the title. Runs, your best co-op wave and wingmates brought back go in the pilot record, and a run counts toward every other stat and medal, like a daily challenge. Co-op scores don't enter the top-10 table, and there is no prize wheel.
+- **Connecting:** exactly as for versus (see above), including what each of you can see of the other.
 
 ## Regions and the star map
 
@@ -182,10 +209,10 @@ Press B (or the Boss Rush button) on the title screen to fly the bosses back to 
 
 Press R (or the Records button) on the title screen to open your pilot record. It has two views, switched with the tabs or the 1 and 2 keys:
 
-- **Medals:** 42 medals in a grid of pixel icons, colored bronze, silver or gold by the tier you hold, each with a progress bar toward the next tier. Pick one (tap it, or use the arrow keys) to see what it asks for, your progress and what the next tier pays. A small amber corner marks a medal you haven't looked at yet, and the title screen's Records button counts them.
-- **Stats:** your lifetime record: runs started (daily challenges, Boss Rushes and versus matches included), time flown, waves cleared, total and best score, enemies destroyed by type, bosses destroyed by kind and by region, best combo, grazes, smart bombs used, best charge-shot pierce, perfect challenging stages, fighters rescued, missions completed, relics caught, freighters saved, whole convoys saved, perks drafted, most perks held in one run and scrap earned, plus a Boss Rush section with your clears and best times and versus matches, wins, losses and draws.
+- **Medals:** 44 medals in a grid of pixel icons, colored bronze, silver or gold by the tier you hold, each with a progress bar toward the next tier. Pick one (tap it, or use the arrow keys) to see what it asks for, your progress and what the next tier pays. A small amber corner marks a medal you haven't looked at yet, and the title screen's Records button counts them.
+- **Stats:** your lifetime record: runs started (daily challenges, Boss Rushes, versus matches and co-op runs included), time flown, waves cleared, total and best score, enemies destroyed by type, bosses destroyed by kind and by region, best combo, grazes, smart bombs used, best charge-shot pierce, perfect challenging stages, fighters rescued, missions completed, relics caught, freighters saved, whole convoys saved, perks drafted, most perks held in one run and scrap earned, plus a Boss Rush section with your clears and best times, versus matches, wins, losses and draws, and co-op runs, your best co-op wave and wingmates brought back.
 
-Medals come in tiers: most have bronze, silver and gold (for example 500 / 5,000 / 25,000 enemies destroyed, reaching wave 10 / 15 / 20, collecting 50 / 150 / all album items, completing 25 / 100 / 300 missions, getting 5 / 25 / 100 freighters through). Some have a single tier, such as holding 6 perks in one run, flying the Interceptor, the Bulwark or the Lancer past wave 10, or destroying the Hive Mind. Four are secret and show as "???" until you earn them. Each tier pays scrap once, 20 to 150 depending on how hard it is; all 104 tiers together pay 6,565 scrap, against roughly 200 to 1,000 for a run. Medals never award album items and never change gameplay. The daily challenge counts toward every stat and medal.
+Medals come in tiers: most have bronze, silver and gold (for example 500 / 5,000 / 25,000 enemies destroyed, reaching wave 10 / 15 / 20 (and again in co-op), bringing a downed wingmate back 3 / 15 / 50 times, collecting 50 / 150 / all album items, completing 25 / 100 / 300 missions, getting 5 / 25 / 100 freighters through). Some have a single tier, such as holding 6 perks in one run, flying the Interceptor, the Bulwark or the Lancer past wave 10, or destroying the Hive Mind. Four are secret and show as "???" until you earn them. Each tier pays scrap once, 20 to 150 depending on how hard it is; all 110 tiers together pay 6,925 scrap, against roughly 200 to 1,000 for a run. Medals never award album items and never change gameplay. The daily challenge counts toward every stat and medal.
 
 An unlock shows a short toast under the HUD, one at a time, so it doesn't pile onto the wave banner or other messages. The first time you load the game with an existing save, medals your save already earns (album count, charted regions, best waves, high scores, challenging-stage history) are credited once, with one summary toast. The record is saved in your browser under its own key, at the end of every wave, at game over and when the page is hidden.
 
