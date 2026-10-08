@@ -4018,7 +4018,7 @@ function drawAbilityHud() {
   const a = hullAbility(), id = hullStat().ability, x = coarse ? 4 : 10, y = H - 15, w = 28;
   const left = id === 'overdrive' ? ab.od : id === 'barrier' ? ab.barrier : id === 'lance' ? ab.lance : 0;
   const blink = (ab.ready && Math.floor(clock * 6) % 2) || (ab.flashT > 0 && !reduceMotion && Math.floor(clock * 16) % 2);
-  const f = left > 0 ? Math.min(1, left / (a.dur * perkLong())) : ab.meter / AB_FULL;
+  const f = left > 0 ? Math.min(1, left / (a.dur * (id === 'overdrive' && boss ? 1 : perkLong()))) : ab.meter / AB_FULL;   // Afterglow never stretches overdrive on a boss
   if (!coarse) txt('V', 4, y - 1, ab.ready ? PAL.y : PAL.s);
   cx.fillStyle = '#241a52'; cx.fillRect(x - 1, y - 1, w + 2, 5);
   cx.fillStyle = blink ? '#ffffff' : a.color; cx.fillRect(x, y, Math.round(w * f), 3);
