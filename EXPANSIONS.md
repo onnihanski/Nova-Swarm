@@ -4,7 +4,7 @@ Snapshots of where Nova Swarm stands and the expansions built from them. In each
 
 ## Round 2: three gameplay expansions
 
-**Status:** being built. Each expansion has its own session and branch, all started from the commit that adds this plan.
+**Status:** all three expansions are built, reviewed and merged into the default branch. The README describes how they play.
 
 ### Where the game stands
 
@@ -54,7 +54,7 @@ All three branches edit the same `index.html` and `README.md`, so merges will ne
 - **Album.** The total stays at 298; none of the three adds collectibles.
 - **Save keys.** New data uses its own versioned `nova-swarm-*-v1` key through the existing `store` helper (Boss Rush bests: `nova-swarm-rush-v1`). Lifetime stats go in the pilot record.
 - **Medals.** Each expansion may add up to two medals at the end of `MEDALS`. The README's medal counts are reconciled when the branches merge.
-- **Left for the merge.** Once both are in, Boss Rush pit stops can deal a salvage draft. Boss Rush only spawns bosses, so it never has convoys or challenging stages.
+- **Left for the merge.** Once both are in, Boss Rush pit stops could deal a salvage draft. At the merge they were kept to their three supply picks, so rush times stay a test of skill rather than of the hand dealt. Boss Rush only spawns bosses, so it never has convoys or challenging stages.
 
 ## Round 1: five expansions
 
