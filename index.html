@@ -2705,16 +2705,18 @@ function convoySpawn(n) {
 }
 const convoyEdge = f => f.dir > 0 ? -FR_HW - 2 : W + FR_HW + 2;
 function updateConvoy(dt) {
-  if (!convoy.on || G.lives <= 0) return;
+  if (!convoy.on) return;
+  const over = G.lives <= 0;   // after the last ship is lost the convoy flies on, but nothing more is paid, rammed or lost
   for (const f of convoy.list) {
     if (f.flash > 0) f.flash -= dt;
     if (f.state === 'wait') {
-      if (G.phase === 'active' && (f.delay -= dt) <= 0) { f.state = 'fly'; f.x = convoyEdge(f); }
+      if (!over && G.phase === 'active' && (f.delay -= dt) <= 0) { f.state = 'fly'; f.x = convoyEdge(f); }
     } else if (flying(f)) {
       f.x += f.dir * FR_SPEED * dt;
       f.t += dt;
       if (!reduceMotion && Math.random() < dt * 14) parts.push({ x: f.x - f.dir * 9, y: f.y + frand(-1, 2), vx: -f.dir * frand(8, 18), vy: frand(-4, 4), t: 0, life: 0.3, c: Math.random() < 0.5 ? PAL.a : PAL.y, s: 1 });
-      if (f.dir > 0 ? f.x > W + FR_HW + 2 : f.x < -FR_HW - 2) { freighterSafe(f); continue; }
+      if (f.dir > 0 ? f.x > W + FR_HW + 2 : f.x < -FR_HW - 2) { if (over) f.state = 'gone'; else freighterSafe(f); continue; }
+      if (over) continue;
       for (const e of enemies) {   // a diver that reaches a freighter rams it and is lost
         if (e.dead || !e.diving || e.state === 'wait' || e.state === 'beam' || e.after === 'beam' || e.captive) continue;
         const sp = e.T.spr[0];
@@ -2748,7 +2750,7 @@ function ramFreighter(f, e) {
 }
 // An enemy shot or mine that reaches a freighter is spent on it.
 function convoyHit(x, y, dmg) {
-  if (!convoy.on) return false;
+  if (!convoy.on || G.lives <= 0) return false;
   for (const f of convoy.list) if (flying(f) && Math.abs(x - f.x) <= FR_HW && Math.abs(y - f.y) <= FR_HH + 1) { hitFreighter(f, dmg, x, y); return true; }
   return false;
 }
