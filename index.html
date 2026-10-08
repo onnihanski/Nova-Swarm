@@ -440,6 +440,33 @@
   .missions li { display: contents; }
   .missions .p { text-align: right; color: var(--amber); }
   .missions li.done span { color: var(--teal); }
+  .perk-hand { width: 100%; display: grid; gap: calc(var(--px) * 3); }
+  .perk {
+    display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: calc(var(--px) * 4);
+    width: 100%; margin: 0; padding: calc(var(--px) * 3) calc(var(--px) * 4);
+    font: inherit; text-align: left; color: var(--ink); background: var(--bezel-lo); border: 0; cursor: pointer;
+    box-shadow: inset 0 0 0 calc(var(--px) * 1.5) var(--rc, var(--bezel-hi));
+  }
+  .perk.rare { box-shadow: inset 0 0 0 calc(var(--px) * 2.5) var(--rc), inset 0 0 0 calc(var(--px) * 3.5) var(--bezel-lo); }
+  .perk:hover { background: var(--bezel); }
+  .perk:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .perk > img { width: calc(var(--px) * 14); height: auto; image-rendering: pixelated; }
+  .perk .tx { display: grid; gap: var(--px); }
+  .perk .nm { font-size: var(--fs-m); letter-spacing: .06em; color: var(--rc); }
+  .perk .ds { font-size: var(--fs-s); line-height: 1.3; }
+  .perk .tg { font-size: max(9px, calc(var(--u) * 4px)); color: var(--ink-dim); letter-spacing: .06em; }
+  .pips { display: inline-flex; gap: var(--px); }
+  .pips i { width: calc(var(--px) * 4); height: calc(var(--px) * 3); background: var(--bezel-hi); }
+  .pips i.on { background: var(--teal); }
+  .pips i.next { background: var(--amber); }
+  .perk-list { list-style: none; margin: 0; padding: 0; width: 100%; max-height: calc(var(--px) * 56); overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: var(--px) calc(var(--px) * 4); font-size: max(9px, calc(var(--u) * 4px)); text-align: left; }
+  .perk-list li { display: flex; align-items: center; gap: calc(var(--px) * 2); }
+  .perk-list li.none { grid-column: 1 / -1; color: var(--ink-dim); }
+  .perk-list img, .build img { width: calc(var(--px) * 7); height: auto; image-rendering: pixelated; flex: none; }
+  .build-box { display: grid; gap: calc(var(--px) * 2); justify-items: center; }
+  .build { display: flex; flex-wrap: wrap; gap: calc(var(--px) * 3); justify-content: center; }
+  .build .bi { display: inline-flex; align-items: flex-end; gap: var(--px); }
+  .build .bi b { font-weight: 400; font-size: max(9px, calc(var(--u) * 4px)); color: var(--teal); }
   .odds .p { text-align: right; color: var(--amber); }
   .odds .d { color: var(--ink-dim); }
   .odds img { image-rendering: pixelated; width: calc(var(--px) * 7); height: auto; vertical-align: middle; }
@@ -725,6 +752,8 @@
       <p class="dimtxt" id="pauseHint">P OR ESC TO RESUME</p>
       <p class="fine">MISSIONS</p>
       <ul class="missions" id="pauseMissions"></ul>
+      <p class="fine">PERKS</p>
+      <ul class="perk-list" id="pausePerks"></ul>
     </section>
 
     <section class="ov dim" id="ovOver" aria-label="Game over" hidden>
@@ -741,6 +770,7 @@
         <dt class="relic-only" hidden>RELICS FOUND</dt><dd class="relic-only" id="rRelics" hidden>0</dd>
         <dt class="daily-only" hidden>DAILY BEST</dt><dd class="hl daily-only" id="rDaily" hidden>0</dd>
       </dl>
+      <div class="build-box" id="rBuildBox" hidden><p class="fine">YOUR BUILD</p><div class="build" id="rBuild"></div></div>
       <button class="btn primary" type="button" id="overBtn">CONTINUE</button>
     </section>
 
@@ -795,6 +825,15 @@
         <button class="btn" type="button" id="wgPlace" disabled>PLACE BET</button>
         <button class="btn primary" type="button" id="wgSkip">NO BET<span class="kh"> (SPACE)</span></button>
       </div>
+    </section>
+
+    <section class="ov dim" id="ovDraft" aria-label="Salvage draft" hidden>
+      <h2 class="big c-teal">SALVAGE DRAFT</h2>
+      <p class="dimtxt">PICK ONE PERK FOR THE REST OF THE RUN</p>
+      <p class="fine">EACH PERK YOU HOLD MAKES THE SWARM 6% FASTER</p>
+      <div class="perk-hand" id="dfHand"></div>
+      <button class="btn sm" type="button" id="dfSkip">SKIP</button>
+      <p class="fine" id="dfHint">KEYS 1 TO 3 PICK A CARD<br>OR ARROWS, THEN SPACE</p>
     </section>
 
     <section class="ov solid" id="ovHangar" aria-label="Hangar" hidden>
@@ -2170,7 +2209,7 @@ const G = {
   scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
   combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0, missions: [],
   event: null, lastEvent: 0, meteorT: 0,
-  region: 'home', relics: 0, relicWave: false, windV: 0, windDir: 1, windT: 0
+  region: 'home', relics: 0, relicWave: false, windV: 0, windDir: 1, windT: 0, perks: {}, glanced: 0
 };
 const player = { x: W / 2, y: H - 22, alive: true, invuln: 0, cd: 0, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: false, charge: 0, wings: false };
 let enemies = [], pshots = [], eshots = [], pickups = [], parts = [], popups = [], rings = [], scrapBits = [], relicDrops = [];
@@ -2273,6 +2312,7 @@ function nextWave() {
   G.phase = 'intro';
   G.hitThisWave = false;
   G.relicWave = false;
+  if (G.glanced > 0) G.glanced--;
   rollEvent();
   if (G.wave % 5 === 0) {
     G.phaseT = 2.6;
@@ -2371,7 +2411,7 @@ function bonusClear() {
   const pc = runReg().perfectCard;
   if (perfect && pc && awardTrophy(pc)) extra.push(['TROPHY CARD', byId(pc).name]);
   G.clear = { title: perfect ? 'PERFECT!' : 'STAGE CLEAR', note: 'CHALLENGING STAGE', pts: perfect ? 10000 : hits * 100,
-    scrap: perfect ? 100 : Math.floor(hits / 4), extra, gambled: false, banked: false, busy: false };
+    scrap: perfect ? 100 : Math.floor(hits / 4), extra, gambled: false, banked: false, busy: false, draft: true };
   banner(perfect ? 'PERFECT!' : 'HITS ' + hits + ' OF ' + total, '', 'good', 1.5);
   if (perfect) Snd.life(); else Snd.jingle();
   G.bonus = false;
@@ -2962,7 +3002,7 @@ function enemyFire(e, formation) {
   } else aimed(e.x, e.y + 4, s, formation ? 0.25 : 0.1);
 }
 function fire() {
-  const hs = hullStat();
+  const hs = hullStat(), n0 = pshots.length;
   const od = ab.od > 0;   // overdrive: rapid spread fire
   player.cd = (od ? 0.09 : player.rapidT > 0 ? 0.1 : 0.2) * (1 - 0.2 * RUN.fastFire) * hs.cd;
   const xs = shipXs(), y = player.y - 7;
@@ -2980,6 +3020,7 @@ function fire() {
     G.shots += 2;
   }
   wingShots();
+  perkVolley(n0);
   Snd.shoot();
 }
 
@@ -3042,10 +3083,10 @@ function damageCore(b, n) {
 // A regular shot: parts first, then the core (or its shield), then the armored hull soaks it up.
 // Returns 'hit' when it did damage, 'blocked' when the shield or hull stopped it, or '' for a miss.
 function hitMother(b, s) {
-  for (const p of b.parts) if (p.hp > 0 && Math.abs(s.x - b.x - p.dx) <= (b.partW || 3) && Math.abs(s.y - b.y - p.dy) <= (b.partH || 3.5)) { damagePart(b, p, 1); return 'hit'; }
+  for (const p of b.parts) if (p.hp > 0 && Math.abs(s.x - b.x - p.dx) <= (b.partW || 3) && Math.abs(s.y - b.y - p.dy) <= (b.partH || 3.5)) { damagePart(b, p, boltBoss(s)); return 'hit'; }
   const cdx = Math.abs(s.x - b.x), cdy = Math.abs(s.y - b.y - b.core.dy);
   if (shielded(b)) { if (cdx < 7 && cdy < 6) { spark(s.x, s.y); Snd.ting(); return 'blocked'; } }
-  else if (cdx <= 4 && cdy <= 3.5) { damageCore(b, 1); return 'hit'; }
+  else if (cdx <= 4 && cdy <= 3.5) { damageCore(b, boltBoss(s)); return 'hit'; }
   if (cdx <= (b.hullX || 16) && Math.abs(s.y - b.y) <= (b.hullY || 4.5)) { spark(s.x, s.y); return 'blocked'; }
   return '';
 }
@@ -3380,11 +3421,13 @@ function useBomb() {
 const CHARGE_TIME = 1;
 const pierceDmg = () => hullStat().pierce || [2, 4];   // damage to foes / to a boss; the Lancer hits foes harder
 function firePierce() {
+  const n0 = pshots.length;
   player.cd = 0.3;
   const xs = shipXs(), y = player.y - 8;
   for (const x of xs) pshots.push({ x, y, vx: 0, vy: -320, pierce: true, hit: [], hard: !!hullStat().pierce });
   G.shots += xs.length;
   wingShots();
+  perkMark(n0);
   rings.push({ x: player.x, y: y, r: 2, v: 50, t: 0, life: 0.2, c: PAL.y });
   Snd.pierce();
 }
@@ -3441,7 +3484,7 @@ function abilityCharge(v) {
   if (ab.meter >= AB_FULL) { ab.ready = true; ab.flashT = 1; Snd.abilityReady(); }
 }
 function abilityKill(moving) {
-  abilityCharge(AB_KILL * (moving ? 1.4 : 1));
+  abilityCharge(AB_KILL * (moving ? 1.4 : 1) * perkMeter());
   if (ab.window > 0) mission('abkills');
 }
 function useAbility() {
@@ -3452,10 +3495,10 @@ function useAbility() {
   mission('ability');
   toast(a.name, a.color);
   Snd.ability(id);
-  if (id === 'overdrive') ab.od = a.dur;
-  else if (id === 'barrier') ab.barrier = a.dur;
+  if (id === 'overdrive') ab.od = a.dur * (boss ? 1 : perkLong());   // Afterglow does not stretch overdrive against a boss
+  else if (id === 'barrier') ab.barrier = a.dur * perkLong();
   else if (id === 'dash') phaseDash();
-  else if (id === 'lance') { ab.lance = a.dur; ab.lanceT = 0; ab.lanceCap = LANCE_BOSS_CAP; ab.lanceHit = false; G.shots++; }
+  else if (id === 'lance') { ab.lance = a.dur * perkLong(); ab.lanceT = 0; ab.lanceCap = LANCE_BOSS_CAP; ab.lanceHit = false; G.shots++; }
   rings.push({ x: player.x, y: player.y, r: 3, v: 70, t: 0, life: 0.3, c: a.color });
   return true;
 }
@@ -3477,8 +3520,9 @@ function phaseDash() {
   }
   player.x = clamp(x0 + dx / len * DASH_DIST, edge, W - edge);
   player.y = clamp(y0 + dy / len * DASH_DIST, H * 0.55, H - 14);
-  ab.dash = ABILITIES.dash.dur;
-  player.invuln = Math.max(player.invuln, ABILITIES.dash.dur);
+  const dd = ABILITIES.dash.dur + 0.15 * perkRank('glow');   // Afterglow: a slightly longer dash
+  ab.dash = dd;
+  player.invuln = Math.max(player.invuln, dd);
   for (let i = 0; i < 5; i++) ab.ghosts.push({ x: lerp(x0, player.x, i / 5), y: lerp(y0, player.y, i / 5), t: (4 - i) * 0.05 });
   explode(x0, y0, [PAL.b, PAL.w], 8, 40);
 }
@@ -3567,7 +3611,7 @@ function drawAbilityHud() {
   const a = hullAbility(), id = hullStat().ability, x = coarse ? 4 : 10, y = H - 15, w = 28;
   const left = id === 'overdrive' ? ab.od : id === 'barrier' ? ab.barrier : id === 'lance' ? ab.lance : 0;
   const blink = (ab.ready && Math.floor(clock * 6) % 2) || (ab.flashT > 0 && !reduceMotion && Math.floor(clock * 16) % 2);
-  const f = left > 0 ? left / a.dur : ab.meter / AB_FULL;
+  const f = left > 0 ? Math.min(1, left / (a.dur * perkLong())) : ab.meter / AB_FULL;
   if (!coarse) txt('V', 4, y - 1, ab.ready ? PAL.y : PAL.s);
   cx.fillStyle = '#241a52'; cx.fillRect(x - 1, y - 1, w + 2, 5);
   cx.fillStyle = blink ? '#ffffff' : a.color; cx.fillRect(x, y, Math.round(w * f), 3);
@@ -3645,7 +3689,7 @@ const missionsDone = () => G.missions.filter(m => m.done).length + '/' + G.missi
 // Events call one Rec method each. Medals are data: a new one is one line in MEDALS (check() returns the value its tiers are measured against).
 const REC_KEY = 'nova-swarm-record-v1';
 const REC_NUMS = ['runs', 'dailies', 'score', 'best', 'time', 'waves', 'bestWave', 'bestCombo', 'grazes', 'bestRunGrazes', 'bestWaveGrazes', 'bestRunNoHit',
-  'perfects', 'bestBonus', 'rescues', 'bombs', 'pierce', 'missions', 'relics', 'scrap', 'flawless', 'twinBosses'];
+  'perfects', 'bestBonus', 'rescues', 'bombs', 'pierce', 'missions', 'relics', 'scrap', 'flawless', 'twinBosses', 'perks', 'bestRunPerks'];
 const REC_MAPS = { kills: ETYPES, bosses: BOSSES, bossRegions: REGION, hullBest: HULLS };
 const emptyRec = () => {
   const r = { medals: {}, seen: {}, legacy: false, lastDaily: '' };
@@ -3750,7 +3794,9 @@ const MEDALS = [
   { id: 'dancer', name: 'BULLET DANCER', desc: 'GRAZE {n} BULLETS IN ONE WAVE', glyph: 'sun', tiers: [25], reward: 50, secret: true, check: () => record.bestWaveGrazes },
   { id: 'flawless', name: 'FLAWLESS VICTORY', desc: 'DESTROY A BOSS WITHOUT BEING HIT', glyph: 'crown', tiers: [1], reward: 60, secret: true, check: () => record.flawless },
   { id: 'twin', name: 'DOUBLE TROUBLE', desc: 'DESTROY A BOSS WITH TWIN FIGHTERS', glyph: 'plus', tiers: [1], reward: 50, secret: true, check: () => record.twinBosses },
-  { id: 'hoard', name: "DRAGON'S HOARD", desc: 'HOLD {n} SCRAP AT ONCE', glyph: 'coin', tiers: [2000], reward: 40, secret: true, check: () => Wallet.scrap }
+  { id: 'hoard', name: "DRAGON'S HOARD", desc: 'HOLD {n} SCRAP AT ONCE', glyph: 'coin', tiers: [2000], reward: 40, secret: true, check: () => Wallet.scrap },
+  { id: 'drafter', name: 'SALVAGE CREW', desc: 'DRAFT {n} PERKS', glyph: 'gem', tiers: [25, 100, 250], reward: [20, 50, 100], check: () => record.perks },
+  { id: 'build', name: 'FULL BUILD', desc: 'HOLD {n} PERKS IN ONE RUN', glyph: 'plus', tiers: [6], reward: 60, check: () => record.bestRunPerks }
 ];
 const medalTone = (m, i) => m.tiers.length === 1 ? 2 : i;
 const medalReward = (m, i) => Array.isArray(m.reward) ? m.reward[i] : m.reward;
@@ -3867,6 +3913,7 @@ const Rec = {
   bomb() { record.bombs++; },
   pierce(n) { recMax(record, 'pierce', n); },
   relic() { record.relics++; },
+  perk() { record.perks++; recMax(record, 'bestRunPerks', perkCount()); this.chk = 0; },
   bonusStage(perfect) { record.waves++; if (perfect) record.perfects++; recMax(record, 'bestBonus', G.bonusHits); this.chk = 0; this.save(); },
   over() { this.chk = 0; this.save(); }
 };
@@ -3969,7 +4016,8 @@ function buildStats() {
     ['GRAZES', fmtNum(r.grazes)], ['SMART BOMBS USED', fmtNum(r.bombs)], ['BEST CHARGE-SHOT PIERCE', fmtNum(r.pierce)]]);
   group('BOSSES', [['BOSSES DESTROYED', fmtNum(recSum(r.bosses))], ...Object.keys(BOSSES).map(k => ['· ' + BOSSES[k].name, fmtNum(r.bosses[k] || 0)]),
     ...REGIONS.map(g => ['· IN ' + g.name, fmtNum(r.bossRegions[g.id] || 0)])]);
-  group('EXTRAS', [['PERFECT STAGES', fmtNum(r.perfects)], ['FIGHTERS RESCUED', fmtNum(r.rescues)], ['MISSIONS COMPLETED', fmtNum(r.missions)], ['RELICS CAUGHT', fmtNum(r.relics)]]);
+  group('EXTRAS', [['PERFECT STAGES', fmtNum(r.perfects)], ['FIGHTERS RESCUED', fmtNum(r.rescues)], ['MISSIONS COMPLETED', fmtNum(r.missions)], ['RELICS CAUGHT', fmtNum(r.relics)],
+    ['PERKS DRAFTED', fmtNum(r.perks)], ['MOST PERKS IN ONE RUN', fmtNum(r.bestRunPerks)]]);
 }
 function handleRecordsKey(e) {
   const c = e.code, a = document.activeElement, confirm = c === 'Space' || c === 'Enter';
@@ -4003,7 +4051,7 @@ const comboColor = m => m >= 6 ? PAL.c : m >= 4 ? PAL.a : PAL.t;
 function comboKill() {
   const before = comboMult();
   G.combo++;
-  G.comboT = COMBO_WINDOW;
+  G.comboT = comboWin();
   const m = comboMult();
   if (m > before) { Snd.combo(m); G.waveMult = Math.max(G.waveMult, m); G.bestMult = Math.max(G.bestMult, m); mission('combo', m); Rec.combo(m); }
   return m;
@@ -4017,7 +4065,7 @@ function graze(b) {
   mission('graze', k);
   Rec.graze(k);
   addScore(20 * k);
-  abilityCharge(AB_GRAZE * k);
+  abilityCharge(AB_GRAZE * k * perkMeter() * (1 + 0.25 * perkRank('graze')));
   spark(b.x, b.y);
   Snd.graze();
   if (Math.floor(G.grazes / 4) > Math.floor((G.grazes - k) / 4)) { collectScrap(1); popups.push({ text: '+1', x: player.x, y: player.y - 12, t: 0.2, c: PAL.a }); }
@@ -4047,11 +4095,12 @@ function killEnemy(e) {
   if (moving || mult > 1) popups.push({ text: String(pts), x: e.x, y: e.y - 4, t: 0, c: mult > 1 ? comboColor(mult) : e.type === 'warden' ? PAL.y : PAL.w });
   explode(e.x, e.y, tcol(e.T.colors), 14, 60);
   Snd.boom();
-  dropScrap(e.x, e.y, (e.bonus ? 1 : e.T.scrap + (moving ? 1 : 0) + (G.event === 'surge' ? 1 : 0)) * (G.event === 'fast' ? 2 : 1));
+  dropScrap(e.x, e.y, (e.bonus ? 1 : e.T.scrap + (moving ? 1 + perkRank('salv') : 0) + (G.event === 'surge' ? 1 : 0)) * (G.event === 'fast' ? 2 : 1));
   if (e.bonus) { G.bonusHits++; return; }
+  if (G.perks.chain) chainBurst(e);
   if (e.type === 'splitter') splitInto(e);
   G.killsSinceDrop++;
-  const chance = G.killsSinceDrop >= 18 ? 1 : e.T.drop * runReg().mods.dropMul + (moving ? 0.03 : 0);
+  const chance = G.killsSinceDrop >= 18 ? 1 : e.T.drop * runReg().mods.dropMul * (1 + 0.3 * perkRank('lucky')) + (moving ? 0.03 : 0);
   if (grand() < chance) { dropPickup(e.x, e.y); G.killsSinceDrop = 0; }
   // in the new regions, one kill a wave may shake loose a relic
   if (runReg().relics && !G.relicWave && grand() < RELIC_CHANCE) { G.relicWave = true; dropRelic(e.x, e.y); }
@@ -4075,10 +4124,11 @@ function dropPickup(x, y, force) {
 }
 function applyPower(kind) {
   const p = POWERS[kind];
-  if (kind === 'spread') player.spreadT = Math.min(Math.max(player.spreadT, 0) + 12, 20);
-  else if (kind === 'rapid') player.rapidT = Math.min(Math.max(player.rapidT, 0) + 12, 20);
+  const pk = perkPower();   // Power Surge
+  if (kind === 'spread') player.spreadT = Math.min(Math.max(player.spreadT, 0) + 12 * pk, 20 * pk);
+  else if (kind === 'rapid') player.rapidT = Math.min(Math.max(player.rapidT, 0) + 12 * pk, 20 * pk);
   else if (kind === 'shield') player.shield = true;
-  else if (kind === 'warp') G.slowT = 7;
+  else if (kind === 'warp') G.slowT = 7 * pk;
   else if (kind === 'nova') nova();
   else if (kind === 'wing') { if (!player.wings) placeWings(); player.wings = true; }
   else if (kind === 'life') G.lives = Math.min(G.lives + 1, 5);
@@ -4107,8 +4157,15 @@ function hitPlayer(hx) {
   if (!player.alive || player.invuln > 0) return;
   breakCombo();
   rumble(260, 0.9, 0.6);
+  if (perkRank('plate') && G.glanced <= 0) {   // reactive plating: the first hit glances off, then it needs a wave to re-form; a real shield is still up
+    G.glanced = PLATE_WAVES; player.invuln = 1.2 + perkRank('wind');
+    Snd.shieldBreak();
+    explode(player.x, player.y, [PAL.a, PAL.y, PAL.w], 12, 50);
+    shakeIt(2);
+    return;
+  }
   if (player.shield) {
-    player.shield = false; player.invuln = 1.2;
+    player.shield = false; player.invuln = 1.2 + perkRank('wind');
     Snd.shieldBreak();
     explode(player.x, player.y, [PAL.t, PAL.b, PAL.w], 12, 50);
     shakeIt(2);
@@ -4121,7 +4178,7 @@ function hitPlayer(hx) {
     G.hitThisWave = true;
     explode(player.x + side * TWIN_DX, player.y, [PAL.t, PAL.w, PAL.a, PAL.b], 24, 70);
     player.x -= side * TWIN_DX;
-    player.invuln = 1.2;
+    player.invuln = 1.2 + perkRank('wind');
     shakeIt(4);
     Snd.die();
     toast('TWIN LOST', PAL.c);
@@ -4140,7 +4197,7 @@ function hitPlayer(hx) {
   else player.respawnT = 1.8;
 }
 function respawn() {
-  Object.assign(player, { alive: true, x: W / 2, y: H - 22, invuln: 2.2, cd: 0.3, twin: false, charge: 0, wings: false, shield: !!hullStat().shieldStart });
+  Object.assign(player, { alive: true, x: W / 2, y: H - 22, invuln: 2.2 + perkRank('wind'), cd: 0.3, twin: false, charge: 0, wings: false, shield: !!hullStat().shieldStart });
   for (const b of eshots) spark(b.x, b.y);
   eshots = [];
   clearMines();
@@ -4160,7 +4217,7 @@ function waveClear() {
   if (G.waveMult > 1) G.extra.push(['BEST COMBO', 'X' + G.waveMult]);
   if (G.waveGrazes) G.extra.push(['GRAZES', String(G.waveGrazes)]);
   G.clear = { title: 'WAVE ' + G.wave + ' CLEAR', note: noHit ? 'NO-HIT BONUS' : 'WAVE BONUS', pts: noHit ? 500 * G.wave : 0,
-    scrap: (3 + Math.floor(G.wave / 2) + (noHit ? 5 + G.wave : 0)) * (G.event === 'fast' ? 2 : 1), extra: G.extra.slice(), gambled: false, banked: false, busy: false };
+    scrap: (3 + Math.floor(G.wave / 2) + (noHit ? 5 + G.wave : 0)) * (G.event === 'fast' ? 2 : 1), extra: G.extra.slice(), gambled: false, banked: false, busy: false, draft: G.wave % 5 === 0 };
   banner('WAVE ' + G.wave + ' CLEAR', noHit ? 'NO-HIT BONUS' : '', 'good', 1.3);
   for (const b of eshots) spark(b.x, b.y);
   eshots = [];
@@ -4291,9 +4348,10 @@ function updatePlayer(dt) {
   let my = (keys.has('d') ? 1 : 0) - (keys.has('u') ? 1 : 0);
   if (mx && my) { mx *= 0.7071; my *= 0.7071; }
   if (pad.mx || pad.my) { mx = pad.mx; my = pad.my; }   // analog stick or d-pad
-  player.x += mx * hullStat().speed * dt;
-  player.y += my * hullStat().vspeed * dt;
-  if (touch.id !== null) { player.x += touch.dx; player.y += touch.dy; }
+  const sk = perkSpeed();
+  player.x += mx * hullStat().speed * sk * dt;
+  player.y += my * hullStat().vspeed * sk * dt;
+  if (touch.id !== null) { player.x += touch.dx * sk; player.y += touch.dy * sk; }
   trackMove();
   touch.dx = touch.dy = 0;
   player.x += G.windV * dt;
@@ -4318,7 +4376,7 @@ function updatePlayer(dt) {
   const firing = keys.has('f') || touch.id !== null || pad.fire;
   if (!firing) {
     const was = player.charge;
-    player.charge = Math.min(1, player.charge + dt / (hullStat().chargeTime || CHARGE_TIME));
+    player.charge = Math.min(1, player.charge + dt / ((hullStat().chargeTime || CHARGE_TIME) * perkCharge()));
     if (was < 1 && player.charge >= 1) Snd.charged();
   } else if (player.cd <= 0) {
     if (player.charge >= 1) firePierce(); else fire();
@@ -4327,7 +4385,7 @@ function updatePlayer(dt) {
 }
 function update(dt) {
   if (state === 'play' && G.lives > 0) Rec.time(dt);
-  const et = dt * (G.slowT > 0 ? 0.45 : 1) * (G.event === 'fast' ? 1.3 : 1);
+  const et = dt * (G.slowT > 0 ? 0.45 : 1) * (G.event === 'fast' ? 1.3 : 1) * perkHeat();
   if (G.slowT > 0) G.slowT = Math.max(0, G.slowT - dt);
   if (G.comboT > 0 && (G.comboT -= dt) <= 0) G.combo = 0;
 
@@ -4359,6 +4417,7 @@ function update(dt) {
   updateAbility(dt);
 
   for (const s of pshots) {
+    if (s.seek) seekSteer(s, dt);
     s.x += s.vx * dt; s.y += s.vy * dt;
     if (s.y < -6 || s.x < -4 || s.x > W + 4) { s.dead = true; continue; }
     if (s.pierce) { pierceHits(s); continue; }
@@ -4368,11 +4427,11 @@ function update(dt) {
       if (Math.abs(s.x - e.x) <= sp.w / 2 + 0.5 && Math.abs(s.y - e.y) <= sp.h / 2 + 2) {
         s.dead = true;
         if (deflects(e, s)) { spark(s.x, s.y); Snd.ting(); break; }
-        G.hits++; damageEnemy(e, 1); break;
+        G.hits++; damageEnemy(e, s.dmg || 1); break;
       }
     }
     if (!s.dead) for (const m of mines) if (!m.dead && Math.abs(s.x - m.x) <= 3 && Math.abs(s.y - m.y) <= 4) { s.dead = true; G.hits++; popMine(m, 30); break; }
-    if (!s.dead) for (const m of meteors) if (!m.dead && Math.abs(s.x - m.x) <= 4 && Math.abs(s.y - m.y) <= 4.5) { s.dead = true; G.hits++; hitMeteor(m, 1); break; }
+    if (!s.dead) for (const m of meteors) if (!m.dead && Math.abs(s.x - m.x) <= 4 && Math.abs(s.y - m.y) <= 4.5) { s.dead = true; G.hits++; hitMeteor(m, s.dmg || 1); break; }
     if (!s.dead) for (const e of enemies) {
       if (e.dead || !e.captive) continue;
       const c = captivePos(e);
@@ -4381,18 +4440,19 @@ function update(dt) {
     if (!s.dead && boss && boss.state === 'fight') {
       const sp = boss.B.spr;
       if (boss.parts) { const r = hitMother(boss, s); if (r) { s.dead = true; if (r === 'hit') G.hits++; } }
-      else if (Math.abs(s.x - boss.x) <= sp.w * 0.42 && Math.abs(s.y - boss.y) <= sp.h * 0.4) { s.dead = true; G.hits++; spark(s.x, s.y); damageBoss(1); }
+      else if (Math.abs(s.x - boss.x) <= sp.w * 0.42 && Math.abs(s.y - boss.y) <= sp.h * 0.4) { s.dead = true; G.hits++; spark(s.x, s.y); damageBoss(boltBoss(s)); }
     }
   }
   pshots = pshots.filter(s => !s.dead);
 
+  const grazeR = 9 * (1 + 0.35 * perkRank('graze'));
   for (const b of eshots) {
     b.x += b.vx * et; b.y += b.vy * et;
     if (b.y > H + 4 || b.y < -8 || b.x < -4 || b.x > W + 4) { b.dead = true; continue; }
     if (barrierBlock(b.x, b.y)) { b.dead = true; continue; }
     if (player.alive && nearestShipDx(b.x) < 3.5 && Math.abs(b.y - player.y) < 4.5) { b.dead = true; hitPlayer(b.x); continue; }
     // graze: paid once the bullet has passed close by without hitting
-    if (player.alive && (player.invuln <= 0 || ab.dash > 0) && nearestShipDx(b.x) < 9 && Math.abs(b.y - player.y) < 9) { b.near = true; if (ab.dash > 0) b.dashed = true; }
+    if (player.alive && (player.invuln <= 0 || ab.dash > 0) && nearestShipDx(b.x) < grazeR && Math.abs(b.y - player.y) < grazeR) { b.near = true; if (ab.dash > 0) b.dashed = true; }
     else if (b.near && !b.grazed) { b.grazed = true; if (player.alive) graze(b); }
   }
   eshots = eshots.filter(b => !b.dead);
@@ -4607,6 +4667,7 @@ function drawPlayer() {
     cx.fillStyle = PAL.a;
     cx.fillRect(Math.round(player.x) - 4, Math.round(player.y) + 9, Math.round(9 * player.charge), 1);
   }
+  if (perkRank('plate') && G.glanced <= 0 && !player.shield) ringPts(player.x, player.y + 0.5, player.twin ? 14.5 : 8.5, PAL.a, 0);   // reactive plating is up
   if (player.shield) ringPts(player.x, player.y + 0.5, player.twin ? 14.5 : 8.5, Math.floor(clock * 6) % 2 ? PAL.t : PAL.b, Math.floor(clock * 10) % 3);
 }
 function drawHudCanvas() {
@@ -4623,10 +4684,11 @@ function drawHudCanvas() {
   if (G.comboT > 0 && m > 1) {
     txt('X' + m, 4, 19, comboColor(m));
     cx.fillStyle = comboColor(m);
-    cx.fillRect(4, 25, Math.ceil(11 * G.comboT / COMBO_WINDOW), 1);
+    cx.fillRect(4, 25, Math.ceil(11 * Math.min(1, G.comboT / comboWin())), 1);
   }
-  for (let i = 0; i < Math.min(G.bombs, 5); i++) drawSpr(BOMB_SPR, W - 5 - i * 7, H - 6);
+  for (let i = 0; i < Math.min(G.bombs, bombCap()); i++) drawSpr(BOMB_SPR, W - 5 - i * 7, H - 6);
   drawAbilityHud();
+  drawPerkHud();
   let y = H - 17;
   for (const [k, t] of [['spread', player.spreadT], ['rapid', player.rapidT], ['warp', G.slowT]]) {
     if (t <= 0) continue;
@@ -4634,7 +4696,7 @@ function drawHudCanvas() {
       const p = POWERS[k];
       txt(p.glyph, W - 26, y, p.color);
       cx.fillStyle = p.color;
-      cx.fillRect(W - 21, y + 1, Math.ceil(Math.min(t, 20)), 3);
+      cx.fillRect(W - 21, y + 1, Math.ceil(Math.min(t / perkPower(), 20)), 3);
     }
     y -= 8;
   }
@@ -4676,6 +4738,8 @@ function draw() {
       cx.fillStyle = '#ffffff'; cx.fillRect(x, y - 2, 1, 14);
       continue;
     }
+    if (s.seek) { cx.fillStyle = PAL.v; cx.fillRect(x - 1, y, 3, 2); cx.fillStyle = '#ffffff'; cx.fillRect(x, y - 1, 1, 2); continue; }
+    if (s.dmg > 1) { cx.fillStyle = PAL.c; cx.fillRect(x - 1, y + 1, 3, 4); cx.fillStyle = '#ffffff'; cx.fillRect(x, y, 1, 3); continue; }
     cx.fillStyle = PAL.a; cx.fillRect(x, y + 2, 1, 3);
     cx.fillStyle = '#ffffff'; cx.fillRect(x, y, 1, 2);
   }
@@ -4743,7 +4807,7 @@ function placeToast() {
 }
 function hideBanners() { ui.bannerT = ui.toastT = 0; $('banner').hidden = true; $('toast').hidden = true; }
 
-const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovHangar', 'ovWheel', 'ovMap', 'ovRecords', 'ovOptions', 'ovEnding'];
+const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovDraft', 'ovHangar', 'ovWheel', 'ovMap', 'ovRecords', 'ovOptions', 'ovEnding'];
 function showOverlay(id) {
   for (const o of OVERLAYS) $(o).hidden = o !== id;
   opt.open = id === 'ovOptions';
@@ -4894,7 +4958,9 @@ function resetGame(from) {
     scrapRun: 0, extra: [], clear: null, wager: null, powerT: 0, trailT: 0, beamT: 0,
     combo: 0, comboT: 0, waveMult: 1, bestMult: 1, grazes: 0, waveGrazes: 0, bombs: 2, minesShot: 0, missions: from ? rollMissions() : [],
     event: null, lastEvent: 0, meteorT: 0,
-    region: from && isRegion(from.region) ? from.region : daily ? dailyRegion(daily) : regions.sel, relics: 0, relicWave: false, windV: 0, windDir: 1, windT: 0 });
+    region: from && isRegion(from.region) ? from.region : daily ? dailyRegion(daily) : regions.sel, relics: 0, relicWave: false, windV: 0, windDir: 1, windT: 0,
+    perks: from ? restorePerks(from.perks) : {}, glanced: 0 });
+  perkReset();
   Object.assign(RUN, { fastFire: 0, spreadStart: false, magnet: false, shipsBought: 0, nextPowers: [] });
   resetAbility();
   if (from && from.run) Object.assign(RUN, { fastFire: clamp(from.run.fastFire | 0, 0, 2), spreadStart: !!from.run.spreadStart, magnet: !!from.run.magnet, shipsBought: from.run.shipsBought | 0 });
@@ -4903,7 +4969,7 @@ function resetGame(from) {
   if (from) {
     G.score = Math.max(0, from.score | 0);
     G.lives = clamp(from.lives | 0, 1, 5);
-    if (from.bombs !== undefined) G.bombs = clamp(from.bombs | 0, 0, 5);
+    if (from.bombs !== undefined) G.bombs = clamp(from.bombs | 0, 0, bombCap());
     G.wave = Math.max(0, (from.wave | 0) - 1);
     G.bossCount = Math.floor(G.wave / 5);
     while (G.nextLife <= G.score) G.nextLife += EXTRA_EVERY;
@@ -4931,6 +4997,7 @@ function pause() {
   keys.clear();
   touch.id = null;
   renderMissions($('pauseMissions'), G.missions, true);
+  renderPerkList($('pausePerks'));
   showOverlay('ovPause');
   Snd.hold(true);
 }
@@ -4985,6 +5052,7 @@ function showGameOver() {
   $('rShots').textContent = G.shots;
   $('rHits').textContent = G.hits;
   $('rRatio').textContent = (G.shots ? (G.hits / G.shots * 100) : 0).toFixed(1) + ' %';
+  renderBuild();
   $('overBtn').textContent = 'SPIN THE PRIZE WHEEL';
   showOverlay('ovOver');
   G.overReady = false;
@@ -4998,6 +5066,242 @@ function afterWheel() {
   if (state !== 'wheel' || wheel.spinning) return;
   if (!daily && qualifies(G.score)) showEntry();   // daily scores keep their own best, not the table
   else showTitle(0);
+}
+
+/* ================= salvage draft: perks dealt after every boss and challenging stage ================= */
+// Three cards, pick one or skip for a little scrap. A perk lasts until the run ends and a few stack. Effects are plain numbers read where they
+// apply (perkRank in fire, damage, power-ups, abilities), so nothing here rolls rng(): the daily deals each hand from a generator seeded for that draft.
+const DRAFT_SKIP = 15, DRAFT_DELAY = 0.9, RARE_ODDS = 0.25, CHAIN_R = 17, CHAIN_EVERY = 3, PLATE_WAVES = 3, SEEK_EVERY = 16;
+const BOSS_PERK = 0.5;   // a boss takes only this share of a heavy round's extra damage, so no build melts one
+const PERK_RARITY = [{ name: 'COMMON', color: '#a79fc9' }, { name: 'RARE', color: PAL.a }];
+const PERK_KIND = { off: 'OFFENSE', def: 'DEFENSE', score: 'SCORING', abil: 'ABILITY' };
+// icons are 7x7: 1 main, 2 dark, 3 white
+const PERKS = [
+  { id: 'cap', name: 'CAPACITOR', kind: 'off', max: 2, c: PAL.y, d: PAL.A, desc: 'CHARGE SHOT READY 30% SOONER',
+    icon: ['....11.', '...11..', '..11...', '.11111.', '...22..', '..22...', '.22....'] },
+  { id: 'heavy', name: 'HEAVY ROUNDS', kind: 'off', max: 1, c: PAL.c, d: PAL.C, desc: 'EVERY 5TH BOLT HITS FOR DOUBLE',
+    icon: ['...3...', '..313..', '..111..', '..111..', '..111..', '.22222.', '.22222.'] },
+  { id: 'seek', name: 'SEEKER ROUNDS', kind: 'off', max: 1, rare: true, c: PAL.v, d: PAL.V, desc: 'EVERY 16TH VOLLEY ADDS A HOMING BOLT',
+    icon: ['..111..', '.1...1.', '1..3..1', '1.333.1', '1..3..1', '.1...1.', '..111..'] },
+  { id: 'chain', name: 'CHAIN REACTION', kind: 'off', max: 1, rare: true, c: PAL.a, d: PAL.A, desc: 'EVERY 3RD KILL HURTS THE FOE NEXT TO IT',
+    icon: ['1..1..1', '.1.1.1.', '..212..', '1123211', '..212..', '.1.1.1.', '1..1..1'] },
+  { id: 'surge', name: 'POWER SURGE', kind: 'off', max: 1, c: PAL.t, d: PAL.T, desc: 'SPREAD, RAPID AND WARP LAST 50% LONGER',
+    icon: ['...1...', '.1.1.1.', '..111..', '1113111', '..111..', '.1.1.1.', '...1...'] },
+  { id: 'bay', name: 'BOMB BAY', kind: 'off', max: 1, c: PAL.w, d: PAL.s, desc: '+1 SMART BOMB NOW, CARRY UP TO 6',
+    icon: ['.....3.', '....3..', '..111..', '.12111.', '.11111.', '.11111.', '..111..'] },
+  { id: 'burner', name: 'AFTERBURNER', kind: 'def', max: 2, c: PAL.b, d: PAL.B, desc: '12% MORE MOVE SPEED',
+    icon: ['...1...', '..111..', '.11311.', '...1...', '..222..', '...2...', '...2...'] },
+  { id: 'plate', name: 'REACTIVE PLATING', kind: 'def', max: 1, rare: true, c: PAL.t, d: PAL.T, desc: 'A HIT GLANCES OFF, THEN RE-FORMS IN 3 WAVES',
+    icon: ['1111111', '1333331', '1311121', '.13121.', '.11211.', '..121..', '...1...'] },
+  { id: 'wind', name: 'SECOND WIND', kind: 'def', max: 1, c: PAL.c, d: PAL.C, desc: '+1 SEC INVULNERABLE AFTER A HIT',
+    icon: ['.11.11.', '1311111', '1111111', '.11111.', '..111..', '...1...', '.......'] },
+  { id: 'graze', name: 'GRAZE FIELD', kind: 'def', max: 1, c: PAL.b, d: PAL.B, desc: 'GRAZE ZONE 35% WIDER, GRAZES FILL THE METER',
+    icon: ['1.....1', '.1...1.', '.......', '...3...', '.......', '.1...1.', '1.....1'] },
+  { id: 'combo', name: 'COMBO KEEPER', kind: 'score', max: 1, c: PAL.a, d: PAL.A, desc: 'COMBO WINDOW LASTS 40% LONGER',
+    icon: ['1111111', '.13331.', '..131..', '...1...', '..121..', '.12221.', '1111111'] },
+  { id: 'lucky', name: 'LUCKY STARS', kind: 'score', max: 1, c: PAL.y, d: PAL.A, desc: 'POWER-UPS DROP 30% MORE OFTEN',
+    icon: ['...1...', '...1...', '1113111', '.11311.', '..111..', '.11.11.', '.1...1.'] },
+  { id: 'salv', name: 'SALVAGER', kind: 'score', max: 2, c: PAL.y, d: PAL.A, desc: 'DIVING KILLS DROP +1 SCRAP',
+    icon: ['..111..', '.13321.', '1131121', '1131121', '1131121', '.12221.', '..222..'] },
+  { id: 'qc', name: 'QUICK CHARGE', kind: 'abil', max: 2, c: PAL.t, d: PAL.T, desc: 'KILLS AND GRAZES FILL THE METER 15% FASTER',
+    icon: ['...1...', '.11111.', '.13331.', '.13331.', '.12221.', '.12221.', '.11111.'] },
+  { id: 'glow', name: 'AFTERGLOW', kind: 'abil', max: 1, rare: true, c: PAL.a, d: PAL.A, desc: 'HULL ABILITY LASTS 30% LONGER',
+    icon: ['...3...', '.3.3.3.', '..333..', '1111111', '.22222.', '..222..', '.......'] }
+];
+for (const p of PERKS) p.spr = { w: 7, h: 7, img: paint(p.icon, ch => ch === '1' ? p.c : ch === '2' ? p.d : '#ffffff') };
+const perkUrl = p => p.url || (p.url = p.spr.img.toDataURL());
+const perkRank = id => G.perks[id] | 0;
+const perkCount = () => PERKS.reduce((a, p) => a + perkRank(p.id), 0);
+const perkSpeed = () => 1 + 0.12 * perkRank('burner');
+const perkCharge = () => Math.pow(0.7, perkRank('cap'));
+const perkPower = () => 1 + 0.5 * perkRank('surge');
+const perkMeter = () => 1 + 0.15 * perkRank('qc');
+const perkLong = () => 1 + 0.3 * perkRank('glow');
+const comboWin = () => COMBO_WINDOW * (1 + 0.4 * perkRank('combo'));
+const bombCap = () => 5 + perkRank('bay');
+const HEAT = 0.06;   // the swarm adapts: every perk held makes it this much faster (fire, dives, bullets, bosses), which keeps a build from running away
+const perkHeat = () => 1 + HEAT * perkCount();
+// a held perk map from a hot-reload snapshot, kept only for known perks and legal ranks
+function restorePerks(m) {
+  const o = {};
+  if (m && typeof m === 'object') for (const p of PERKS) { const r = clamp(m[p.id] | 0, 0, p.max); if (r) o[p.id] = r; }
+  return o;
+}
+
+/* ---- effects ---- */
+let heavyN = 0, volleyN = 0, chainN = 0, chainDepth = 0;
+function perkReset() { heavyN = volleyN = chainN = chainDepth = 0; }
+// Every 5th bolt (wingmen included) hits for double; a piercing bolt keeps its own damage.
+function perkMark(n0) {
+  if (!G.perks.heavy) return;
+  for (let i = n0; i < pshots.length; i++) if (!pshots[i].pierce && ++heavyN % 5 === 0) pshots[i].dmg = 2;
+}
+// Every 16th volley adds a slow bolt from each ship that steers toward the nearest foe.
+function perkVolley(n0) {
+  perkMark(n0);
+  if (!G.perks.seek || ++volleyN % SEEK_EVERY) return;
+  for (const x of shipXs()) pshots.push({ x, y: player.y - 9, vx: 0, vy: -110, seek: true });
+  G.shots += shipXs().length;
+}
+const boltBoss = s => s.dmg > 1 ? 1 + (s.dmg - 1) * BOSS_PERK : 1;
+function seekSteer(s, dt) {
+  let best = null, bd = Infinity;
+  const look = (x, y) => { const d = Math.hypot(x - s.x, y - s.y); if (y < s.y + 4 && d < bd) { bd = d; best = { x, y }; } };
+  for (const e of enemies) if (!e.dead && e.state !== 'wait' && !e.captive) look(e.x, e.y);
+  if (boss && boss.state === 'fight') look(boss.x, boss.y);
+  const sp = 125;
+  let tx = 0, ty = -sp;
+  if (best) { const d = bd || 1; tx = (best.x - s.x) / d * sp; ty = (best.y - s.y) / d * sp; }
+  const k = Math.min(1, dt * 7);
+  s.vx += (tx - s.vx) * k; s.vy += (ty - s.vy) * k;
+}
+// Every 3rd destroyed foe bursts for 1 damage to the nearest foe right next to it (a burst that kills does not burst again). A boss and its parts never do.
+function chainBurst(e) {
+  if (chainDepth || ++chainN % CHAIN_EVERY) return;
+  let near = null, nd = CHAIN_R;
+  for (const o of enemies) { const d = Math.hypot(o.x - e.x, o.y - e.y); if (!o.dead && o !== e && o.state !== 'wait' && d <= nd) { nd = d; near = o; } }
+  if (!near) return;
+  chainDepth++;
+  rings.push({ x: e.x, y: e.y, r: 2, v: 70, t: 0, life: 0.2, c: PAL.a });
+  spark(near.x, near.y);
+  damageEnemy(near, 1);
+  chainDepth--;
+}
+
+/* ---- the screen ---- */
+const draft = { hand: [] };
+const draftDue = () => !!(G.clear && G.clear.draft && !G.clear.drafted);
+// Shuffle the whole commons and rares lists with the hand's generator first, then deal: held perks only skip cards, they never shift the draws.
+function dealHand(rnd) {
+  const rolls = [0, 1, 2].map(() => rnd() < RARE_ODDS);
+  const shuffled = rare => {
+    const a = PERKS.filter(p => !!p.rare === rare);
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  };
+  const lists = [shuffled(false), shuffled(true)], hand = [];
+  for (const rare of rolls) {
+    const ok = p => perkRank(p.id) < p.max && !hand.includes(p);
+    const c = lists[rare ? 1 : 0].find(ok) || lists[rare ? 0 : 1].find(ok);
+    if (c) hand.push(c);
+  }
+  return hand;
+}
+// Returns false when there is nothing to deal (every perk maxed), so the flow carries on.
+function openDraft() {
+  const rnd = daily ? seeded(hashStr(daily + ':draft:' + G.wave)) : Math.random;
+  draft.hand = dealHand(rnd);
+  if (!draft.hand.length) { G.clear.drafted = true; return false; }
+  state = 'draft';
+  keys.clear();
+  touch.id = null;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  renderDraft();
+  showOverlay('ovDraft');
+  ui.readyAt = clock + DRAFT_DELAY;   // a key or tap still held from the debrief must not pick a card
+  Snd.jingle();
+  return true;
+}
+function pipsOf(p, now) {
+  const el = document.createElement('span');
+  el.className = 'pips';
+  for (let i = 0; i < p.max; i++) { const pip = document.createElement('i'); if (i < now) pip.className = 'on'; else if (i === now) pip.className = 'next'; el.appendChild(pip); }
+  return el;
+}
+function renderDraft() {
+  const box = $('dfHand');
+  box.textContent = '';
+  draft.hand.forEach((p, i) => {
+    const r = perkRank(p.id), rar = PERK_RARITY[p.rare ? 1 : 0];
+    const b = document.createElement('button'), tx = document.createElement('span'), nm = document.createElement('span'), ds = document.createElement('span'), tg = document.createElement('span'), kh = document.createElement('span');
+    b.type = 'button';
+    b.className = 'perk' + (p.rare ? ' rare' : '');
+    b.style.setProperty('--rc', rar.color);
+    tx.className = 'tx'; nm.className = 'nm'; ds.className = 'ds'; tg.className = 'tg'; kh.className = 'kh';
+    nm.textContent = p.name;
+    ds.textContent = p.desc;
+    kh.textContent = (i + 1) + ' ';
+    tg.append(kh, rar.name + ' · ' + PERK_KIND[p.kind]);
+    tx.append(nm, ds, tg);
+    if (p.max > 1) tx.append(pipsOf(p, r));
+    b.append(imgOf(perkUrl(p)), tx);
+    b.setAttribute('aria-label', p.name + ', ' + rar.name.toLowerCase() + ' ' + PERK_KIND[p.kind].toLowerCase() + ' perk' + (p.max > 1 ? ', rank ' + (r + 1) + ' of ' + p.max : '') + ': ' + p.desc.toLowerCase());
+    b.addEventListener('click', () => { pickPerk(i); b.blur(); });
+    box.appendChild(b);
+  });
+  $('dfSkip').innerHTML = 'SKIP &middot; +' + DRAFT_SKIP + ' SCRAP';
+}
+function leaveDraft() {
+  G.clear.drafted = true;
+  draft.hand = [];
+  resumeRun();
+}
+function pickPerk(i) {
+  const p = draft.hand[i];
+  if (state !== 'draft' || !p || clock < ui.readyAt) return;
+  G.perks[p.id] = perkRank(p.id) + 1;
+  if (p.id === 'bay') G.bombs = Math.min(bombCap(), G.bombs + 1);
+  Rec.perk();
+  Snd.power();
+  leaveDraft();
+  toast(p.name + (p.max > 1 ? ' ' + perkRank(p.id) : ''), p.c);
+  rings.push({ x: player.x, y: player.y, r: 3, v: 60, t: 0, life: 0.3, c: p.c });
+}
+function skipDraft() {
+  if (state !== 'draft' || clock < ui.readyAt) return;
+  Wallet.add(DRAFT_SKIP);
+  G.scrapRun += DRAFT_SKIP;
+  Snd.coin();
+  leaveDraft();
+  toast('SKIPPED: +' + DRAFT_SKIP + ' SCRAP', PAL.a);
+}
+// Keys: 1 to 3 take a card; arrows move the highlight (the cards, then the skip button) and Space / Enter takes it. Esc and Start do nothing here.
+function draftKey(c) {
+  if (/^Digit[1-3]$/.test(c)) { pickPerk(+c.slice(5) - 1); return; }
+  const a = document.activeElement;
+  if (c === 'Space' || c === 'Enter') { if (a && $('ovDraft').contains(a) && a.tagName === 'BUTTON') a.click(); return; }
+  const step = c === 'ArrowLeft' || c === 'ArrowUp' || c === 'KeyA' || c === 'KeyW' ? -1 : c === 'ArrowRight' || c === 'ArrowDown' || c === 'KeyD' || c === 'KeyS' ? 1 : 0;
+  if (!step) return;
+  const list = [...$('dfHand').children, $('dfSkip')], at = list.indexOf(document.activeElement);
+  list[clamp(at < 0 ? 0 : at + step, 0, list.length - 1)].focus();
+  Snd.tick();
+}
+
+/* ---- showing the build: pause list, results row, HUD tag ---- */
+function renderPerkList(el) {
+  el.textContent = '';
+  for (const p of PERKS) {
+    const r = perkRank(p.id);
+    if (!r) continue;
+    const li = document.createElement('li'), t = document.createElement('span');
+    t.textContent = p.name + (p.max > 1 ? ' ' + r + '/' + p.max : '');
+    li.append(imgOf(perkUrl(p)), t);
+    el.appendChild(li);
+  }
+  if (!el.children.length) { const li = document.createElement('li'); li.className = 'none'; li.textContent = 'NONE YET. A HAND IS DEALT AFTER EACH BONUS STAGE AND BOSS.'; el.appendChild(li); }
+}
+function renderBuild() {
+  const row = $('rBuild');
+  row.textContent = '';
+  for (const p of PERKS) {
+    const r = perkRank(p.id);
+    if (!r) continue;
+    const s = document.createElement('span'), img = imgOf(perkUrl(p));
+    s.className = 'bi';
+    img.alt = p.name + (p.max > 1 ? ' ' + r : '');
+    s.title = img.alt;
+    s.append(img);
+    if (r > 1) { const n = document.createElement('b'); n.textContent = 'x' + r; s.append(n); }
+    row.appendChild(s);
+  }
+  $('rBuildBox').hidden = !row.children.length;
+}
+const PERK_GEM_SPR = { w: 5, h: 5, img: paint(['..1..', '.131.', '13331', '.121.', '..2..'], ch => ch === '1' ? PAL.t : ch === '2' ? PAL.T : '#ffffff') };
+function drawPerkHud() {
+  const n = perkCount();
+  if (!n) return;
+  drawSpr(PERK_GEM_SPR, W - 16, 29);
+  txt(String(n), W - 4, 27, PAL.t, 'right');
 }
 
 /* ================= debrief, hangar and optional gambles ================= */
@@ -5119,6 +5423,7 @@ function stopReflex() {
 function proceedFromDebrief() {
   if (state !== 'debrief' || (G.clear && G.clear.busy)) return;
   bankClear();
+  if (draftDue() && openDraft()) return;
   if (G.pendingBonus && !daily && Wallet.scrap >= WAGER_STAKES[0]) openWager();
   else resumeRun();
 }
@@ -5240,7 +5545,7 @@ function shopOffer(id) {
       return lives >= 5 ? { status: 'MAX' } : { cost: 80 + 40 * n };
     }
     case 'magnet': return (T ? loadout.magnet : RUN.magnet) ? { status: 'OWNED' } : { cost: 25 };
-    case 'bomb': return (T ? 2 + loadout.bombs >= 5 : G.bombs >= 5) ? { status: 'MAX' } : { cost: 40 };
+    case 'bomb': return (T ? 2 + loadout.bombs >= 5 : G.bombs >= bombCap()) ? { status: 'MAX' } : { cost: 40 };
   }
   return { status: '-' };
 }
@@ -5852,7 +6157,7 @@ function padFocused(id) {
   const a = document.activeElement;
   return id && a && a.tagName === 'BUTTON' && $(id).contains(a) && padVisible(a) ? a : null;
 }
-const PAD_HOME = { ovTitle: '#startBtn', ovPause: '#resumeBtn', ovOver: '#overBtn', ovDebrief: '#dbNext', ovWager: '#wgSkip', ovWheel: '#wheelSpin',
+const PAD_HOME = { ovTitle: '#startBtn', ovPause: '#resumeBtn', ovOver: '#overBtn', ovDebrief: '#dbNext', ovWager: '#wgSkip', ovDraft: '.perk', ovWheel: '#wheelSpin',
   ovHangar: '.hg-tab[aria-selected="true"]', ovMap: '#mpGo', ovOptions: '.opt-next' };
 function padHome(id, list) {
   const h = $(id).querySelector(PAD_HOME[id] || '.primary');
@@ -5908,6 +6213,7 @@ function padHints() {
   $('startBtn').textContent = on ? 'PRESS A TO START' : coarse ? 'TAP TO START' : 'PRESS SPACE TO START';
   if (!keysHintHtml) keysHintHtml = $('keysHint').innerHTML;
   $('keysHint').innerHTML = on ? PAD_KEYS : keysHintHtml;
+  $('dfHint').innerHTML = on ? 'D-PAD MOVES<br>A TAKES A CARD' : coarse ? 'TAP A CARD TO TAKE IT' : 'KEYS 1 TO 3 PICK A CARD<br>OR ARROWS, THEN SPACE';
   $('pauseHint').textContent = on ? 'START OR B TO RESUME' : 'P OR ESC TO RESUME';
   if (!coarse) $('entryHint').innerHTML = on ? 'D-PAD: PICK LETTERS<br>A: NEXT / SAVE &middot; B: BACK' : 'TYPE LETTERS OR USE ARROWS<br>ENTER TO SAVE';
   document.querySelectorAll('.kh').forEach(el => {
@@ -6021,13 +6327,13 @@ addEventListener('keydown', e => {
 });
 // Menus between waves: Space/Enter is the safe default (continue, skip, no bet).
 // A button the player has tabbed to keeps its own Space/Enter behaviour.
-const MENU_STATES = new Set(['debrief', 'wager', 'hangar', 'wheel', 'map', 'records']);
+const MENU_STATES = new Set(['debrief', 'wager', 'draft', 'hangar', 'wheel', 'map', 'records']);
 function handleMenuKey(e) {
   const c = e.code, a = document.activeElement;
   if (c === 'KeyM') { e.preventDefault(); if (!e.repeat) cycleSound(); return; }
   if (state === 'records') { handleRecordsKey(e); return; }
   const confirm = c === 'Space' || c === 'Enter';
-  if (confirm && a && a.tagName === 'BUTTON' && !a.disabled && !a.closest('[hidden]')) return;
+  if (confirm && state !== 'draft' && a && a.tagName === 'BUTTON' && !a.disabled && !a.closest('[hidden]')) return;   // the draft acts on Space itself (keyup would cancel the click)
   const step = c === 'ArrowLeft' || c === 'ArrowUp' || c === 'KeyA' || c === 'KeyW' ? -1 : c === 'ArrowRight' || c === 'ArrowDown' || c === 'KeyD' || c === 'KeyS' ? 1 : 0;
   if (confirm || c === 'Escape' || c === 'KeyH' || /^Digit[1-5]$/.test(c) || (state === 'map' && (step || c === 'KeyG')) || (state === 'hangar' && /^Arrow(Left|Right)$/.test(c))) e.preventDefault();
   if (e.repeat || clock < ui.readyAt) return;
@@ -6043,6 +6349,8 @@ function handleMenuKey(e) {
     else if (c === 'KeyH') openHangar('debrief');
   } else if (state === 'wager') {
     if (confirm || c === 'Escape') skipWager();
+  } else if (state === 'draft') {
+    draftKey(c);   // Space / Enter act on the focused card; Esc does nothing
   } else if (state === 'hangar') {
     if (c === 'Escape' || c === 'KeyH') closeHangar();
     else if (/^Digit[1-5]$/.test(c)) showPane(PANES[+c.slice(5) - 1]);
@@ -6132,6 +6440,7 @@ onClick('dbReflex', gambleReflex);
 onClick('dbStop', stopReflex);
 onClick('wgPlace', placeWager);
 onClick('wgSkip', skipWager);
+onClick('dfSkip', skipDraft);
 onClick('hgBack', closeHangar);
 onClick('slotSpin', spinSlots);
 onClick('crateOpen', openCrate);
@@ -6266,10 +6575,10 @@ function start(data) {
 try {
   window.claude?.hot?.snapshot?.(() => {
     // between waves, resume at the next wave (the pending bonus is banked first)
-    const between = state === 'debrief' || state === 'wager' || (state === 'hangar' && !hangarPreRun());
+    const between = state === 'debrief' || state === 'wager' || state === 'draft' || (state === 'hangar' && !hangarPreRun());
     if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0 || daily) return {};
     if (between) bankClear();
-    return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, twin: player.twin, wings: player.wings, bombs: G.bombs, region: G.region, run: { ...RUN } } };
+    return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, twin: player.twin, wings: player.wings, bombs: G.bombs, region: G.region, perks: { ...G.perks }, run: { ...RUN } } };
   });
 } catch (e) { /* hot reload is optional */ }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
