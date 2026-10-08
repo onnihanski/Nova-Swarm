@@ -4261,8 +4261,8 @@ function killEnemy(e) {
   G.killsSinceDrop++;
   const chance = G.killsSinceDrop >= 18 ? 1 : e.T.drop * runReg().mods.dropMul + (moving ? 0.03 : 0);
   if (grand() < chance) { dropPickup(e.x, e.y); G.killsSinceDrop = 0; }
-  // in the new regions, one kill a wave may shake loose a relic
-  if (runReg().relics && !G.relicWave && grand() < RELIC_CHANCE) { G.relicWave = true; dropRelic(e.x, e.y); }
+  // in the new regions, one kill a wave may shake loose a relic (never in a boss rush)
+  if (runReg().relics && !rush.on && !G.relicWave && grand() < RELIC_CHANCE) { G.relicWave = true; dropRelic(e.x, e.y); }
 }
 function addScore(v) {
   G.score += v;
