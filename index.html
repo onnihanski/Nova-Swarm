@@ -418,7 +418,14 @@
   /* the title holds five menu buttons: tighter gaps keep the attract panels at full height */
   #ovTitle { gap: calc(var(--px) * 3); }
   .title-actions { column-gap: calc(var(--px) * 2); row-gap: calc(var(--px) * 2); }
+  /* boss rush: the pit stop picks and the results */
+  .pit-opts { display: flex; flex-direction: column; gap: calc(var(--px) * 3); width: 100%; }
+  .pit-opts .btn { display: flex; flex-direction: column; align-items: center; gap: var(--px); }
+  .pit-opts .btn .fine { color: inherit; opacity: .75; }
+  .rush-split { color: var(--teal); }
   .title-actions .btn.sm { padding: calc(var(--px) * 1.5 + 2px) calc(var(--px) * 2.5 + 2px); }
+  /* six menu buttons: on a narrow screen they drop their key hints (the Menus panel lists the keys) to stay in two rows */
+  @media (max-width: 400px) { .title-actions .kh { display: none; } }
   .odds {
     list-style: none;
     margin: 0; padding: 0;
@@ -642,7 +649,7 @@
     <div class="hud" aria-hidden="true">
       <div><span class="lbl">1UP</span><span id="hudScore">0</span></div>
       <div class="mid"><span class="lbl" id="hudHiLbl">HI-SCORE</span><span id="hudHi">30000</span></div>
-      <div class="right"><span class="lbl">WAVE</span><span id="hudWave">1</span></div>
+      <div class="right"><span class="lbl" id="hudWaveLbl">WAVE</span><span id="hudWave">1</span></div>
     </div>
 
     <div class="banner" id="banner" hidden><div class="bt" id="bannerTitle"></div><div class="bs" id="bannerSub"></div></div>
@@ -686,6 +693,7 @@
           <div class="bosses" id="bossRow"><img alt="Hive Queen" data-spr="queen"><img alt="Iron Maw" data-spr="maw"><img alt="Mothership" data-spr="mother"><img alt="Hive Mind" data-spr="hive" data-w="28"></div>
           <p class="note">A BOSS GUARDS EVERY 5TH WAVE. THE<br>MOTHERSHIP'S CORE IS SHIELDED UNTIL<br>BOTH GENERATORS ARE DOWN.<br>BONUS STAGE AFTER WAVE 3, 8, 13…</p>
           <p class="note">WARDENS CAN BEAM UP YOUR SHIP: SHOOT<br>ONE TO WIN IT BACK AS A TWIN FIGHTER</p>
+          <p class="note c-amber" id="rushNote"></p>
         </div>
         <div class="panel" hidden>
           <h2>POWER-UPS</h2>
@@ -716,6 +724,7 @@
             <dt>HANGAR</dt><dd>H (TITLE + DEBRIEF)</dd>
             <dt>STAR MAP</dt><dd>G (TITLE)</dd>
             <dt>DAILY</dt><dd>C (TITLE)</dd>
+            <dt>BOSS RUSH</dt><dd>B (TITLE)</dd>
             <dt>RECORDS</dt><dd>R (TITLE)</dd>
             <dt>OPTIONS</dt><dd>O (TITLE + PAUSE)</dd>
           </dl>
@@ -737,6 +746,7 @@
         <button class="btn sm" type="button" id="hangarBtn">HANGAR<span class="kh"> (H)</span></button>
         <button class="btn sm" type="button" id="mapBtn">MAP<span class="kh"> (G)</span></button>
         <button class="btn sm" type="button" id="dailyBtn">DAILY<span class="kh"> (C)</span></button>
+        <button class="btn sm" type="button" id="rushBtn" aria-label="Boss Rush: every boss back to back against the clock">BOSS RUSH<span class="kh"> (B)</span></button>
         <button class="btn sm" type="button" id="recordsBtn">RECORDS<span class="kh"> (R)</span><span class="c-amber" id="rcNew"></span></button>
         <button class="btn sm" type="button" id="optionsBtn">OPTIONS<span class="kh"> (O)</span></button>
       </div>
@@ -750,9 +760,9 @@
         <button class="btn" type="button" id="pauseOptBtn">OPTIONS<span class="kh"> (O)</span></button>
       </div>
       <p class="dimtxt" id="pauseHint">P OR ESC TO RESUME</p>
-      <p class="fine">MISSIONS</p>
+      <p class="fine" id="pauseMissionsLbl">MISSIONS</p>
       <ul class="missions" id="pauseMissions"></ul>
-      <p class="fine">PERKS</p>
+      <p class="fine" id="pausePerksLbl">PERKS</p>
       <ul class="perk-list" id="pausePerks"></ul>
     </section>
 
@@ -772,6 +782,21 @@
       </dl>
       <div class="build-box" id="rBuildBox" hidden><p class="fine">YOUR BUILD</p><div class="build" id="rBuild"></div></div>
       <button class="btn primary" type="button" id="overBtn">CONTINUE</button>
+    </section>
+
+    <section class="ov dim" id="ovPit" aria-label="Boss Rush pit stop" hidden>
+      <h2 class="big c-teal">PIT STOP</h2>
+      <p class="dimtxt" id="pitNote">FIGHT 1 OF 3 CLEAR</p>
+      <p class="msg" id="pitInfo"></p>
+      <p class="fine">PICK ONE. THE NEXT BOSS COMES IN HOT.</p>
+      <div class="pit-opts" id="pitOpts" role="group" aria-label="Pit stop choices"></div>
+    </section>
+
+    <section class="ov dim" id="ovRush" aria-label="Boss Rush results" hidden>
+      <h2 class="big c-teal" id="rsTitle">BOSS RUSH CLEAR</h2>
+      <p class="dimtxt" id="rsNote">THREE-BOSS RUSH</p>
+      <dl class="results" id="rsLines"></dl>
+      <button class="btn primary" type="button" id="rushDone">BACK TO TITLE<span class="kh"> (SPACE)</span></button>
     </section>
 
     <section class="ov dim" id="ovEntry" aria-label="New high score" hidden>
@@ -2302,6 +2327,7 @@ function slotOf(e) {
   return { x: G.fx + (e.col - (n - 1) / 2) * 16 * G.breath, y: 34 + e.row * 13 };
 }
 function nextWave() {
+  if (rush.on) { rushNext(); return; }
   G.wave++;
   Rec.waveStart();
   seedWave('W' + G.wave);
@@ -2323,9 +2349,10 @@ function nextWave() {
     G.phaseT = 1.7;
     const where = G.region === 'home' ? '' : runReg().name;
     const first = daily ? 'DAILY CHALLENGE' + (where ? ': ' + where : '') : where || 'GET READY';
-    const foe = eliteIntro(G.wave);   // a new foe is announced like a sector event; an event then moves to the toast
-    banner('WAVE ' + G.wave, foe ? 'NEW FOE: ' + foe : G.event ? EVENTS[G.event].name : G.wave === 1 ? first : '', G.event || foe ? 'warn' : '', G.event || foe ? 2 : 1.5);
+    const foe = eliteIntro(G.wave), cv = convoyWave(G.wave);   // a new foe is announced like a sector event; an event or a convoy then moves to the toast
+    banner('WAVE ' + G.wave, foe ? 'NEW FOE: ' + foe : cv ? CONVOY_NAME : G.event ? EVENTS[G.event].name : G.wave === 1 ? first : '', G.event || foe ? 'warn' : cv ? 'good' : '', G.event || foe || cv ? 2 : 1.5);
     if (foe && G.event) toast(EVENTS[G.event].name, EVENTS[G.event].color);
+    if (foe && cv) toast(CONVOY_NAME, PAL.t);
     Snd.jingle();
     Snd.play('main');
   }
@@ -2352,6 +2379,7 @@ function spawnWave() {
     }
   }
   spawnSentries(n);
+  convoySpawn(n);
   G.entering = total;
   G.diveT = 1.0;
   G.fireT = 2;
@@ -2423,7 +2451,11 @@ function startDive(e) {
   const n = G.wave, dir = e.x < W / 2 ? -1 : 1, px = player.x, x = e.x, y = e.y;
   const lead = [{ x, y }, { x: cxk(x + dir * 10), y: y - 10 }, { x: cxk(x + dir * 18), y: y + 2 }];
   let pts, speed, after = 'wrap';
-  if (e.type === 'drone' || e.type === 'splitter') {
+  const cf = convoyTarget(e);   // about 1 in 3 divers ram a freighter instead
+  if (cf) {
+    speed = Math.min(72 + n * 3, 118);
+    pts = [...lead, ...convoyApproach(e, cf, speed)];
+  } else if (e.type === 'drone' || e.type === 'splitter') {
     pts = [...lead, { x: cxk(lerp(x, px, 0.6)), y: H * 0.5 }, { x: cxk(px + rand(-16, 16)), y: H * 0.78 }, { x: cxk(px - dir * 36), y: H + 14 }];
     speed = Math.min(72 + n * 3, 118);
   } else if (e.type === 'stinger') {
@@ -2445,6 +2477,7 @@ function startDive(e) {
   }
   followPath(e, pts, after, speed * (1 + 0.12 * late(n)) * runReg().mods.speed);
   e.diving = true;
+  e.cf = cf;
   const shots = e.type === 'miner' ? 1 : e.type === 'warden' || e.type === 'aegis' ? 1 : n >= 4 ? 2 : (n === 1 && grand() < 0.5 ? 0 : 1);
   e.shots = [];
   for (let i = 0; i < shots; i++) e.shots.push(e.path.len * rand(0.22, 0.55));
@@ -2520,7 +2553,7 @@ function schedule(dt) {
     const ready = [];
     const surge = G.event === 'surge';   // a swarm surge sends more divers, more often
     for (const e of enemies) { if (e.diving) active++; else if (e.state === 'form' && !e.T.still) ready.push(e); }
-    const cap = Math.min(1 + Math.ceil(n / 2), 6) + (surge ? 2 : 0) + Math.round(late(n) * 2);
+    const cap = Math.min(1 + Math.ceil(n / 2), 6) + (surge ? 2 : 0) + Math.round(late(n) * 2) + (convoy.on ? CONVOY_DIVERS : 0);
     if (ready.length && active < cap) {
       const cmd = canBeam() && grand() < 0.5 ? ready.find(e => e.type === 'warden' && !e.captive) : null;
       if (cmd) startBeam(cmd); else if (!trySquad(ready, cap - active)) startDive(pick(ready));
@@ -2529,7 +2562,7 @@ function schedule(dt) {
   }
   G.fireT -= dt;
   if (G.fireT <= 0) {
-    G.fireT = rand(1.4, 2.8) / (1 + Math.min(n, 13) * 0.12 + late(n) * 0.9) / runReg().mods.fireRate;
+    G.fireT = rand(1.4, 2.8) / (1 + Math.min(n, 13) * 0.12 + late(n) * 0.9) / runReg().mods.fireRate / (convoy.on ? CONVOY_FIRE : 1);
     if (n >= 2) { const f = enemies.filter(e => e.state === 'form'); if (f.length) enemyFire(pick(f), true); }
   }
 }
@@ -2653,7 +2686,7 @@ const EVENTS = {
 function rollEvent() {
   G.event = null;
   const r = runReg();
-  if (G.wave >= r.evFrom && G.wave % 5 !== 0 && (r.evStreak || G.lastEvent < G.wave - 1) && grand() < r.evChance) {
+  if (G.wave >= r.evFrom && G.wave % 5 !== 0 && !convoyWave(G.wave) && (r.evStreak || G.lastEvent < G.wave - 1) && grand() < r.evChance) {
     const ks = Object.keys(r.events);
     let roll = grand() * ks.reduce((a, k) => a + r.events[k], 0);
     G.event = ks.find(k => (roll -= r.events[k]) < 0) || ks[0];
@@ -2710,6 +2743,198 @@ function drawDark() {
   if (OPT.contrast) hiHazards();   // enemy fire stays readable in the dark
 }
 
+/* ================= convoy escort: three friendly freighters cross, and the swarm goes for them ================= */
+// From wave 7, every fifth wave (7, 12, 17...) is a convoy wave, in every region, with no sector event. Three freighters cross in a band between
+// the formation and your ceiling, one after another, in about 20 seconds. Enemy shots, mines, Sentry beams and divers hit them (about 1 diver in 3
+// and some squadrons go for one on purpose, and so does some of the formation's fire). A freighter blocks the fire that reaches it, so sheltering
+// under one is safe at the convoy's expense. Your own weapons pass through. Time Warp does not slow them, and Wardens never beam one.
+//  - Each freighter that gets through pays points and scrap. All three is CONVOY SAFE: a debrief bonus and a supply crate (a power-up next wave).
+//  - If the formation falls first, the freighters still to cross jump to lightspeed and count as safe, so a wave never runs longer.
+//  - Every roll goes through grand() / rand(), so the daily challenge's convoys are seeded.
+const CONVOY_FROM = 7, CONVOY_N = 3, CONVOY_CROSS = 20, CONVOY_LEAD = 0.5, CONVOY_GAP = 3, CONVOY_HP = 5, CONVOY_NAME = 'CONVOY: PROTECT THE FREIGHTERS';
+const CONVOY_AIM = 0.6, CONVOY_RAM = 3;   // share of the formation's fire aimed at a freighter below it; damage when a diver rams one
+const CONVOY_FIRE = 1.3, CONVOY_DIVERS = 1;   // more targets: the formation fires this much more often, and this many more divers may be out at once
+const FREIGHTER_PTS = 300, FREIGHTER_SCRAP = 8, CONVOY_BONUS = { pts: 1000, scrap: 8 };   // per freighter through / for all three safe
+const FR_HW = 9, FR_HH = 4.5, FR_SPEED = (W + 2 * FR_HW + 4) / CONVOY_CROSS;   // hitbox half size; px/s
+const convoyWave = n => n >= CONVOY_FROM && n % 5 === 2;
+const FREIGHTER = spriteC(['.........g', '......kkkw', '.kkkkkkwww', 'kwwwwwwwtt', 'kwsswsswTT', 'kwwwwwwwtt', '.kTTTTTTTT', '..kkkkkkkk', '...aa.....'],
+  ch => ({ k: PAL.k, w: PAL.w, s: PAL.s, t: PAL.t, T: PAL.T, g: '#9be564', a: PAL.a })[ch]);   // never tinted: friendly in every region
+let convoy = { list: [], on: false, over: false, saved: 0, lost: 0, safe: false };
+const convoyReset = () => { convoy = { list: [], on: false, over: false, saved: 0, lost: 0, safe: false }; };
+const flying = f => f.state === 'fly';
+function convoySpawn(n) {
+  convoyReset();
+  if (!convoyWave(n)) return;
+  convoy.on = true;
+  const dir = grand() < 0.5 ? -1 : 1;   // the side they enter from
+  for (let i = 0; i < CONVOY_N; i++) convoy.list.push({ dir, x: 0, y: rand(100, 110), hp: CONVOY_HP, state: 'wait', delay: CONVOY_LEAD + i * CONVOY_GAP, flash: 0, t: 0 });
+}
+const convoyEdge = f => f.dir > 0 ? -FR_HW - 2 : W + FR_HW + 2;
+function updateConvoy(dt) {
+  if (!convoy.on) return;
+  const over = G.lives <= 0;   // after the last ship is lost the convoy flies on, but nothing more is paid, rammed or lost
+  for (const f of convoy.list) {
+    if (f.flash > 0) f.flash -= dt;
+    if (f.state === 'wait') {
+      if (!over && G.phase === 'active' && (f.delay -= dt) <= 0) { f.state = 'fly'; f.x = convoyEdge(f); }
+    } else if (flying(f)) {
+      f.x += f.dir * FR_SPEED * dt;
+      f.t += dt;
+      if (!reduceMotion && Math.random() < dt * 14) parts.push({ x: f.x - f.dir * 9, y: f.y + frand(-1, 2), vx: -f.dir * frand(8, 18), vy: frand(-4, 4), t: 0, life: 0.3, c: Math.random() < 0.5 ? PAL.a : PAL.y, s: 1 });
+      if (f.dir > 0 ? f.x > W + FR_HW + 2 : f.x < -FR_HW - 2) { if (over) f.state = 'gone'; else freighterSafe(f); continue; }
+      if (over) continue;
+      for (const e of enemies) {   // a diver that reaches a freighter rams it and is lost
+        if (e.dead || !e.diving || e.state === 'wait' || e.state === 'beam' || e.after === 'beam' || e.captive) continue;
+        const sp = e.T.spr[0];
+        if (Math.abs(e.x - f.x) < FR_HW + sp.w / 2 - 1 && Math.abs(e.y - f.y) < FR_HH + sp.h / 2 - 1) { ramFreighter(f, e); if (!flying(f)) break; }
+      }
+    } else if (f.state === 'warp') {
+      f.x += f.dir * 320 * dt;
+      if (f.x < -40 || f.x > W + 40) f.state = 'gone';
+    }
+  }
+  if (convoy.over && !convoy.list.some(f => flying(f) || f.state === 'warp')) convoy.on = false;
+}
+function hitFreighter(f, dmg, x, y) {
+  f.hp -= dmg;
+  f.flash = 0.08;
+  if (f.hp > 0) { spark(x, y); Snd.ting(); return; }
+  f.state = 'lost';
+  convoy.lost++;
+  explode(f.x, f.y, [PAL.w, PAL.t, PAL.a], 20, 60);   // harmless: it only costs its reward
+  Snd.boom();
+  shakeIt(2);
+  toast('FREIGHTER LOST', PAL.c);
+  convoyCheck();
+}
+function ramFreighter(f, e) {
+  e.dead = true;
+  if (e.sq && e.sq.lead) endSquad(e, true);
+  explode(e.x, e.y, tcol(e.T.colors), 10, 50);
+  hitFreighter(f, CONVOY_RAM, e.x, e.y);
+  Snd.boom();
+}
+// An enemy shot or mine that reaches a freighter is spent on it.
+function convoyHit(x, y, dmg) {
+  if (!convoy.on || G.lives <= 0) return false;
+  for (const f of convoy.list) if (flying(f) && Math.abs(x - f.x) <= FR_HW && Math.abs(y - f.y) <= FR_HH + 1) { hitFreighter(f, dmg, x, y); return true; }
+  return false;
+}
+function freighterSafe(f) {
+  f.state = 'warp';
+  convoy.saved++;
+  Rec.freighter();
+  mission('freighters');
+  addScore(FREIGHTER_PTS);
+  dropScrap(clamp(f.x, 8, W - 8), f.y, FREIGHTER_SCRAP, true);   // the bits fly to you
+  popups.push({ text: 'SAFE', x: clamp(f.x, 12, W - 12), y: f.y - 8, t: -0.2, c: PAL.t });
+  Snd.power();
+  convoyCheck();
+}
+// All three resolved: CONVOY SAFE if none was lost (the bonus and the crate are paid in the debrief).
+function convoyCheck() {
+  if (convoy.saved + convoy.lost < CONVOY_N || convoy.safe || convoy.lost) return;
+  convoy.safe = true;
+  Rec.convoy();
+  mission('convoy');
+  toast('CONVOY SAFE!', PAL.t);
+  Snd.win();
+}
+// The formation is down: whatever has not crossed yet jumps to lightspeed and counts as safe.
+function convoyClear() {
+  if (!convoy.on) return;
+  for (const f of convoy.list) {
+    if (f.state === 'wait') f.x = convoyEdge(f);
+    if (f.state === 'wait' || flying(f)) { freighterSafe(f); Snd.dive(); }
+  }
+  convoy.over = true;
+  const c = G.clear;
+  c.extra.push(['CONVOY', convoy.saved + '/' + CONVOY_N + ' SAFE']);
+  if (convoy.safe) {
+    const k = convoyCrate();
+    RUN.nextPowers.push(k);
+    c.pts += CONVOY_BONUS.pts; c.scrap += CONVOY_BONUS.scrap;
+    c.extra.push(['SUPPLY CRATE', POWERS[k].name]);
+  }
+}
+// The supply crate: a random power-up, rolled like a drop and applied at the start of the next wave.
+function convoyCrate() {
+  const pool = Object.entries(POWERS).filter(([k]) => !(k === 'life' && G.lives >= 5));
+  let r = grand() * pool.reduce((s, [, p]) => s + p.weight, 0);
+  for (const [k, p] of pool) { r -= p.weight; if (r <= 0) return k; }
+  return pool[0][0];
+}
+/* ---- the swarm goes for the convoy ---- */
+// About 1 in 3 divers pick a freighter to ram (never a miner, a warden carrying a captive, or while no freighter is below it).
+function convoyTarget(e) {
+  if (!convoy.on || e.captive || e.type === 'miner') return null;
+  const fl = convoy.list.filter(f => flying(f) && f.x > 10 && f.x < W - 10 && f.y > e.y + 20);
+  return fl.length && grand() < 1 / 3 ? pick(fl) : null;
+}
+// The last leg of a dive at a freighter, led to where it will be when the diver arrives.
+function convoyApproach(e, f, speed) {
+  const tx = clamp(f.x + f.dir * FR_SPEED * Math.hypot(f.x - e.x, f.y - e.y) / speed * 1.2, 12, W - 12);
+  return [{ x: tx, y: f.y }, { x: cxk(tx + f.dir * 10), y: f.y + 22 }, { x: cxk(tx + f.dir * 18), y: H + 14 }];
+}
+// Who an enemy shoots at: a diver on its freighter, and some of the other fire at a random freighter below the shooter. Null means you.
+function convoyAim(e, formation) {
+  if (!convoy.on) return null;
+  const below = f => flying(f) && f.x > 6 && f.x < W - 6 && f.y > e.y + 10;
+  let f = null;
+  if (e.cf && below(e.cf)) f = e.cf;
+  else { const fl = convoy.list.filter(below); if (fl.length && grand() < (formation ? CONVOY_AIM : CONVOY_AIM / 2)) f = pick(fl); }
+  return f && { x: f.x + f.dir * FR_SPEED * 0.5, y: f.y };
+}
+// Where a Sentry beam meets a freighter, if one is on the line.
+function convoyCut(ox, oy, a) {
+  const dx = Math.cos(a), dy = Math.sin(a), out = { t: Infinity, f: null };
+  if (!convoy.on || dy <= 0.05) return out;
+  for (const f of convoy.list) {
+    if (!flying(f)) continue;
+    const t0 = Math.max(0, (f.y - FR_HH - oy) / dy), t1 = (f.y + FR_HH - oy) / dy, x0 = ox + dx * t0, x1 = ox + dx * t1;
+    if (t1 > 0 && t0 < out.t && Math.min(x0, x1) <= f.x + FR_HW && Math.max(x0, x1) >= f.x - FR_HW) { out.t = t0; out.f = f; }
+  }
+  return out;
+}
+// A freighter on the beam's line takes the hit (once per beam) and shields what is behind it.
+function convoyBeam(e, ox, oy) {
+  const c = convoyCut(ox, oy, e.ang);
+  if (c.f && !e.fHit) { e.fHit = true; hitFreighter(c.f, 3, ox + Math.cos(e.ang) * c.t, oy + Math.sin(e.ang) * c.t); }
+  return c.t;
+}
+/* ---- drawing: above the swarm, under your shots ---- */
+function drawConvoy() {
+  if (!convoy.on || !inRun()) return;
+  for (const f of convoy.list) {
+    const x = Math.round(f.x), y = Math.round(f.y);
+    if (f.state === 'warp') {   // lightspeed: a streak that stretches behind it
+      cx.fillStyle = PAL.w; cx.fillRect(f.dir > 0 ? x - 24 : x, y, 24, 1);
+      cx.fillStyle = PAL.t; cx.fillRect(f.dir > 0 ? x - 40 : x + 24, y - 1, 16, 1); cx.fillRect(f.dir > 0 ? x - 40 : x + 24, y + 1, 16, 1);
+      continue;
+    }
+    if (!flying(f)) continue;
+    if (OPT.contrast) {   // a teal frame sets it apart from hi-contrast shots and mines
+      cx.fillStyle = PAL.t;
+      cx.fillRect(x - FR_HW - 1, y - 6, 2 * FR_HW + 3, 1); cx.fillRect(x - FR_HW - 1, y + 6, 2 * FR_HW + 3, 1);
+      cx.fillRect(x - FR_HW - 1, y - 5, 1, 11); cx.fillRect(x + FR_HW + 1, y - 5, 1, 11);
+    }
+    drawSpr(FREIGHTER, f.x, f.y, 0, f.flash > 0);
+    const k = f.hp / CONVOY_HP;   // health bar
+    cx.fillStyle = '#241a52'; cx.fillRect(x - 8, y - 10, 17, 3);
+    cx.fillStyle = f.flash > 0 ? '#ffffff' : k > 0.5 ? '#9be564' : k > 0.25 ? PAL.a : PAL.c; cx.fillRect(x - 7, y - 9, Math.max(1, Math.ceil(15 * k)), 1);
+    if (blinkOn(3)) { cx.fillStyle = '#ffffff'; cx.fillRect(x, y - 4, 1, 1); }   // the friendly beacon
+  }
+}
+// HUD: the label and one pip per freighter (waiting, on its way, through, lost).
+function drawConvoyHud() {
+  if (!convoy.on || boss) return;
+  txt('CONVOY', W - 4, 19, PAL.t, 'right');
+  convoy.list.forEach((f, i) => {
+    cx.fillStyle = f.state === 'lost' ? PAL.c : f.state === 'wait' ? PAL.S : flying(f) ? PAL.w : PAL.t;
+    cx.fillRect(W - 4 - (CONVOY_N - i) * 5 + 1, 26, 4, 3);
+  });
+}
+
 /* ================= mines, splitters, armor ================= */
 let mines = [];
 function layMine(x, y) { if (mines.length < 14 && player.alive) mines.push({ x, y, t: 0, vy: 16 }); }
@@ -2725,7 +2950,7 @@ function updateMines(et) {
     m.y += m.vy * et;
     m.x += Math.sin(m.t * 2 + m.y * 0.05) * 5 * et;
     if (m.y > H + 6 || m.t > 12) m.dead = true;
-    else if (barrierBlock(m.x, m.y)) popMine(m, 0);
+    else if (convoyHit(m.x, m.y, 2) || barrierBlock(m.x, m.y)) popMine(m, 0);
     else if (player.alive && nearestShipDx(m.x) < 5 && Math.abs(m.y - player.y) < 5) { popMine(m, 0); hitPlayer(m.x); }
   }
   mines = mines.filter(m => !m.dead);
@@ -2874,9 +3099,9 @@ function updateSentry(e, dt) {
     if (e.pt <= 0) { e.bm = 'lock'; e.pt = SENTRY_LOCK; Snd.beamPulse(0); }
   } else if (e.bm === 'lock') {
     e.flash = blinkOn(14) ? 0.05 : 0;
-    if (e.pt <= 0) { e.bm = 'fire'; e.pt = SENTRY_FIRE; e.hit = e.near = e.blocked = false; Snd.zap(); shakeIt(1); }
+    if (e.pt <= 0) { e.bm = 'fire'; e.pt = SENTRY_FIRE; e.hit = e.near = e.blocked = e.fHit = false; Snd.zap(); shakeIt(1); }
   } else {
-    const cut = barrierCut(ox, oy, e.ang);
+    const cut = Math.min(barrierCut(ox, oy, e.ang), convoyBeam(e, ox, oy));   // a freighter on the line soaks the beam too
     if (cut < Infinity) {   // a Bulwark's barrier soaks the beam
       if (!e.blocked) { e.blocked = true; ab.blocked++; Snd.ting(); }
       if (Math.random() < 0.5) spark(ox + Math.cos(e.ang) * cut, oy + Math.sin(e.ang) * cut);
@@ -2914,13 +3139,15 @@ function trySquad(ready, room) {
   const mates = el.filter(e => e !== l).sort((a, b) => dist(a) - dist(b)).slice(0, 2);
   if (mates.some(m => dist(m) > 40)) return false;   // a tight V needs close neighbours
   const dir = l.x < W / 2 ? -1 : 1, px = player.x, x = l.x, y = l.y;
-  followPath(l, [{ x, y }, { x: cxk(x + dir * 10), y: y - 10 }, { x: cxk(x + dir * 18), y: y + 2 }, { x: cxk(lerp(x, px, 0.55)), y: H * 0.42 },
-    { x: cxk(px + rand(-14, 14)), y: H * 0.74 }, { x: cxk(px - dir * 30), y: H + 14 }], 'wrap', Math.min(70 + n * 2, 108) * (1 + 0.12 * late(n)) * runReg().mods.speed);
+  const spd = Math.min(70 + n * 2, 108) * (1 + 0.12 * late(n)) * runReg().mods.speed, cf = convoyTarget(l);   // a squadron may go for a freighter
+  followPath(l, [{ x, y }, { x: cxk(x + dir * 10), y: y - 10 }, { x: cxk(x + dir * 18), y: y + 2 }, ...(cf ? convoyApproach(l, cf, spd) : [{ x: cxk(lerp(x, px, 0.55)), y: H * 0.42 },
+    { x: cxk(px + rand(-14, 14)), y: H * 0.74 }, { x: cxk(px - dir * 30), y: H + 14 }])], 'wrap', spd);
   l.diving = true;
+  l.cf = cf;
   l.shots = [];
   l.sq = { lead: true, mates, fired: false };
   mates.forEach((m, i) => {
-    m.diving = true; m.state = 'squad';
+    m.diving = true; m.state = 'squad'; m.cf = cf;
     m.sq = { l, ox: i ? 9 : -9, oy: -8, t: 0, x0: m.x, y0: m.y };
   });
   Snd.dive();
@@ -2977,7 +3204,7 @@ function drawElite() {
 }
 function drawSentryBeam(e) {
   const ox = e.x, oy = e.y + 4, dx = Math.cos(e.ang), dy = Math.sin(e.ang), fire = e.bm === 'fire', blink = blinkOn(14);
-  const end = fire ? Math.min(320, barrierCut(ox, oy, e.ang)) : 320;   // a barrier stops the beam where it crosses
+  const end = fire ? Math.min(320, barrierCut(ox, oy, e.ang), convoyCut(ox, oy, e.ang).t) : 320;   // a barrier or a freighter stops the beam where it crosses
   for (let t = 6; t < end; t += fire ? 1 : e.bm === 'lock' ? 2 : 4) {
     const x = Math.round(ox + dx * t), y = Math.round(oy + dy * t);
     if (x < -2 || x > W + 2 || y > H) break;
@@ -2989,17 +3216,17 @@ function drawSentryBeam(e) {
 /* ================= shooting ================= */
 function eshot(x, y, vx, vy) { const k = runReg().mods.shotSpeed; if (player.alive) eshots.push({ x, y, vx: vx * k, vy: vy * k }); }
 function shootAngle(x, y, a, s) { eshot(x, y, Math.cos(a) * s, Math.sin(a) * s); }
-function aimed(x, y, s, jitter) { shootAngle(x, y, Math.atan2(player.y - y, player.x - x) + rand(-jitter, jitter), s); }
+function aimed(x, y, s, jitter, t = player) { shootAngle(x, y, Math.atan2(t.y - y, t.x - x) + rand(-jitter, jitter), s); }
 function fan(x, y, n, spread, s) { for (let i = 0; i < n; i++) shootAngle(x, y, Math.PI / 2 - spread / 2 + spread * i / (n - 1), s); }
 function ringShot(x, y, n, s, off) { for (let i = 0; i < n; i++) shootAngle(x, y, off + i * TAU / n, s); }
 function enemyFire(e, formation) {
   if (!player.alive || e.y > player.y - 20) return;
   e.reveal = 0.8;   // a cloaked phantom shows itself when it fires
-  const s = Math.min(70 + G.wave * 3, 110);
+  const s = Math.min(70 + G.wave * 3, 110), t = convoyAim(e, formation) || player;   // some fire goes for a freighter
   if (e.type === 'warden' && !formation) {
-    const a = Math.atan2(player.y - e.y, player.x - e.x);
+    const a = Math.atan2(t.y - e.y, t.x - e.x);
     for (const o of [-0.22, 0, 0.22]) shootAngle(e.x, e.y + 4, a + o, s * 0.9);
-  } else aimed(e.x, e.y + 4, s, formation ? 0.25 : 0.1);
+  } else aimed(e.x, e.y + 4, s, formation && t === player ? 0.25 : 0.1, t);
 }
 function fire() {
   const hs = hullStat(), n0 = pshots.length;
@@ -3029,8 +3256,8 @@ const BOSS_ORDER = ['queen', 'maw', 'mother'];
 // Each region opens with its own boss, then rotates through the order (the Hive Heart's has the Hive Mind too).
 const bossKindAt = (reg, k) => { const o = reg.bossOrder || BOSS_ORDER; return o[(k + o.indexOf(reg.boss)) % o.length]; };
 function spawnBoss() {
-  const k = G.bossCount++;
-  const kind = bossKindAt(runReg(), k);
+  const k = rush.on ? rushK() : G.bossCount++;
+  const kind = rush.on ? rushKind() : bossKindAt(runReg(), k);
   const B = BOSSES[kind];
   let hp = B.hp + 30 * k;
   hiveNote = null;
@@ -3134,10 +3361,12 @@ function updateBoss(dt) {
       flash = flashLvl(0.6, 0.15);
       shakeIt(6);
       Snd.bigBoom();
-      dropPickup(b.x - 12, b.y, true);
-      dropPickup(b.x + 12, b.y, true);
-      dropScrap(b.x, b.y, 120 + 40 * b.k, true);
-      if (runReg().relics) dropRelic(b.x, b.y);   // bosses in the new regions always drop a relic
+      if (!rush.on) {   // a rush pays at the pit stop and the results instead
+        dropPickup(b.x - 12, b.y, true);
+        dropPickup(b.x + 12, b.y, true);
+        dropScrap(b.x, b.y, 120 + 40 * b.k, true);
+        if (runReg().relics) dropRelic(b.x, b.y);   // bosses in the new regions always drop a relic
+      }
       if (b.kind === 'hive') hiveDown();
       boss = null;
     }
@@ -3246,6 +3475,7 @@ function killBoss(b) {
   for (const s of eshots) spark(s.x, s.y);
   eshots = [];
   for (const e of enemies) if (!e.dead) { e.dead = true; explode(e.x, e.y, tcol(e.T.colors), 10, 50); }
+  if (rush.on) { rushKill(b); return; }
   if (awardTrophy('trophy-' + b.kind)) G.extra.push(['TROPHY CARD', b.B.name]);
   const reg = runReg();
   if (reg.bossCard && b.kind === reg.boss && awardTrophy(reg.bossCard)) G.extra.push(['TROPHY CARD', reg.bossName]);
@@ -3312,7 +3542,7 @@ const saveHive = () => store.set(HIVE_KEY, hive);
 // The Hive Mind is gone: the first time plays the ending, later kills a banner. Both wait for the wave-clear banner.
 let hiveNote = null;
 function hiveDown() {
-  if (G.lives <= 0) return;
+  if (rush.on || G.lives <= 0) return;   // a rush kill is not a Hive Heart kill and plays no ending
   hive.kills++;
   hiveNote = hive.seen ? 'banner' : 'ending';
   hive.seen = true;
@@ -3382,6 +3612,183 @@ function endEnding() {
   Snd.play('main');
   banner('THE SWARM FIGHTS ON', 'WAVE ' + G.wave + ' CLEAR', 'good', 2);
 }
+
+/* ================= boss rush: every boss back to back against the clock ================= */
+// Three fights (Hive Queen, Magma Maw, Null Carrier), each flown in a region that opens with that boss and is open whether or not it is charted, at the
+// strength of that boss's 1st, 2nd and 3rd appearance (k 0, 1, 2). Once the Hive Mind has fallen in the Hive Heart it joins as a fourth fight in its own region.
+// You fly your hull, ability, paint and trail; no loadout, shop, missions, relics, charting, sector events, gambles, top 10 or ending. Score never earns a ship
+// (the pit stop repairs one instead). The timer runs while a boss is up, and stops for the pit stop, pause, banners and the death throes.
+const RUSH_KEY = 'nova-swarm-rush-v1';
+const RUSH_COURSE = [{ region: 'home', k: 0 }, { region: 'ember', k: 1 }, { region: 'void', k: 2 }];
+const RUSH_HIVE = { region: 'hive', k: 0 };   // the Hive Mind is already the hardest fight: it comes at its wave-5 strength
+const RUSH_PAY = { fight: 15, clear: 30 };    // scrap per fight won, and a bonus for a clear; added to the wallet at the end
+const rush = { on: false, fights: [], idx: -1, t: 0, ft: 0, splits: [], won: 0, ended: false };
+const rushFight = () => rush.fights[rush.idx];
+const rushK = () => rushFight().k;
+const rushKind = () => REGION[rushFight().region].boss;
+// Best time (clears only) and best score for each course, keyed by its size: 3 or 4 bosses.
+const rushBest = (() => {
+  const s = store.get(RUSH_KEY, null), out = { 3: { time: 0, score: 0 }, 4: { time: 0, score: 0 } };
+  if (s && typeof s === 'object') for (const n of [3, 4]) {
+    const o = s['c' + n];
+    if (!o || typeof o !== 'object') continue;
+    if (Number.isFinite(o.time) && o.time >= 1 && o.time <= 36000) out[n].time = o.time;
+    if (Number.isFinite(o.score) && o.score > 0) out[n].score = Math.min(Math.floor(o.score), 1e9);
+  }
+  return out;
+})();
+const saveRush = () => store.set(RUSH_KEY, { c3: rushBest[3], c4: rushBest[4] });
+const rushBestScore = () => rushBest[rush.fights.length].score;
+const fmtClock = s => { const d = Math.floor(s * 10); return Math.floor(d / 600) + ':' + String(Math.floor(d / 10) % 60).padStart(2, '0') + '.' + d % 10; };
+const fmtBest = n => rushBest[n].time ? fmtClock(rushBest[n].time) : '--';
+function renderRushNote() {
+  $('rushNote').style.whiteSpace = 'pre-line';
+  $('rushNote').textContent = 'BOSS RUSH (B): 3 BOSSES, BEST ' + fmtBest(3) + ' / ' + rushBest[3].score
+    + (hive.kills ? '\n4 BOSSES, BEST ' + fmtBest(4) + ' / ' + rushBest[4].score : '');
+}
+function startRush() {
+  if (state !== 'title') return;
+  daily = null;
+  Snd.unlock();
+  Object.assign(rush, { on: true, fights: [...RUSH_COURSE, ...(hive.kills ? [RUSH_HIVE] : [])], idx: -1, t: 0, ft: 0, splits: [], won: 0, ended: false });
+  state = 'play';
+  resetGame();                  // its first nextWave() is rushNext()
+  G.nextLife = Infinity;
+  Rec.runStart();
+  if (hullStat().shieldStart) player.shield = true;
+  $('hudHiLbl').textContent = 'RUSH BEST';
+  showOverlay(null);
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+}
+// The next fight's WARNING banner: the boss's region (backdrop, tint and local name) comes with it.
+function rushNext() {
+  const f = rush.fights[++rush.idx], reg = REGION[f.region], n = rush.fights.length;
+  G.region = f.region;
+  G.wave = 5;                   // a boss wave, so spawnWave() sends the boss
+  G.phase = 'intro'; G.phaseT = 2.6;
+  G.event = null; G.extra = []; G.waveMult = 1; G.waveGrazes = 0; G.hitThisWave = false; G.relicWave = false;
+  rush.ft = 0;
+  $('hudWaveLbl').textContent = 'FIGHT ' + (rush.idx + 1) + '/' + n;
+  banner('WARNING', (reg.bossName || BOSSES[reg.boss].name) + ' IN ' + reg.name, 'warn', 2.4);
+  Snd.warn();
+  Snd.play(reg.boss === 'hive' ? 'hive' : 'boss');
+}
+function rushTick(dt) {
+  if (rush.ended || G.lives <= 0 || !boss || boss.state === 'dying') return;
+  rush.t += dt; rush.ft += dt;
+}
+// Called from killBoss(): the split, and the kill counts for enemies and bosses by kind (not by region). No scrap, trophy, mission or relic.
+function rushKill(b) {
+  rush.splits.push(rush.ft);
+  rush.won++;
+  Rec.boss(b);
+  Snd.bigBoom();
+  rumble(900, 1, 0.8);
+}
+// Called from waveClear() once the boss is gone and its death throes are over.
+function rushWon() {
+  if (G.lives <= 0) return;
+  G.phase = 'clear'; G.phaseT = 1.3;
+  for (const s of eshots) spark(s.x, s.y);
+  eshots = [];
+  clearMines();
+  const reg = REGION[rushFight().region];
+  banner((reg.bossName || BOSSES[reg.boss].name) + ' DESTROYED', fmtClock(rush.splits[rush.idx]), 'good', 1.3);
+  Snd.jingle();
+}
+// Called from openDebrief(): the pit stop after a fight, or the results after the last.
+function rushAfterFight() {
+  keys.clear(); touch.id = null;
+  if (rush.idx >= rush.fights.length - 1) rushResults(); else rushPit();
+}
+/* ---- pit stop: one pick between fights ---- */
+// A later change (the salvage draft) can deal its cards from rushPit() and call rushPitDone() when the hand is settled.
+const RUSH_PIT = [
+  { name: 'SHIELD', desc: () => player.shield ? 'ALREADY SHIELDED: REFRESH IT' : 'SOAKS THE NEXT HIT', can: () => true, pick: () => { player.shield = true; } },
+  { name: '+1 SMART BOMB', desc: () => G.bombs + ' OF 5 HELD', can: () => G.bombs < 5, pick: () => { G.bombs++; } },
+  { name: 'REPAIR', desc: () => 'ONE MORE SHIP: ' + G.lives + ' OF 3', can: () => G.lives < 3, pick: () => { G.lives++; } }
+];
+function rushPit() {
+  state = 'pit';
+  hideBanners();
+  pickups = []; eshots = []; relicDrops = [];
+  if (!player.alive && G.lives > 0) { player.respawnT = 0; respawn(); }   // a ship still being rebuilt is ready for the pick
+  const next = REGION[rush.fights[rush.idx + 1].region], n = rush.fights.length;
+  $('pitNote').textContent = 'FIGHT ' + (rush.idx + 1) + ' OF ' + n + ' CLEAR  ' + fmtClock(rush.splits[rush.idx]);
+  $('pitInfo').textContent = 'NEXT: ' + (next.bossName || BOSSES[next.boss].name) + '\nIN ' + next.name;
+  const box = $('pitOpts');
+  box.textContent = '';
+  RUSH_PIT.forEach((o, i) => {
+    const b = mkBtn('btn' + (i === 0 ? ' primary' : ''), o.name + '<span class="fine">' + o.desc() + '</span>', () => rushPick(i));
+    b.disabled = !o.can();
+    box.appendChild(b);
+  });
+  showOverlay('ovPit');
+  ui.readyAt = clock + 0.6;
+}
+function rushPick(i) {
+  const o = RUSH_PIT[i];
+  if (state !== 'pit' || clock < ui.readyAt || !o || !o.can()) return;
+  o.pick();
+  toast(o.name, PAL.t);
+  Snd.power();
+  rushPitDone();
+}
+function rushPitDone() {
+  state = 'play';
+  keys.clear(); touch.id = null;
+  showOverlay(null);
+  rushNext();
+}
+function rushPitMove(step) {
+  const list = [...$('pitOpts').children].filter(b => !b.disabled), i = list.indexOf(document.activeElement);
+  if (list.length) { list[i < 0 ? (step > 0 ? 0 : list.length - 1) : wrapIdx(i + step, list.length)].focus(); Snd.tick(); }
+}
+/* ---- results ---- */
+// A clear, or a game over (called from showGameOver). Pays scrap, keeps the bests and shows the splits.
+function rushResults() {
+  if (rush.ended) return;
+  rush.ended = true;
+  const n = rush.fights.length, cleared = rush.won >= n, best = rushBest[n];
+  state = 'rushend';
+  keys.clear(); touch.id = null;
+  hideBanners();
+  Snd.stop();
+  if (cleared) Snd.fanfare(3); else Snd.over();
+  const pay = rush.won * RUSH_PAY.fight + (cleared ? RUSH_PAY.clear : 0);
+  Wallet.add(pay);
+  const newTime = cleared && (!best.time || rush.t < best.time), newScore = G.score > best.score;
+  if (newTime) best.time = rush.t;
+  if (newScore) best.score = G.score;
+  if (newTime || newScore) saveRush();
+  if (cleared) Rec.rushClear(n);
+  Rec.over();
+  $('rsTitle').textContent = cleared ? 'BOSS RUSH CLEAR' : 'BOSS RUSH OVER';
+  $('rsTitle').className = 'big ' + (cleared ? 'c-teal' : 'c-coral');
+  $('rsNote').textContent = (n === 4 ? 'FOUR' : 'THREE') + '-BOSS RUSH';
+  const dl = $('rsLines');
+  dl.textContent = '';
+  const row = (k, v, hl) => {
+    const dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = k; dd.textContent = v;
+    if (hl) dd.className = 'hl';
+    dl.append(dt, dd);
+  };
+  row('FIGHTS WON', rush.won + ' / ' + n, true);
+  rush.fights.forEach((f, i) => {
+    const reg = REGION[f.region], name = reg.bossName || BOSSES[reg.boss].name;
+    if (i < rush.splits.length) row('· ' + name, fmtClock(rush.splits[i]));
+    else if (i === rush.splits.length) row('· ' + name, 'DOWN AT ' + fmtClock(rush.ft));
+  });
+  row('TOTAL TIME', fmtClock(rush.t));
+  row('SCORE', G.score);
+  row('SCRAP EARNED', '+' + pay, true);
+  row('BEST TIME', best.time ? fmtClock(best.time) + (newTime ? ' NEW!' : '') : '--', newTime);
+  row('BEST SCORE', best.score + (newScore ? ' NEW!' : ''), newScore);
+  showOverlay('ovRush');
+  ui.readyAt = clock + 0.9;
+}
+function rushLeave() { if (state === 'rushend' && clock >= ui.readyAt) showTitle(0); }
 
 /* ================= wingmen: two drones that copy your shots until you are hit ================= */
 const wingmen = [{ x: W / 2, y: H - 20 }, { x: W / 2, y: H - 20 }];
@@ -3648,7 +4055,9 @@ const MISSIONS = [
   { id: 'ability', n: 3, reward: 40, text: n => 'USE YOUR ABILITY ' + n + ' TIMES' },
   { id: 'abkills', n: 8, reward: 40, text: n => 'DEFEAT ' + n + ' FOES WITH YOUR ABILITY' },
   { id: 'phantom', n: 3, reward: 50, text: n => 'SHOOT ' + n + ' PHANTOMS' },
-  { id: 'squad', n: 2, reward: 50, text: n => 'BREAK ' + n + ' SQUADRONS' }
+  { id: 'squad', n: 2, reward: 50, text: n => 'BREAK ' + n + ' SQUADRONS' },
+  { id: 'freighters', n: 5, reward: 50, text: n => 'GET ' + n + ' FREIGHTERS THROUGH' },
+  { id: 'convoy', n: 1, reward: 50, text: () => 'SAVE A WHOLE CONVOY' }
 ];
 let nextMissions = null;   // rolled on the title screen so they can be shown before the run
 function rollMissions(rnd = Math.random) {
@@ -3689,8 +4098,9 @@ const missionsDone = () => G.missions.filter(m => m.done).length + '/' + G.missi
 // Events call one Rec method each. Medals are data: a new one is one line in MEDALS (check() returns the value its tiers are measured against).
 const REC_KEY = 'nova-swarm-record-v1';
 const REC_NUMS = ['runs', 'dailies', 'score', 'best', 'time', 'waves', 'bestWave', 'bestCombo', 'grazes', 'bestRunGrazes', 'bestWaveGrazes', 'bestRunNoHit',
-  'perfects', 'bestBonus', 'rescues', 'bombs', 'pierce', 'missions', 'relics', 'scrap', 'flawless', 'twinBosses', 'perks', 'bestRunPerks'];
+  'perfects', 'bestBonus', 'rescues', 'bombs', 'pierce', 'missions', 'relics', 'scrap', 'flawless', 'twinBosses', 'rushClears', 'rushHive', 'perks', 'bestRunPerks'];
 const REC_MAPS = { kills: ETYPES, bosses: BOSSES, bossRegions: REGION, hullBest: HULLS };
+REC_NUMS.push('freighters', 'convoys');   // convoy escort: freighters through, whole convoys saved
 const emptyRec = () => {
   const r = { medals: {}, seen: {}, legacy: false, lastDaily: '' };
   for (const k of REC_NUMS) r[k] = 0;
@@ -3795,6 +4205,10 @@ const MEDALS = [
   { id: 'flawless', name: 'FLAWLESS VICTORY', desc: 'DESTROY A BOSS WITHOUT BEING HIT', glyph: 'crown', tiers: [1], reward: 60, secret: true, check: () => record.flawless },
   { id: 'twin', name: 'DOUBLE TROUBLE', desc: 'DESTROY A BOSS WITH TWIN FIGHTERS', glyph: 'plus', tiers: [1], reward: 50, secret: true, check: () => record.twinBosses },
   { id: 'hoard', name: "DRAGON'S HOARD", desc: 'HOLD {n} SCRAP AT ONCE', glyph: 'coin', tiers: [2000], reward: 40, secret: true, check: () => Wallet.scrap },
+  { id: 'rush', name: 'BOSS RUSHER', desc: 'CLEAR THE BOSS RUSH', glyph: 'glass', tiers: [1], reward: 60, check: () => record.rushClears },
+  { id: 'gauntlet', name: 'GAUNTLET RUNNER', desc: 'CLEAR THE FOUR-BOSS RUSH', glyph: 'crown', tiers: [1], reward: 100, check: () => record.rushHive },
+  { id: 'escort', name: 'ESCORT', desc: 'GET {n} FREIGHTERS THROUGH', glyph: 'plus', tiers: [5, 25, 100], reward: [20, 40, 80], check: () => record.freighters },
+  { id: 'convoy', name: 'CONVOY CAPTAIN', desc: 'SAVE {n} WHOLE CONVOYS', glyph: 'shield', tiers: [1, 5, 20], reward: [30, 60, 100], check: () => record.convoys },
   { id: 'drafter', name: 'SALVAGE CREW', desc: 'DRAFT {n} PERKS', glyph: 'gem', tiers: [25, 100, 250], reward: [20, 50, 100], check: () => record.perks },
   { id: 'build', name: 'FULL BUILD', desc: 'HOLD {n} PERKS IN ONE RUN', glyph: 'plus', tiers: [6], reward: 60, check: () => record.bestRunPerks }
 ];
@@ -3901,7 +4315,7 @@ const Rec = {
   kill(type) { record.kills[type] = (record.kills[type] || 0) + 1; },
   boss(b) {
     record.bosses[b.kind] = (record.bosses[b.kind] || 0) + 1;
-    record.bossRegions[G.region] = (record.bossRegions[G.region] || 0) + 1;
+    if (!rush.on) record.bossRegions[G.region] = (record.bossRegions[G.region] || 0) + 1;   // the map stays something you fly
     if (!G.hitThisWave) record.flawless++;
     if (player.twin) record.twinBosses++;
     this.chk = 0;
@@ -3913,6 +4327,9 @@ const Rec = {
   bomb() { record.bombs++; },
   pierce(n) { recMax(record, 'pierce', n); },
   relic() { record.relics++; },
+  rushClear(n) { record.rushClears++; if (n === 4) record.rushHive++; },
+  freighter() { record.freighters++; },
+  convoy() { record.convoys++; },
   perk() { record.perks++; recMax(record, 'bestRunPerks', perkCount()); this.chk = 0; },
   bonusStage(perfect) { record.waves++; if (perfect) record.perfects++; recMax(record, 'bestBonus', G.bonusHits); this.chk = 0; this.save(); },
   over() { this.chk = 0; this.save(); }
@@ -4016,8 +4433,10 @@ function buildStats() {
     ['GRAZES', fmtNum(r.grazes)], ['SMART BOMBS USED', fmtNum(r.bombs)], ['BEST CHARGE-SHOT PIERCE', fmtNum(r.pierce)]]);
   group('BOSSES', [['BOSSES DESTROYED', fmtNum(recSum(r.bosses))], ...Object.keys(BOSSES).map(k => ['· ' + BOSSES[k].name, fmtNum(r.bosses[k] || 0)]),
     ...REGIONS.map(g => ['· IN ' + g.name, fmtNum(r.bossRegions[g.id] || 0)])]);
+  group('BOSS RUSH', [['RUSHES CLEARED', fmtNum(r.rushClears)], ['FOUR-BOSS RUSHES CLEARED', fmtNum(r.rushHive)], ['BEST 3-BOSS TIME', fmtBest(3)], ['BEST 4-BOSS TIME', fmtBest(4)]]);
   group('EXTRAS', [['PERFECT STAGES', fmtNum(r.perfects)], ['FIGHTERS RESCUED', fmtNum(r.rescues)], ['MISSIONS COMPLETED', fmtNum(r.missions)], ['RELICS CAUGHT', fmtNum(r.relics)],
     ['PERKS DRAFTED', fmtNum(r.perks)], ['MOST PERKS IN ONE RUN', fmtNum(r.bestRunPerks)]]);
+  group('CONVOYS', [['FREIGHTERS SAVED', fmtNum(r.freighters)], ['WHOLE CONVOYS SAVED', fmtNum(r.convoys)]]);
 }
 function handleRecordsKey(e) {
   const c = e.code, a = document.activeElement, confirm = c === 'Space' || c === 'Enter';
@@ -4068,7 +4487,7 @@ function graze(b) {
   abilityCharge(AB_GRAZE * k * perkMeter() * (1 + 0.25 * perkRank('graze')));
   spark(b.x, b.y);
   Snd.graze();
-  if (Math.floor(G.grazes / 4) > Math.floor((G.grazes - k) / 4)) { collectScrap(1); popups.push({ text: '+1', x: player.x, y: player.y - 12, t: 0.2, c: PAL.a }); }
+  if (!rush.on && Math.floor(G.grazes / 4) > Math.floor((G.grazes - k) / 4)) { collectScrap(1); popups.push({ text: '+1', x: player.x, y: player.y - 12, t: 0.2, c: PAL.a }); }
 }
 
 /* ================= damage, score, power-ups ================= */
@@ -4102,8 +4521,8 @@ function killEnemy(e) {
   G.killsSinceDrop++;
   const chance = G.killsSinceDrop >= 18 ? 1 : e.T.drop * runReg().mods.dropMul * (1 + 0.3 * perkRank('lucky')) + (moving ? 0.03 : 0);
   if (grand() < chance) { dropPickup(e.x, e.y); G.killsSinceDrop = 0; }
-  // in the new regions, one kill a wave may shake loose a relic
-  if (runReg().relics && !G.relicWave && grand() < RELIC_CHANCE) { G.relicWave = true; dropRelic(e.x, e.y); }
+  // in the new regions, one kill a wave may shake loose a relic (never in a boss rush)
+  if (runReg().relics && !rush.on && !G.relicWave && grand() < RELIC_CHANCE) { G.relicWave = true; dropRelic(e.x, e.y); }
 }
 function addScore(v) {
   G.score += v;
@@ -4115,7 +4534,7 @@ function addScore(v) {
 }
 function dropPickup(x, y, force) {
   if (pickups.length >= 3 && !force) return;
-  const pool = Object.entries(POWERS).filter(([k]) => !(k === 'life' && G.lives >= 5) && !(k === 'shield' && player.shield) && !(k === 'wing' && player.wings));
+  const pool = Object.entries(POWERS).filter(([k]) => !(k === 'life' && (G.lives >= 5 || rush.on)) && !(k === 'shield' && player.shield) && !(k === 'wing' && player.wings));
   let r = grand() * pool.reduce((s, [, p]) => s + p.weight, 0);
   for (const [k, p] of pool) {
     r -= p.weight;
@@ -4205,6 +4624,7 @@ function respawn() {
   clearBeams();
 }
 function waveClear() {
+  if (rush.on) { rushWon(); return; }
   if (G.lives <= 0) return;
   G.phase = 'clear';
   G.phaseT = 1.3;
@@ -4218,6 +4638,7 @@ function waveClear() {
   if (G.waveGrazes) G.extra.push(['GRAZES', String(G.waveGrazes)]);
   G.clear = { title: 'WAVE ' + G.wave + ' CLEAR', note: noHit ? 'NO-HIT BONUS' : 'WAVE BONUS', pts: noHit ? 500 * G.wave : 0,
     scrap: (3 + Math.floor(G.wave / 2) + (noHit ? 5 + G.wave : 0)) * (G.event === 'fast' ? 2 : 1), extra: G.extra.slice(), gambled: false, banked: false, busy: false, draft: G.wave % 5 === 0 };
+  convoyClear();
   banner('WAVE ' + G.wave + ' CLEAR', noHit ? 'NO-HIT BONUS' : '', 'good', 1.3);
   for (const b of eshots) spark(b.x, b.y);
   eshots = [];
@@ -4246,6 +4667,7 @@ function onWaveStart() {
 
 /* ================= scrap ================= */
 function dropScrap(x, y, value, burst) {
+  if (rush.on) return;   // a rush pays a flat amount at the end
   const n = burst ? Math.min(24, value) : Math.min(4, value);
   for (let i = 0; i < n; i++) {
     const v = Math.floor(value / n) + (i < value % n ? 1 : 0);
@@ -4385,6 +4807,7 @@ function updatePlayer(dt) {
 }
 function update(dt) {
   if (state === 'play' && G.lives > 0) Rec.time(dt);
+  if (rush.on) rushTick(dt);
   const et = dt * (G.slowT > 0 ? 0.45 : 1) * (G.event === 'fast' ? 1.3 : 1) * perkHeat();
   if (G.slowT > 0) G.slowT = Math.max(0, G.slowT - dt);
   if (G.comboT > 0 && (G.comboT -= dt) <= 0) G.combo = 0;
@@ -4415,6 +4838,7 @@ function update(dt) {
   if (G.phase === 'active' && !boss && !G.bonus && G.entering <= 0) schedule(et);
   if (boss) updateBoss(et);
   updateAbility(dt);
+  updateConvoy(dt);
 
   for (const s of pshots) {
     if (s.seek) seekSteer(s, dt);
@@ -4449,7 +4873,7 @@ function update(dt) {
   for (const b of eshots) {
     b.x += b.vx * et; b.y += b.vy * et;
     if (b.y > H + 4 || b.y < -8 || b.x < -4 || b.x > W + 4) { b.dead = true; continue; }
-    if (barrierBlock(b.x, b.y)) { b.dead = true; continue; }
+    if (convoyHit(b.x, b.y, 1) || barrierBlock(b.x, b.y)) { b.dead = true; continue; }   // a freighter blocks the fire that reaches it
     if (player.alive && nearestShipDx(b.x) < 3.5 && Math.abs(b.y - player.y) < 4.5) { b.dead = true; hitPlayer(b.x); continue; }
     // graze: paid once the bullet has passed close by without hitting
     if (player.alive && (player.invuln <= 0 || ab.dash > 0) && nearestShipDx(b.x) < grazeR && Math.abs(b.y - player.y) < grazeR) { b.near = true; if (ab.dash > 0) b.dashed = true; }
@@ -4679,6 +5103,7 @@ function drawHudCanvas() {
   const sc = String(Wallet.scrap), sw = sc.length * 4 + 6, sx = Math.round(W / 2 - sw / 2);
   drawSpr(SCRAP_ICON, sx + 2, H - 6);
   txt(sc, sx + 7, H - 8, PAL.a);
+  drawConvoyHud();
   if (G.event && !boss) txt(G.event === 'wind' ? (G.windDir > 0 ? 'WIND >' : '< WIND') : EVENTS[G.event].tag, W - 4, 19, EVENTS[G.event].color, 'right');
   const m = comboMult();
   if (G.comboT > 0 && m > 1) {
@@ -4730,6 +5155,7 @@ function draw() {
   drawRelics();
   drawEnemies(tint);
   drawCaptives();
+  drawConvoy();
   if (boss) drawBoss(boss, tint);
   for (const s of pshots) {
     const x = Math.round(s.x), y = Math.round(s.y);
@@ -4775,7 +5201,7 @@ function draw() {
 const hudEls = { s: $('hudScore'), hi: $('hudHi'), w: $('hudWave') };
 const hudLast = {};
 function updateHud() {
-  const vals = { s: G.score, hi: Math.max(G.score, daily ? dailyBestNow : scores[0] ? scores[0].score : 0), w: Math.max(G.wave, 1) };
+  const vals = { s: G.score, hi: Math.max(G.score, daily ? dailyBestNow : rush.on ? rushBestScore() : scores[0] ? scores[0].score : 0), w: rush.on ? fmtClock(rush.t) : Math.max(G.wave, 1) };
   for (const k in vals) if (hudLast[k] !== vals[k]) { hudLast[k] = vals[k]; hudEls[k].textContent = vals[k]; }
 }
 const ui = { bannerT: 0, toastT: 0 };
@@ -4807,7 +5233,7 @@ function placeToast() {
 }
 function hideBanners() { ui.bannerT = ui.toastT = 0; $('banner').hidden = true; $('toast').hidden = true; }
 
-const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovDraft', 'ovHangar', 'ovWheel', 'ovMap', 'ovRecords', 'ovOptions', 'ovEnding'];
+const OVERLAYS = ['ovTitle', 'ovPause', 'ovOver', 'ovEntry', 'ovDebrief', 'ovWager', 'ovDraft', 'ovHangar', 'ovWheel', 'ovMap', 'ovRecords', 'ovOptions', 'ovEnding', 'ovPit', 'ovRush'];
 function showOverlay(id) {
   for (const o of OVERLAYS) $(o).hidden = o !== id;
   opt.open = id === 'ovOptions';
@@ -4966,6 +5392,7 @@ function resetGame(from) {
   if (from && from.run) Object.assign(RUN, { fastFire: clamp(from.run.fastFire | 0, 0, 2), spreadStart: !!from.run.spreadStart, magnet: !!from.run.magnet, shipsBought: from.run.shipsBought | 0 });
   Object.assign(player, { x: W / 2, y: H - 22, alive: true, invuln: 1.5, cd: 0.2, shield: false, spreadT: 0, rapidT: 0, respawnT: 0, twin: !!(from && from.twin), charge: 0, wings: !!(from && from.wings) });
   enemies = []; pshots = []; eshots = []; pickups = []; parts = []; popups = []; rings = []; scrapBits = []; relicDrops = []; boss = null; rescue = null; mines = []; meteors = [];
+  convoyReset();
   if (from) {
     G.score = Math.max(0, from.score | 0);
     G.lives = clamp(from.lives | 0, 1, 5);
@@ -4996,8 +5423,10 @@ function pause() {
   state = 'paused';
   keys.clear();
   touch.id = null;
-  renderMissions($('pauseMissions'), G.missions, true);
+  renderMissions($('pauseMissions'), rush.on ? [] : G.missions, true);
+  $('pauseMissionsLbl').textContent = rush.on ? 'BOSS RUSH: FIGHT ' + (rush.idx + 1) + ' OF ' + rush.fights.length + '. QUITTING FORFEITS IT.' : 'MISSIONS';
   renderPerkList($('pausePerks'));
+  $('pausePerksLbl').hidden = $('pausePerks').hidden = rush.on;   // a rush deals no perks
   showOverlay('ovPause');
   Snd.hold(true);
 }
@@ -5011,8 +5440,11 @@ function resume() {
 function showTitle(panel, hl) {
   state = 'title';
   daily = null;
+  rush.on = false;   // quitting a rush forfeits it
   rng = null;
   $('hudHiLbl').textContent = 'HI-SCORE';
+  $('hudWaveLbl').textContent = 'WAVE';
+  renderRushNote();
   const db = dailyBest(), dr = REGION[dailyRegion(todayUTC())];
   $('dailyNote').textContent = 'DAILY CHALLENGE' + (dr.id === 'home' ? '' : ' IN ' + dr.name) + ': ' + (db ? "TODAY'S BEST " + db : 'NOT PLAYED TODAY');
   Snd.hold(false);
@@ -5020,6 +5452,7 @@ function showTitle(panel, hl) {
   Rec.save();
   hideBanners();
   enemies = []; eshots = []; pshots = []; pickups = []; popups = []; scrapBits = []; relicDrops = []; boss = null; rescue = null; mines = []; meteors = [];
+  convoyReset();
   G.slowT = 0;
   G.windV = 0;
   warp = 0;
@@ -5034,6 +5467,7 @@ function showTitle(panel, hl) {
   updateHud();
 }
 function showGameOver() {
+  if (rush.on) { rushResults(); return; }
   state = 'over';
   Snd.stop();
   Snd.over();
@@ -5328,6 +5762,7 @@ function imgOf(url, cls) { const i = document.createElement('img'); i.alt = ''; 
 
 /* ---- wave debrief + double or nothing ---- */
 function openDebrief() {
+  if (rush.on) { rushAfterFight(); return; }
   flushScrap();
   flushRelics();
   if (rescue && player.alive) dockRescue();
@@ -5341,7 +5776,7 @@ function openDebrief() {
   $('dbGame').hidden = true;
   $('dbMsg').textContent = '';
   const next = G.wave + 1;
-  $('dbNext').innerHTML = (G.pendingBonus ? 'BONUS STAGE' : next % 5 === 0 ? 'BOSS WAVE ' + next : 'WAVE ' + next) + '<span class="kh"> (SPACE)</span>';
+  $('dbNext').innerHTML = (G.pendingBonus ? 'BONUS STAGE' : next % 5 === 0 ? 'BOSS WAVE ' + next : convoyWave(next) ? 'CONVOY WAVE ' + next : 'WAVE ' + next) + '<span class="kh"> (SPACE)</span>';
   renderDebrief();
   showOverlay('ovDebrief');
   ui.readyAt = clock + 0.6;
@@ -6158,7 +6593,7 @@ function padFocused(id) {
   return id && a && a.tagName === 'BUTTON' && $(id).contains(a) && padVisible(a) ? a : null;
 }
 const PAD_HOME = { ovTitle: '#startBtn', ovPause: '#resumeBtn', ovOver: '#overBtn', ovDebrief: '#dbNext', ovWager: '#wgSkip', ovDraft: '.perk', ovWheel: '#wheelSpin',
-  ovHangar: '.hg-tab[aria-selected="true"]', ovMap: '#mpGo', ovOptions: '.opt-next' };
+  ovHangar: '.hg-tab[aria-selected="true"]', ovMap: '#mpGo', ovOptions: '.opt-next', ovPit: '#pitOpts .btn', ovRush: '#rushDone' };
 function padHome(id, list) {
   const h = $(id).querySelector(PAD_HOME[id] || '.primary');
   return h && list.includes(h) ? h : list.find(b => b.classList.contains('primary')) || list[0];
@@ -6298,13 +6733,14 @@ addEventListener('keydown', e => {
   if (opt.open) { handleOptKey(e); return; }
   if (state === 'entry') { handleEntryKey(e); return; }
   if (MENU_STATES.has(state)) { handleMenuKey(e); return; }
-  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || c === 'KeyX' || ((c === 'KeyH' || c === 'KeyC' || c === 'KeyG' || c === 'KeyR') && state === 'title')) e.preventDefault();
+  if (MOVE[c] || FIRE.has(c) || c === 'Enter' || c === 'Escape' || c === 'KeyP' || c === 'KeyM' || c === 'KeyX' || ((c === 'KeyH' || c === 'KeyC' || c === 'KeyG' || c === 'KeyR' || c === 'KeyB') && state === 'title')) e.preventDefault();
   if (c === 'KeyM') { if (!e.repeat) cycleSound(); return; }
   if (state === 'title') {
     if ((FIRE.has(c) || c === 'Enter') && !e.repeat) startGame();
     else if (c === 'KeyH' && !e.repeat) openHangar('title');
     else if (c === 'KeyG' && !e.repeat) openMap();
     else if (c === 'KeyC' && !e.repeat) startDaily();
+    else if (c === 'KeyB' && !e.repeat) startRush();
     else if (c === 'KeyR' && !e.repeat) openRecords();
     else if (c === 'KeyO' && !e.repeat) openOptions();
     else if (MOVE[c] === 'l') showPanel(panelIdx - 1);
@@ -6327,7 +6763,7 @@ addEventListener('keydown', e => {
 });
 // Menus between waves: Space/Enter is the safe default (continue, skip, no bet).
 // A button the player has tabbed to keeps its own Space/Enter behaviour.
-const MENU_STATES = new Set(['debrief', 'wager', 'draft', 'hangar', 'wheel', 'map', 'records']);
+const MENU_STATES = new Set(['debrief', 'wager', 'draft', 'hangar', 'wheel', 'map', 'records', 'pit', 'rushend']);
 function handleMenuKey(e) {
   const c = e.code, a = document.activeElement;
   if (c === 'KeyM') { e.preventDefault(); if (!e.repeat) cycleSound(); return; }
@@ -6335,7 +6771,7 @@ function handleMenuKey(e) {
   const confirm = c === 'Space' || c === 'Enter';
   if (confirm && state !== 'draft' && a && a.tagName === 'BUTTON' && !a.disabled && !a.closest('[hidden]')) return;   // the draft acts on Space itself (keyup would cancel the click)
   const step = c === 'ArrowLeft' || c === 'ArrowUp' || c === 'KeyA' || c === 'KeyW' ? -1 : c === 'ArrowRight' || c === 'ArrowDown' || c === 'KeyD' || c === 'KeyS' ? 1 : 0;
-  if (confirm || c === 'Escape' || c === 'KeyH' || /^Digit[1-5]$/.test(c) || (state === 'map' && (step || c === 'KeyG')) || (state === 'hangar' && /^Arrow(Left|Right)$/.test(c))) e.preventDefault();
+  if (confirm || c === 'Escape' || c === 'KeyH' || /^Digit[1-5]$/.test(c) || (state === 'pit' && step) || (state === 'map' && (step || c === 'KeyG')) || (state === 'hangar' && /^Arrow(Left|Right)$/.test(c))) e.preventDefault();
   if (e.repeat || clock < ui.readyAt) return;
   if (state === 'map') {
     if (step) mapSelect(mapView.i + step);
@@ -6357,6 +6793,11 @@ function handleMenuKey(e) {
     else if (/^Arrow(Left|Right)$/.test(c) && (hangar.pane === 'hgAlbum' || hangar.pane === 'hgCrate')) shiftSet(c === 'ArrowLeft' ? -1 : 1);
     else if (confirm && hangar.pane === 'hgSlots') spinSlots();
     else if (confirm && hangar.pane === 'hgCrate') openCrate();
+  } else if (state === 'pit') {
+    if (step) rushPitMove(step);
+    else if (confirm) rushPick(0);   // the safe default is the shield
+  } else if (state === 'rushend') {
+    if (confirm || c === 'Escape') rushLeave();
   } else if (state === 'wheel') {
     if (confirm) spinWheel();
     else if (c === 'Escape' && !wheel.spun) afterWheel();
@@ -6429,6 +6870,8 @@ $('mapCv').addEventListener('click', e => {   // pick the nearest node; a second
 document.querySelectorAll('.js-set-prev').forEach(b => b.addEventListener('click', () => { shiftSet(-1); b.blur(); }));
 document.querySelectorAll('.js-set-next').forEach(b => b.addEventListener('click', () => { shiftSet(1); b.blur(); }));
 onClick('dailyBtn', startDaily);
+onClick('rushBtn', startRush);
+onClick('rushDone', rushLeave);
 onClick('optionsBtn', openOptions);
 onClick('pauseOptBtn', openOptions);
 onClick('optReset', resetOptions);
@@ -6576,7 +7019,7 @@ try {
   window.claude?.hot?.snapshot?.(() => {
     // between waves, resume at the next wave (the pending bonus is banked first)
     const between = state === 'debrief' || state === 'wager' || state === 'draft' || (state === 'hangar' && !hangarPreRun());
-    if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0 || daily) return {};
+    if (!(state === 'play' || state === 'paused' || between) || G.lives <= 0 || daily || rush.on) return {};   // a rush is not resumable
     if (between) bankClear();
     return { resume: { score: G.score, wave: G.wave + (between ? 1 : 0), lives: G.lives, twin: player.twin, wings: player.wings, bombs: G.bombs, region: G.region, perks: { ...G.perks }, run: { ...RUN } } };
   });
