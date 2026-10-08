@@ -424,6 +424,8 @@
   .pit-opts .btn .fine { color: inherit; opacity: .75; }
   .rush-split { color: var(--teal); }
   .title-actions .btn.sm { padding: calc(var(--px) * 1.5 + 2px) calc(var(--px) * 2.5 + 2px); }
+  /* six menu buttons: on a narrow screen they drop their key hints (the Menus panel lists the keys) to stay in two rows */
+  @media (max-width: 400px) { .title-actions .kh { display: none; } }
   .odds {
     list-style: none;
     margin: 0; padding: 0;
