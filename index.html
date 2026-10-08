@@ -2236,7 +2236,7 @@ let shakeAmt = 0, flash = 0, warp = 0, clock = 0, nebY = 0;
 // An online versus match (see the versus section). on: from the match start until its result screen is left.
 const vs = { on: false, peer: null, conn: null, role: '', code: '', ready: false, seed: 0, region: 'home',
   rival: { name: '???', score: 0, wave: 1, lives: 3 }, countAt: 0, countN: 0, waitAt: 0, t0: 0, heard: 0, beat: 0, stT: 0, lastSt: '', autoT: 0,
-  inQ: 0, dropT: 0, sent: 0, got: 0, blocked: 0, mine: null, theirs: null, result: '', why: '', counted: '', again: false, theyAgain: false, libP: null };
+  inQ: 0, dropT: 0, sent: 0, got: 0, blocked: 0, mine: null, theirs: null, result: '', why: '', counted: '', again: false, theyAgain: false, deal: null, libP: null };
 // Daily and versus runs are fair runs: a Striker with no loadout, hangar, gambles or wager, on seeded waves.
 const fairRun = () => !!daily || vs.on;
 // the region being flown, and its swarm tint (the Prism Rift shifts it every wave)
@@ -6218,11 +6218,11 @@ function vsOpenRoom(tries) {
   p.on('open', () => { if (p !== vs.peer) return; vsSay('WAITING FOR YOUR RIVAL TO JOIN...'); vsRender(); });
   p.on('connection', c => {
     if (p !== vs.peer) return;
-    if (vs.conn) { c.on('open', () => { c.send({ t: 'full' }); setTimeout(() => c.close(), 500); }); return; }   // a room holds two pilots
+    if (vs.conn || vs.ready) { c.on('open', () => { c.send({ t: 'full' }); setTimeout(() => c.close(), 500); }); return; }   // a room holds two pilots, once
     vsBind(c);
     vsRender();
   });
-  p.on('disconnected', () => { if (p === vs.peer && !vs.conn && !p.destroyed) p.reconnect(); });   // keep the room findable while waiting
+  p.on('disconnected', () => { if (p === vs.peer && !vs.conn && !vs.ready && !p.destroyed) p.reconnect(); });   // keep the room findable while waiting
   p.on('error', err => {
     if (p !== vs.peer) return;
     if (err.type === 'unavailable-id' && tries < 3) { vs.peer = null; p.destroy(); vsOpenRoom(tries + 1); return; }
@@ -6257,7 +6257,7 @@ function vsBind(c) {
   c.on('open', () => {
     if (c !== vs.conn) return;
     vs.heard = performance.now();
-    vsSend({ t: 'hello', v: VS_PROTO, name: vsName() });
+    vsHello();
     clearInterval(vs.beat);
     vs.beat = setInterval(vsBeat, 1000);   // a timer, not the frame loop, so a hidden tab still keeps in touch
     vsSay('RIVAL FOUND. SAYING HELLO...');
@@ -6267,10 +6267,13 @@ function vsBind(c) {
   c.on('close', () => { if (c === vs.conn) vsLost(false); });
   c.on('error', () => { if (c === vs.conn) vsLost(false); });
 }
+function vsHello() { vsSend({ t: 'hello', v: VS_PROTO, name: vsName() }); }
 function vsSend(m) { const c = vs.conn; if (c && c.open) try { c.send(m); } catch (e) { /* the close event follows */ } }
 function vsBeat() {
   if (!vs.conn || !vs.conn.open) return;
   if (performance.now() - vs.heard > VS_TIMEOUT * 1000) { vsLost(false); return; }
+  // a hello sent the moment the link opens can be lost, so it repeats until it lands (for the guest: until the host deals)
+  if (!vs.ready || (vs.role === 'guest' && state === 'versus' && !vs.countAt && !vs.on)) vsHello();
   vsSendStatus(true);
 }
 function vsSendStatus(force) {
@@ -6285,14 +6288,14 @@ function vsMsg(d) {
   vs.heard = performance.now();
   switch (d.t) {
     case 'hello':
-      if (d.v !== VS_PROTO) { vsFail('version'); return; }
-      vs.rival.name = typeof d.name === 'string' && /^[A-Z?]{3}$/.test(d.name) ? d.name : '???';
-      if (vs.ready) return;
-      vs.ready = true;
-      if (vs.role === 'host') vsDeal();
-      else vsSay('LINKED WITH ' + vs.rival.name + '. THE HOST IS STARTING THE MATCH...');
+      if (!vsGreet(d)) return;
+      if (vs.role === 'host' && vs.countAt) vsSend(Object.assign({}, vs.deal, { left: vs.countAt - performance.now() }));   // the guest missed the start
+      else if (vs.role === 'host' && !vs.on && state === 'versus') vsDeal();
+      else if (vs.role === 'guest' && !vs.countAt && !vs.on) vsSay('LINKED WITH ' + vs.rival.name + '. THE HOST IS STARTING THE MATCH...');
       break;
-    case 'start': if (vs.role === 'guest' && vs.ready && (state === 'versus' || state === 'vsover')) vsCountdown(d); break;
+    case 'start':   // it carries the host's hello too, in case that one was lost
+      if (vs.role === 'guest' && (state === 'versus' || state === 'vsover') && !(vs.countAt && d.seed === vs.seed) && vsGreet(d)) vsCountdown(d);
+      break;
     case 'st': if (vs.on) vsRivalStatus(d); break;
     case 'atk': vsIncoming(d.n); break;
     case 'fin': vsTheirFinal(d); break;
@@ -6303,15 +6306,23 @@ function vsMsg(d) {
 }
 // The host deals the match: the seed for the waves and a region (never the Hive Heart), for a first match or a rematch.
 function vsDeal() {
-  const m = { t: 'start', seed: Math.floor(Math.random() * 4294967296), region: DAILY_POOL[Math.floor(Math.random() * DAILY_POOL.length)].id };
+  const m = vs.deal = { t: 'start', v: VS_PROTO, name: vsName(), seed: Math.floor(Math.random() * 4294967296), region: DAILY_POOL[Math.floor(Math.random() * DAILY_POOL.length)].id };
   vsSend(m);
   vsCountdown(m);
+}
+// A hello (or a start, which carries one): check the version, take the rival's name, and mark the pair linked.
+// Linked pilots no longer need the broker, so the room code is released: nobody else can join a match in progress.
+function vsGreet(d) {
+  if (d.v !== VS_PROTO) { vsFail('version'); return false; }
+  vs.rival.name = typeof d.name === 'string' && /^[A-Z?]{3}$/.test(d.name) ? d.name : '???';
+  if (!vs.ready) { vs.ready = true; if (vs.peer && !vs.peer.disconnected) vs.peer.disconnect(); }
+  return true;
 }
 function vsCountdown(m) {
   vs.seed = vsNum(m.seed, 0, 4294967295);
   vs.region = DAILY_POOL.some(r => r.id === m.region) ? m.region : 'home';
   vs.on = false; vs.again = vs.theyAgain = false;
-  vs.countAt = performance.now() + VS_COUNT * 1000;
+  vs.countAt = performance.now() + (Number.isFinite(m.left) ? clamp(m.left, 0, VS_COUNT * 1000) : VS_COUNT * 1000);
   vs.countN = 0;
   state = 'versus';
   showOverlay('ovVersus');
