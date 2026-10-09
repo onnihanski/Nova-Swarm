@@ -16,6 +16,8 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
 | Smart bomb | X | B or X | Tap with a second finger |
 | Hull ability | V | RB | Ability button under the screen |
 | Pause | P / Esc | Start | Pause button under the screen |
+| Tutorial offer (first run) | Y, or Space / Enter, for yes; N or Esc for no | A takes the focused answer, Start yes, B no | Tap an answer |
+| Skip the tutorial | T on the pause screen | Skip Tutorial on the pause screen | SKIP in the tip box |
 | Sound | M (cycles on / SFX only / off) | Back / Select | Sound button under the screen |
 | Options | O (title and pause screens) | Options button | Options button |
 | Hangar | H (title screen and between waves) | Hangar button | Hangar button |
@@ -28,6 +30,20 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
 | Skip the ending | Space / Enter / Esc (after a moment) | A, B or Start | Tap |
 | Salvage draft | 1, 2, 3 take a card; arrows then Space / Enter take the highlighted card or the skip button. Esc does nothing | D-pad moves, A takes. B and Start do nothing | Tap a card |
 | Menus | Tab, arrow keys, Space / Enter, Esc | D-pad or left stick moves focus, A picks, B goes back, LB / RB flip tabs | Tap |
+
+## Your first flight: the tutorial
+
+Your first run (a regular run or a daily challenge) asks once, before wave 1 starts, whether you want a quick tutorial. Wave 1 waits for your answer.
+
+- **Yes:** short tips pop up in a small chatbox under the score while you fly. The run never stops for a tip. Each one types itself out when its moment comes, and goes away once you do what it says, or after a few seconds:
+  - **The controls first:** moving, then firing, then the charge shot and what costs a ship and what a graze is (at the first enemy shot or dive).
+  - **Then each one as it first happens:** the first boss, a tractor beam, the bonus stage, a falling power-up, a full ability meter (with your hull's ability), a combo, a busy screen (smart bombs), scrap, and pausing (from wave 2).
+  - A closing line after the first boss ends it.
+- **The words match your controls:** keys on a keyboard, buttons on a gamepad, gestures on a touch screen.
+- **Never in the way:** a tip never covers a menu and never shares its strip with a medal toast; whichever comes second waits. Two lines fit above the swarm's top row.
+- **Skipping:** SKIP in the tip box, or Skip Tutorial (T) on the pause screen, ends it.
+- **No:** one line says how to get it back, and the run starts.
+- **Once:** your answer is saved in your browser, so later runs never ask. A save from before the tutorial existed counts as answered. Boss Rush and online matches never ask. To see it again, set Tutorial to Ask Next Run on the options screen.
 
 ## What's in it
 
@@ -101,6 +117,7 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
   - **Flashes:** full, or reduced to dim the white flashes from bombs, Nova Blasts, boss kills and ship losses.
   - **Hi-contrast shots:** draws enemy bullets and mines with a dark halo, a white edge and a hot core, so they stand out on every region's backdrop, in Dark Sector waves and in the Prism Rift.
   - **Pad rumble:** on or off.
+  - **Tutorial:** Ask Next Run makes your next regular or daily run offer the tutorial again; Off means it won't. Reset Defaults leaves this one as it is.
   - Shake and flashes start from your device's reduced-motion setting (off and reduced when it is on) until you pick a value; a choice you make overrides it.
 
 ### Score advance table
