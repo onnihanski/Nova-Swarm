@@ -71,6 +71,7 @@ async function open(browser, { seen = true, storage = {}, viewport = { width: 90
   });
   const page = await ctx.newPage();
   page.smokeErrors = errors;
+  page.on('crash', () => errors.push('page error: the renderer crashed'));
   page.on('pageerror', e => errors.push('page error: ' + e.message + '\n' + String(e.stack || '').split('\n').slice(1, 4).join('\n')));
   page.on('console', m => { if (m.type() === 'error') errors.push('console error: ' + m.text()); });
   try {
@@ -82,21 +83,34 @@ async function open(browser, { seen = true, storage = {}, viewport = { width: 90
   }
   return { ctx, page, errors };
 }
-const ns = (page, fn, arg) => page.evaluate(fn, arg);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+// page.evaluate with a deadline: a game stuck in a loop never answers, and the run must not hang on it.
+async function evalFor(page, fn, arg, ms) {
+  let timer;
+  const stuck = new Promise((_, no) => { timer = setTimeout(() => no(new Fail('the page stopped responding (its main thread is stuck)')), ms); });
+  try { return await Promise.race([page.evaluate(fn, arg), stuck]); } finally { clearTimeout(timer); }
+}
+const ns = (page, fn, arg) => evalFor(page, fn, arg, 10000);
 const set = (page, opts) => ns(page, o => Object.assign(window.__ns, o), opts);
-const snap = page => ns(page, () => { const n = window.__ns; return { state: n.state, wave: n.G.wave, lives: n.G.lives, score: n.G.score, region: n.G.region }; });
-// Wait for a condition inside the page, polling. A page error stops the wait at once (an error in the frame loop freezes the game, so
-// waiting longer only burns the job's time); a timeout names what was awaited and where the game was.
+const snap = page => evalFor(page, () => { const n = window.__ns; return { state: n.state, wave: n.G.wave, lives: n.G.lives, score: n.G.score, region: n.G.region }; }, null, 2000);
+// Wait for a condition inside the page, polling. A page error, a crash or a stuck page stops the wait at once (an error in the frame loop
+// freezes the game, so waiting longer only burns the job's time). A timeout names what was awaited and where the game was.
 async function until(page, fn, arg, { secs = 60, what = 'the condition' } = {}) {
   const end = Date.now() + secs * 1000;
   for (;;) {
-    if (await page.evaluate(fn, arg).catch(() => false)) return;
+    if (page.isClosed()) throw new Fail(`the page closed while waiting for ${what}`);
+    let ok = false;
+    try { ok = await evalFor(page, fn, arg, Math.max(1000, Math.min(5000, end - Date.now()))); }
+    catch (e) {
+      if (e instanceof Fail) throw new Fail(`${e.message}, while waiting for ${what}`);
+      if (!/Execution context was destroyed/.test(e.message)) throw new Fail(`waiting for ${what}: ${e.message.split('\n')[0]}`);
+    }
+    if (ok) return;
     if (page.smokeErrors.some(e => e.startsWith('page error'))) throw new Fail(`a page error stopped the game while waiting for ${what}`);
     if (Date.now() > end) throw new Fail(`timed out after ${secs}s waiting for ${what} (game: ${JSON.stringify(await snap(page).catch(() => ({})))})`);
     await sleep(250);
   }
 }
-const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function key(page, code, hold = 40) { await page.keyboard.down(code); await sleep(hold); await page.keyboard.up(code); }
 // Chart a region and set course for it, as the star map would.
 const course = (page, id) => ns(page, id => { const n = window.__ns; n.regions.charted[id] = 1; n.regions.sel = id; }, id);
@@ -214,54 +228,51 @@ const SCENARIOS = {
     return 'options row ON, T skips, no tips after';
   },
 
-  // Every tip, in keyboard, pad and touch words, fits two lines under the HUD and above the swarm's top row at the smallest in-screen
-  // scale (2x), and a phone shows it under the play field instead, in the place of the control hints, without moving the page.
+  // Tips never cover the play field: beside it where the page has room, else under it in place of the control hints. At each size, every
+  // tip in keyboard, pad and touch words stays off the play field and inside the window, and never moves the play field.
   async tipLayout({ browser, use }) {
-    const measure = page => ns(page, () => {
-      const n = window.__ns, box = document.getElementById('tutBox'), scr = document.getElementById('screen').getBoundingClientRect();
-      const hud = document.querySelector('.hud').getBoundingClientRect(), tx = box.querySelector('.tut-tx'), bad = [];
-      for (const padOn of [false, true]) {
-        n.pad.active = padOn;
-        for (const p of n.TUT_TIPS) {
-          n.tutShow(p);
-          n.tut.typed = Infinity; n.tutType();
-          const b = box.getBoundingClientRect(), lines = Math.round(tx.offsetHeight / parseFloat(getComputedStyle(tx).lineHeight));
-          const bottom = (b.bottom - scr.top) / n.U;
-          if (lines > 2 || bottom > 30 || b.top < hud.bottom) bad.push(`${p.id}${padOn ? ' (pad)' : ''}: ${lines} lines, bottom at y ${bottom.toFixed(1)}: ${n.tut.text}`);
-        }
-      }
-      n.pad.active = false;
-      n.tutStop();
-      return { U: n.U, bad };
-    });
+    const SIZES = [
+      ['desktop', { width: 1280, height: 800 }, false, 'side'], ['short window', { width: 1200, height: 520 }, false, 'side'],
+      ['landscape phone', { width: 844, height: 390 }, true, 'side'], ['phone', { width: 390, height: 844 }, true, 'deck'],
+      ['small phone', { width: 360, height: 640 }, true, 'deck'], ['tablet', { width: 820, height: 1180 }, true, 'deck']
+    ];
     const notes = [];
-    for (const [name, viewport, touch] of [['desktop at 2x', { width: 900, height: 700 }, false], ['tablet', { width: 820, height: 1180 }, true]]) {
-      const { page } = await use(open(browser, { viewport, touch }));
+    for (const [name, viewport, touch, mode] of SIZES) {
+      const { page } = await use(open(browser, { seen: false, viewport, touch }));
       await set(page, { menus: false });
-      const r = await measure(page);
-      check(r.U >= 2, `${name}: expected the in-screen box at 2x or more, got U ${r.U}`);
-      check(!r.bad.length, `${name} (U ${r.U}): tips that don't fit:\n  ` + r.bad.join('\n  '));
-      notes.push(`${name} U ${r.U}`);
+      if (touch) await page.tap('#startBtn'); else await key(page, 'Space');
+      await until(page, () => window.__ns.state === 'tutor', null, { secs: 5, what: name + ': the tutorial offer' });
+      await sleep(500);
+      if (touch) await page.tap('#tutYes'); else await key(page, 'KeyY');
+      await until(page, () => window.__ns.state === 'play' && window.__ns.tut.on, null, { secs: 5, what: name + ': the tutorial to start' });
+      const r = await ns(page, mode => {
+        const n = window.__ns, box = document.getElementById('tutBox'), hint = document.getElementById('keysHint'), bad = [];
+        const rect = el => { const q = el.getBoundingClientRect(); return [q.left, q.top, q.right, q.bottom]; };
+        const same = (a, b) => a.every((v, i) => Math.abs(v - b[i]) <= 0.5);
+        for (const padOn of [false, true]) {
+          n.setPadActive(padOn);   // the hints change with the input, and the slot under the play field with them
+          const base = rect(document.getElementById('screen'));
+          for (const p of [...n.TUT_TIPS, n.TUT_BYE]) {
+            n.tutShow(p);
+            n.tut.typed = Infinity; n.tutType();
+            const b = rect(box), s = rect(document.getElementById('screen')), tag = `${p.id}${padOn ? ' (pad words)' : ''}`;
+            if (n.tut.mode !== mode) bad.push(`${tag}: placed ${n.tut.mode}`);
+            if (!(b[2] <= s[0] || b[0] >= s[2] || b[3] <= s[1] || b[1] >= s[3])) bad.push(`${tag}: covers the play field`);
+            if (b[0] < 0 || b[2] > innerWidth || b[3] > innerHeight) bad.push(`${tag}: outside the window (${b.map(Math.round)})`);
+            if (!same(s, base)) bad.push(`${tag}: moved the play field (${base.map(Math.round)} -> ${s.map(Math.round)})`);
+            if (n.tut.mode === 'deck' && !hint.hidden) bad.push(`${tag}: the control hints still show under the tip`);
+          }
+          n.tutStop();
+          if (hint.hidden) bad.push('the control hints did not come back');
+          if (!same(rect(document.getElementById('screen')), base)) bad.push('closing the last tip moved the play field');
+          n.tut.on = true;
+        }
+        n.setPadActive(false);
+        return { U: n.U, bad };
+      }, mode).catch(e => ({ bad: [e.message] }));
+      check(!r.bad.length, `${name}: ` + r.bad.join('\n  '));
+      notes.push(`${name} ${mode}`);
     }
-    const { page } = await use(open(browser, { seen: false, viewport: { width: 390, height: 844 }, touch: true }));
-    const at = () => ns(page, () => { const r = document.getElementById('screen').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; });
-    await page.tap('#startBtn');
-    await until(page, () => window.__ns.state === 'tutor', null, { secs: 5, what: 'the tutorial offer' });
-    await sleep(500);
-    await page.tap('#tutYes');
-    await until(page, () => !document.getElementById('tutBox').hidden, null, { secs: 5, what: 'the first tip' });
-    const r = await ns(page, () => {
-      const box = document.getElementById('tutBox'), b = box.getBoundingClientRect();
-      return { U: window.__ns.U, inDeck: !!box.closest('.deck'), hint: document.getElementById('keysHint').hidden, fits: b.left >= 0 && b.right <= innerWidth };
-    });
-    check(r.U < 2 && r.inDeck, `phone (U ${r.U}): the tip should show under the play field`);
-    check(r.hint && r.fits, 'phone: the tip should take the control hints\' place, inside the page width');
-    const during = await at();
-    await page.tap('#tutX');
-    const after = await at();
-    check(during.every((v, i) => Math.abs(v - after[i]) <= 0.5), `phone: showing a tip moved the play field (${during} vs ${after})`);
-    check(!(await page.isHidden('#keysHint')), 'phone: the control hints should come back after SKIP');
-    notes.push(`phone U ${r.U} under the play field`);
     return notes.join(', ');
   },
 
@@ -436,9 +447,9 @@ async function main() {
     const errors = [];
     for (const [i, o] of opened.entries()) {
       errors.push(...o.errors);
-      const log = await ns(o.page, () => window.__ns.log).catch(() => []);
+      const log = await evalFor(o.page, () => window.__ns.log, null, 2000).catch(() => []);
       errors.push(...log.map(l => 'bot: ' + l));
-      if (err || o.errors.length) await o.page.screenshot({ path: path.join(OUT, name + (opened.length > 1 ? '-' + (i + 1) : '') + '.png') }).catch(() => {});
+      if (err || o.errors.length) await o.page.screenshot({ path: path.join(OUT, name + (opened.length > 1 ? '-' + (i + 1) : '') + '.png'), timeout: 5000 }).catch(() => {});
       await o.ctx.close().catch(() => {});
     }
     const secs = ((Date.now() - t0) / 1000).toFixed(1);

@@ -35,12 +35,12 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
 
 Your first run (a regular run or a daily challenge) asks once, before wave 1 starts, whether you want a quick tutorial. Wave 1 waits for your answer.
 
-- **Yes:** short tips pop up in a small chatbox while you fly: under the score, or just under the play field (in place of the control hints) when the game is scaled below 2x, as on most phones. The run never stops for a tip. Each one types itself out when its moment comes, and goes away a moment after you do what it says, or after a few seconds:
+- **Yes:** short tips pop up in a small chatbox while you fly, never on the play field: beside it, pointing at it, where the page has room (desktops, landscape phones), or under it in place of the control hints on a narrow screen (a phone or tablet held upright). The run never stops for a tip. Each one types itself out when its moment comes, and goes away a moment after you do what it says, or after a few seconds:
   - **The controls first:** moving, then firing, then the charge shot and what costs a ship and what a graze is (at the first enemy shot or dive).
-  - **Then each one as it first happens:** the first boss (with its WARNING), a tractor beam, the bonus stage, a falling power-up, a full ability meter (with your hull's ability), a combo, a busy screen (smart bombs), scrap, and pausing (from wave 2).
+  - **Then each one as it first happens:** the first boss (it cuts in as the WARNING starts), a tractor beam, the bonus stage, a falling power-up, a full ability meter (with your hull's ability), a combo, a busy screen (smart bombs), scrap, and pausing (from wave 2).
   - A closing line once the first boss is gone ends it.
 - **The words match your controls:** keys on a keyboard, buttons on a gamepad, gestures on a touch screen.
-- **Never in the way:** a tip never covers a menu, and none starts while your ship is down. Under the score, every tip fits two lines above the swarm's top row; it never shares that strip with a medal toast (whichever comes second waits), and once the boss tip (which comes with the WARNING) is done, no tip shows there until the boss is gone, so its name and health bar stay clear.
+- **Never in the way:** a tip never covers the play field, its HUD or a menu, and none starts while your ship is down. Under the play field, the tips and the control hints share one slot for the whole run, sized for the longest tip, so the page doesn't move as tips come and go.
 - **Skipping:** SKIP in the tip box, or Skip Tutorial (T) on the pause screen, ends it.
 - **No:** one line says how to get it back, and the run starts.
 - **Once:** your answer is saved in your browser, so later runs never ask. A save from before the tutorial existed counts as answered. Boss Rush and online matches never ask. To see it again, set Tutorial to Ask Next Run on the options screen. While tips are running, that row reads On, and changing it ends them.
@@ -269,7 +269,7 @@ The bot is injected inside the game's script, so it reads the game's own state. 
 | `tutorial` | The offer holds wave 1; yes shows the tips from the controls through the first boss, then ends |
 | `tutorialNo` | No shows one line and never asks again; the options row brings the offer back |
 | `tutorialSkip` | The options row reads On while tips run; T on the pause screen ends them for good |
-| `tipLayout` | Every tip, in keyboard, pad and touch words, fits two lines between the HUD and the swarm's top row at 2x; a phone shows tips in place of the control hints without moving the page |
+| `tipLayout` | At six sizes (desktop, short window, landscape phone, two phones, tablet), every tip in keyboard, pad and touch words sits beside or under the play field as expected, stays inside the window, and never moves the play field |
 | `oldSave` | A save from before the tutorial goes straight into the run |
 | `run` | A mortal run to game over, then the prize wheel, initials and the top-10 table |
 | `deep` | Sector 9 to wave 16: all three bosses, convoys, bonus stages, salvage drafts and the elite swarm |
@@ -280,4 +280,4 @@ The bot is injected inside the game's script, so it reads the game's own state. 
 | `phone` | A 390×844 touch screen: no sideways scrolling, the offer and tips by tap, touch wording, and SKIP |
 | `versus`, `coop` | Two pages link through a local PeerJS server: same seed and region, and the rival's score comes through. A forfeit decides versus; in co-op the wingmate flies on solo |
 
-It also checks that the three PeerJS URLs in `index.html` name the PeerJS release in `tests/package.json`, and that the page's integrity hash is that release's. A page error stops a scenario at once rather than letting it run to its time limit. The test serves the page itself and refuses every outside request, so it needs no network once its packages are installed; Google Fonts is stubbed. The bot hooks into two lines of `index.html`, listed in `HOOKS` in `tests/smoke.mjs`. If either line changes, the test says so.
+It also checks that the three PeerJS URLs in `index.html` name the PeerJS release in `tests/package.json`, and that the page's integrity hash is that release's. A page error, a crash or a stuck page stops a scenario at once rather than letting it run to its time limit. The test serves the page itself and refuses every outside request, so it needs no network once its packages are installed; Google Fonts is stubbed. The bot hooks into two lines of `index.html`, listed in `HOOKS` in `tests/smoke.mjs`. If either line changes, the test says so.

@@ -8,7 +8,7 @@ window.__ns = {
   get daily() { return daily; },
   get U() { return U; },
   G, player, ab, tut, vs, co, rush, hive, regions, record, pad,
-  TUT_TIPS, tutShow, tutType, tutStop,   // the tip layout check renders every tip
+  TUT_TIPS, TUT_BYE, tutShow, tutType, tutStop, setPadActive,   // the tip layout check renders every tip in each input's words
   god: false,      // keep the ship invulnerable and topped up with lives
   speed: 1,        // game updates per frame while flying
   menus: true,     // take the safe choice on every between-wave and end-of-run screen

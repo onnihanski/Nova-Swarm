@@ -615,36 +615,36 @@
   /* ---- tutorial: the first-run offer and the tip chatbox ---- */
   .vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   .tut-ico { width: calc(var(--px) * 7); height: auto; flex: none; image-rendering: pixelated; }
+  /* Tips never cover the play field: beside it where the page has room (pointing at it), else under it in place of the control hints */
+  .cab { position: relative; }
   .tut-box {
-    position: absolute; left: calc(var(--px) * 4); right: calc(var(--px) * 4); top: calc(var(--px) * 15); z-index: 3;
-    display: flex; align-items: flex-start; gap: calc(var(--px) * 3);
-    padding: calc(var(--px) * 1.5) calc(var(--px) * 2) calc(var(--px) * 1.5) calc(var(--px) * 3);
-    font-size: max(9px, calc(var(--u) * 4.5px)); line-height: 1.25; letter-spacing: .04em; text-align: left;   /* at 2x and up, two lines clear the swarm's top row */
-    background: rgba(13, 10, 38, .84); box-shadow: inset 0 0 0 var(--px) var(--teal);
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 7px 8px 7px 10px;
+    font-size: clamp(12px, calc(var(--u) * 4.6px), 15px); line-height: 1.45; letter-spacing: .04em; text-align: left; color: var(--ink);
+    background: rgba(13, 10, 38, .94); box-shadow: inset 0 0 0 2px var(--teal), 0 0 18px rgba(62, 230, 193, .16);
     pointer-events: none;
   }
-  .tut-box .tut-ico { margin-top: calc(var(--px) * .5); }
+  .tut-box .tut-ico { width: 14px; margin-top: 3px; }
+  .tut-box.side { position: absolute; z-index: 7; }
+  .tut-box.side::before { content: ""; position: absolute; left: -9px; top: 10px; border: 9px solid transparent; border-left: 0; border-right-color: var(--teal); }
+  .deck .tut-box { flex: 1 1 100%; }
   .tut-tx { flex: 1; min-width: 0; margin: 0; overflow-wrap: anywhere; }
   .tut-tx .rest { visibility: hidden; }
   .tut-x {
-    flex: none; align-self: flex-start; pointer-events: auto; cursor: pointer;
-    font: inherit; font-size: max(9px, calc(var(--u) * 4px)); letter-spacing: .06em; color: var(--ink-dim);
-    background: none; border: 0; padding: var(--px) calc(var(--px) * 1.5);
+    position: relative; flex: none; align-self: flex-start; pointer-events: auto; cursor: pointer;
+    font: inherit; font-size: 11px; letter-spacing: .06em; color: var(--ink-dim);
+    background: none; border: 0; padding: 3px 5px;
   }
   .tut-x:hover { color: var(--ink); }
   .tut-x:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
-  .tut-x { position: relative; }
   .coarse .tut-x::after { content: ""; position: absolute; inset: -8px -6px; }   /* a finger-sized target that doesn't make the box taller */
-  /* under the play field (screens below 2x): in the deck, in place of the control hints */
-  .deck .tut-box { position: static; flex: 1 1 100%; align-items: center; padding: 6px 8px; font-size: 12px; line-height: 1.5; color: var(--ink); }
-  .deck .tut-box .tut-ico { width: 14px; margin-top: 0; }
-  .deck .tut-x { font-size: 11px; padding: 4px 6px; }
-  .screen.paused .tut-box { visibility: hidden; }
   .ov.tut-ask { background: rgba(13, 10, 38, .45); }
-  /* short windows: these screens scroll rather than clip (the tutorial adds an options row and a pause button) */
+  /* short windows: these screens scroll rather than clip (the tutorial adds an options row and a pause button). The pause screen centres
+     an inner block with auto margins, which falls back to the top, still scrollable, when it doesn't fit; options keeps BACK in view. */
   #ovOptions { overflow-y: auto; }
-  #ovPause { justify-content: safe center; overflow-y: auto; }
-  #ovPause .perk-list { flex-shrink: 0; }
+  #ovOptions > .row:last-child { position: sticky; bottom: 0; width: 100%; padding-top: calc(var(--px) * 2); background: var(--space); }
+  #ovPause { justify-content: flex-start; overflow-y: auto; }
+  .ov-in { display: flex; flex-direction: column; align-items: center; gap: inherit; width: 100%; margin: auto 0; }
   .tut-card {
     width: 100%; display: flex; flex-direction: column; align-items: center; gap: calc(var(--px) * 3);
     padding: calc(var(--px) * 5) calc(var(--px) * 5) calc(var(--px) * 4);
@@ -721,11 +721,6 @@
     <div class="toast" id="toast" hidden></div>
     <div class="toast sys-toast" id="sysToast" hidden></div>
     <span class="vh" id="tutSr" role="status"></span>
-    <div class="tut-box" id="tutBox" hidden>
-      <img class="tut-ico" alt="" data-icon="tutor">
-      <p class="tut-tx"><span aria-hidden="true" id="tutTy"></span><span class="rest" aria-hidden="true" id="tutRest"></span></p>
-      <button class="tut-x" type="button" id="tutX" aria-label="Skip the tutorial">SKIP</button>
-    </div>
 
     <section class="ov" id="ovTitle" aria-label="Title screen">
       <h1 class="logo"><span class="a">NOVA</span><span class="b">SWARM</span></h1>
@@ -827,7 +822,7 @@
       </div>
     </section>
 
-    <section class="ov dim" id="ovPause" aria-label="Paused" hidden>
+    <section class="ov dim" id="ovPause" aria-label="Paused" hidden><div class="ov-in">
       <h2 class="big">PAUSED</h2>
       <div class="row">
         <button class="btn primary" type="button" id="resumeBtn">RESUME</button>
@@ -841,7 +836,7 @@
       <ul class="missions" id="pauseMissions"></ul>
       <p class="fine" id="pausePerksLbl">PERKS</p>
       <ul class="perk-list" id="pausePerks"></ul>
-    </section>
+    </div></section>
 
     <section class="ov tut-ask" id="ovTutor" aria-label="Tutorial offer" hidden>
       <div class="tut-card">
@@ -1098,6 +1093,12 @@
     </section>
 
     <div class="scan"></div>
+  </div>
+
+  <div class="tut-box" id="tutBox" hidden>
+    <img class="tut-ico" alt="" data-icon="tutor">
+    <p class="tut-tx"><span aria-hidden="true" id="tutTy"></span><span class="rest" aria-hidden="true" id="tutRest"></span></p>
+    <button class="tut-x" type="button" id="tutX" aria-label="Skip the tutorial">SKIP</button>
   </div>
 
   <div class="deck">
@@ -4375,7 +4376,6 @@ function tickMedalToast(dt) {
   const el = $('medalToast');
   if (mq.t > 0) { if ((mq.t -= dt) <= 0) { el.hidden = true; mq.gap = 0.3; } return; }
   if (mq.gap > 0) { mq.gap -= dt; return; }
-  if (!$('tutBox').hidden && !tutLow()) return;   // a tutorial tip has the strip under the HUD; the medal waits for it
   const n = mq.list.shift();
   if (!n) return;
   el.firstElementChild.src = n.img;
@@ -5606,7 +5606,7 @@ function resume() {
 function quitRun() { if (!vs.on) showTitle(0); else if (vs.result) vsShowResult(); else if (coop()) coopLeave(); else vsFinal('quit'); }
 function showTitle(panel, hl) {
   vsDrop();
-  tutStop();
+  tutStop(true);
   state = 'title';
   daily = null;
   rush.on = false;   // quitting a rush forfeits it
@@ -6634,20 +6634,20 @@ const powerUrls = {};
 const powerUrl = k => powerUrls[k] || (powerUrls[k] = POWERS[k].img.toDataURL());
 
 /* ================= tutorial: a first-run offer, then short tips in a chatbox ================= */
-// The first regular or daily run asks once, before wave 1 starts, whether the pilot wants a tutorial. Yes shows short tips in a small box
-// under the HUD (on smaller screens, under the play field) while they fly. The run never stops for a tip: each one waits for its moment
+// The first regular or daily run asks once, before wave 1 starts, whether the pilot wants a tutorial. Yes shows short tips in a small
+// chatbox beside the play field, or under it on a narrow screen, never on it. The run never stops for a tip: each one waits for its moment
 // (the swarm landing, the first shot, power-up, scrap or full meter) and goes once the pilot has done what it says, or after a while.
 // SKIP in the box or on the pause screen ends it.
 // The answer is saved; a save from before the tutorial counts as answered, and the options screen can ask again on the next run.
 // Boss Rush and online runs never ask. Nothing here rolls rng(), so a daily run stays the same for everyone.
 const TUT_KEY = 'nova-swarm-tutorial-v1', TUT_CPS = 50, TUT_GAP = 0.8;
 const TUT_ICON = paint(['..111..', '.1...1.', '1.....1', '33...33', '33...33', '.....1.', '...11..'], ch => ch === '1' ? PAL.t : '#ffffff');   // a headset
-const tut = { seen: true, on: false, solo: false, cur: null, t: 0, hit: false, gap: 0, typed: 0, rn: -1, text: '', shown: {}, done: {}, n0: {}, moved: 0, lx: 0, ly: 0 };
+const tut = { seen: true, on: false, solo: false, mode: 'side', slot: false, cur: null, t: 0, hit: false, gap: 0, typed: 0, rn: -1, text: '', shown: {}, done: {}, n0: {}, moved: 0, lx: 0, ly: 0 };
 // a tip's words for the keyboard, a pad, or touch
 const tutIn = (kb, gp, tp) => pad.active ? gp : coarse ? tp : kb;
 // In order: after names the tip that must have finished first, when says the moment has come, done says the pilot did it (it then goes
-// once min seconds have passed), and max seconds ends it anyway. An urgent tip cuts in on another (which comes back later), since its
-// moment is short. Every tip fits two lines under the HUD at 2x scale. The first four teach the controls (a fast wave 1 may bring its first shot after the charge tip);
+// once min seconds have passed), and max seconds ends it anyway. An urgent tip cuts in on another, since its moment is short; the tip it
+// cut off comes back later, unless the pilot had already done what it said. The first four teach the controls (a fast wave 1 may bring its first shot after the charge tip);
 // the rest wait for their moment; END closes the tutorial after the first boss.
 const TUT_TIPS = [
   { id: 'move', when: () => true, start: () => { tut.moved = 0; }, done: () => tut.moved > 30, min: 1.5, max: 9,
@@ -6658,8 +6658,8 @@ const TUT_TIPS = [
     text: () => 'DIVERS AND ENEMY SHOTS COST A SHIP. A NEAR MISS PAYS A GRAZE BONUS.' },
   { id: 'charge', after: 'fire', when: () => G.phase === 'active', done: () => pshots.some(s => s.pierce && !s.ally), min: 2, max: 12,
     text: () => tutIn('LET GO OF FIRE FOR A SECOND', 'LET GO OF A FOR A SECOND', 'LIFT YOUR FINGER FOR A SECOND') + ': YOUR NEXT SHOT PIERCES A WHOLE COLUMN.' },
-  // moments that pass quickly come first. The boss tip comes with the WARNING: under the HUD, nothing else shows while a boss is up.
-  { id: 'boss', after: 'fire', urgent: true, when: () => G.wave % 5 === 0 && (G.phase === 'intro' || (boss && boss.state === 'enter') || tutLow()), min: 5, max: 5,
+  // moments that pass quickly come first; the boss tip cuts in as the WARNING starts
+  { id: 'boss', after: 'fire', urgent: true, when: () => G.wave % 5 === 0, min: 5, max: 5,
     text: () => 'BOSS AHEAD! WATCH ITS WARNINGS, KEEP MOVING. SMART BOMBS HURT IT TOO.' },
   { id: 'beam', after: 'fire', when: () => enemies.some(e => e.state === 'beam'), min: 6, max: 6,
     text: () => 'TRACTOR BEAM! SHOOT A WARDEN THAT TOOK A SHIP TO WIN IT BACK AS A TWIN.' },
@@ -6682,21 +6682,44 @@ const TUT_TIPS = [
 ];
 const tutSave = () => store.set(TUT_KEY, { seen: tut.seen });
 function tutSetSeen(v) { tut.seen = v; tutSave(); }
-// At 2x scale and up the box sits under the HUD, above the swarm's top row. A smaller screen has no room there (its fonts keep a 9px
-// floor), so the box takes the place of the control hints under the play field. fit() calls tutPlace() on every resize.
-const tutLow = () => U < 2;
+const TUT_BYE = { id: 'bye', min: 4, max: 4, text: () => 'NO PROBLEM. THE OPTIONS SCREEN CAN BRING THE TUTORIAL BACK.' };
+// Where the page has room the box sits beside the play field, about level with the swarm's dives; on a narrow screen (a phone or tablet
+// held upright) it takes the control hints' place under the play field. fit() calls tutPlace() on every resize.
+const TUT_SIDE_MIN = 200, TUT_SIDE_MAX = 300;   // px wide
 function tutPlace() {
-  const box = $('tutBox'), host = tutLow() ? document.querySelector('.deck') : scr;
-  if (box.parentNode !== host) host.insertBefore(box, host.firstChild);
+  const box = $('tutBox'), cab = scr.parentNode, deck = document.querySelector('.deck');
+  const gap = 4 * U + 14, x = scr.offsetLeft + scr.offsetWidth + gap, room = cab.clientWidth - x - 16;   // clear of the bezel and the page edge
+  tut.mode = room >= TUT_SIDE_MIN ? 'side' : 'deck';
+  if (tut.mode === 'side' && box.parentNode !== cab) cab.appendChild(box);
+  if (tut.mode === 'deck' && box.nextElementSibling !== $('keysHint')) deck.insertBefore(box, $('keysHint'));
+  box.classList.toggle('side', tut.mode === 'side');
+  Object.assign(box.style, tut.mode === 'side'
+    ? { width: Math.min(TUT_SIDE_MAX, room) + 'px', left: x + 'px', top: scr.offsetTop + Math.round(scr.offsetHeight * 0.4) + 'px' }
+    : { width: '', left: '', top: '' });
+  tutSlot();
   if (!box.hidden) tutBoxShow(true);
 }
-// Under the play field the box stands in for the control hints, at their height, so nothing on the page moves.
+// Under the play field, for the rest of a run that answered the offer, the hints and the box share one full-width slot as tall as the
+// taller of the hints and the longest tip at this width (measured in one go, with nothing painted in between). The page then moves at
+// most as that run starts and when it ends, never as tips come and go.
+function tutSlot() {
+  const box = $('tutBox'), hint = $('keysHint'), ty = $('tutTy'), rest = $('tutRest');
+  hint.style.minHeight = box.style.minHeight = hint.style.flexBasis = '';
+  if (!tut.slot || tut.mode !== 'deck') return;
+  const keep = [box.hidden, hint.hidden, ty.textContent, rest.textContent];
+  hint.style.flexBasis = '100%';
+  box.hidden = hint.hidden = false;
+  box.style.visibility = 'hidden';
+  let h = hint.getBoundingClientRect().height;
+  for (const p of [...TUT_TIPS, TUT_BYE]) { ty.textContent = p.text(); rest.textContent = ''; h = Math.max(h, box.getBoundingClientRect().height); }
+  [box.hidden, hint.hidden, ty.textContent, rest.textContent] = keep;
+  box.style.visibility = '';
+  hint.style.minHeight = box.style.minHeight = h + 'px';
+}
 function tutBoxShow(on) {
-  const box = $('tutBox'), hint = $('keysHint'), low = on && tutLow();
-  if (low && !hint.hidden) box.style.minHeight = hint.getBoundingClientRect().height + 'px';   // exact, so not even a subpixel shift
-  else if (!low) box.style.minHeight = '';
-  hint.hidden = low;
-  box.hidden = !on;
+  const box = $('tutBox'), hint = $('keysHint'), swap = on && tut.mode === 'deck';
+  if (hint.hidden !== swap) hint.hidden = swap;
+  if (box.hidden === on) box.hidden = !on;
 }
 function tutBoot() {
   const s = store.get(TUT_KEY, null);
@@ -6710,7 +6733,7 @@ function tutAsk() {
   state = 'tutor';
   keys.clear();
   touch.id = null;
-  $('tutAbout').textContent = 'SHORT TIPS POP UP ' + (tutLow() ? 'UNDER THE SCREEN' : 'UNDER THE SCORE') + ' WHILE YOU FLY. ' + tutIn('THE PAUSE SCREEN (P) CAN SKIP THEM.', 'THE PAUSE SCREEN (START) CAN SKIP THEM.', 'SKIP IN THE TIP BOX ENDS THEM.');
+  $('tutAbout').textContent = 'SHORT TIPS POP UP ' + (tut.mode === 'side' ? 'BESIDE THE SCREEN' : 'UNDER THE SCREEN') + ' WHILE YOU FLY. ' + tutIn('THE PAUSE SCREEN (P) CAN SKIP THEM.', 'THE PAUSE SCREEN (START) CAN SKIP THEM.', 'SKIP IN THE TIP BOX ENDS THEM.');
   updateHud();   // the run's numbers, not the last screen's, show behind the offer
   showOverlay('ovTutor');
   ui.readyAt = clock + 0.4;   // a key or tap still held from the title must not answer
@@ -6724,8 +6747,9 @@ function tutAnswer(yes) {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   keys.clear();
   Snd.blip();
-  Object.assign(tut, { on: true, solo: !yes, cur: null, gap: 0.3, shown: {}, done: {}, n0: {}, moved: 0, lx: player.x, ly: player.y });
-  if (!yes) tutShow({ id: 'bye', min: 4, max: 4, text: () => 'NO PROBLEM. THE OPTIONS SCREEN CAN BRING THE TUTORIAL BACK.' });
+  Object.assign(tut, { on: true, solo: !yes, slot: true, cur: null, gap: 0.3, shown: {}, done: {}, n0: {}, moved: 0, lx: player.x, ly: player.y });
+  tutSlot();
+  if (!yes) tutShow(TUT_BYE);
 }
 function tutShow(p) {
   Object.assign(tut, { cur: p, t: 0, hit: false, typed: reduceMotion ? Infinity : 0, rn: -1, text: p.text() });
@@ -6753,24 +6777,29 @@ function tutClose() {
   tutBoxShow(false);
   if (last) tutStop();
 }
-function tutStop() {
+// endRun (from the title screen) also gives the control hints their own height back.
+function tutStop(endRun) {
   tut.on = false;
   tut.cur = null;
   $('tutSr').textContent = '';
   tutBoxShow(false);
+  if (endRun) { tut.slot = false; tutSlot(); }
   $('tutSkipBtn').hidden = true;
 }
 function tutSkip() { if (tut.on) { tutStop(); Snd.blip(); } }
-// Runs with the run's update. A tip shows only during play and never over a menu. Under the HUD it also waits while a medal toast has the
-// strip, and while a boss's name and health bar are there (only the boss tip, which comes with the WARNING, carries on).
+// Runs with the run's update. A tip shows only during play, never over a menu.
 function tutTick(dt) {
   if (!tut.on) return;
   if (player.alive) tut.moved += Math.abs(player.x - tut.lx) + Math.abs(player.y - tut.ly);
   tut.lx = player.x; tut.ly = player.y;
-  const c = tut.cur, top = !tutLow();
-  if (state !== 'play' || G.lives <= 0 || (top && (!$('medalToast').hidden || (boss && !(c && c.id === 'boss'))))) { tutBoxShow(false); return; }
+  const c = tut.cur;
+  if (state !== 'play' || G.lives <= 0) { tutBoxShow(false); return; }
   const urgent = (!c || !c.urgent) && player.alive && G.phase !== 'clear' && TUT_TIPS.find(p => p.urgent && !tut.shown[p.id] && (!p.after || tut.done[p.after]) && p.when());
-  if (urgent) { if (c) delete tut.shown[c.id]; tutShow(urgent); return; }
+  if (urgent) {
+    if (c) { if (tut.hit) tut.done[c.id] = 1; else delete tut.shown[c.id]; }   // a tip the pilot already acted on isn't told again
+    tutShow(urgent);
+    return;
+  }
   if (c) {
     tutBoxShow(true);
     tut.t += dt;
@@ -7829,6 +7858,7 @@ function padHints() {
     if (el.dataset.k === undefined) el.dataset.k = el.textContent;
     el.textContent = on ? (PAD_KH[el.dataset.k] || '') : el.dataset.k;
   });
+  tutPlace();   // the hints change height with the input: the tip box follows the play field, and its slot fits the new hints
 }
 function setPadActive(on) {
   if (pad.active === on) return;
@@ -7947,7 +7977,7 @@ function handleMenuKey(e) {
   if (c === 'KeyM') { e.preventDefault(); if (!e.repeat) cycleSound(); return; }
   if (state === 'records') { handleRecordsKey(e); return; }
   const confirm = c === 'Space' || c === 'Enter';
-  if (confirm && state !== 'draft' && state !== 'tutor' && a && a.tagName === 'BUTTON' && !a.disabled && !a.closest('[hidden]')) return;   // the draft and the tutorial offer act on Space themselves (keyup would cancel the click)
+  if (confirm && state !== 'draft' && !(state === 'tutor' && $('ovTutor').contains(a)) && a && a.tagName === 'BUTTON' && !a.disabled && !a.closest('[hidden]')) return;   // the draft and the tutorial offer's answers act on Space themselves (keyup would cancel the click)
   const step = c === 'ArrowLeft' || c === 'ArrowUp' || c === 'KeyA' || c === 'KeyW' ? -1 : c === 'ArrowRight' || c === 'ArrowDown' || c === 'KeyD' || c === 'KeyS' ? 1 : 0;
   if (confirm || c === 'Escape' || c === 'KeyH' || /^Digit[1-5]$/.test(c) || (state === 'pit' && step) || (state === 'map' && (step || c === 'KeyG')) || (state === 'hangar' && /^Arrow(Left|Right)$/.test(c)) || (state === 'tutor' && (c === 'KeyY' || c === 'KeyN'))) e.preventDefault();
   if (e.repeat || clock < ui.readyAt) return;
