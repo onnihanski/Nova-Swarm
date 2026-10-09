@@ -70,19 +70,31 @@ async function open(browser, { seen = true, storage = {}, viewport = { width: 90
     return route.abort();
   });
   const page = await ctx.newPage();
+  page.smokeErrors = errors;
   page.on('pageerror', e => errors.push('page error: ' + e.message + '\n' + String(e.stack || '').split('\n').slice(1, 4).join('\n')));
   page.on('console', m => { if (m.type() === 'error') errors.push('console error: ' + m.text()); });
-  await page.goto(ORIGIN);
-  await page.waitForFunction(() => window.__ns && window.__ns.state === 'title', null, { timeout: 15000 });
+  try {
+    await page.goto(ORIGIN);
+    await page.waitForFunction(() => window.__ns && window.__ns.state === 'title', null, { timeout: 15000 });
+  } catch (e) {
+    await ctx.close().catch(() => {});
+    throw new Fail('the page never reached the title screen' + (errors.length ? ':\n' + errors.join('\n') : ' (' + e.message.split('\n')[0] + ')'));
+  }
   return { ctx, page, errors };
 }
 const ns = (page, fn, arg) => page.evaluate(fn, arg);
 const set = (page, opts) => ns(page, o => Object.assign(window.__ns, o), opts);
 const snap = page => ns(page, () => { const n = window.__ns; return { state: n.state, wave: n.G.wave, lives: n.G.lives, score: n.G.score, region: n.G.region }; });
-// Wait for a condition inside the page, polling; a timeout names what was awaited and where the game was.
+// Wait for a condition inside the page, polling. A page error stops the wait at once (an error in the frame loop freezes the game, so
+// waiting longer only burns the job's time); a timeout names what was awaited and where the game was.
 async function until(page, fn, arg, { secs = 60, what = 'the condition' } = {}) {
-  try { await page.waitForFunction(fn, arg, { timeout: secs * 1000, polling: 250 }); }
-  catch (e) { throw new Fail(`timed out after ${secs}s waiting for ${what} (game: ${JSON.stringify(await snap(page).catch(() => ({})))})`); }
+  const end = Date.now() + secs * 1000;
+  for (;;) {
+    if (await page.evaluate(fn, arg).catch(() => false)) return;
+    if (page.smokeErrors.some(e => e.startsWith('page error'))) throw new Fail(`a page error stopped the game while waiting for ${what}`);
+    if (Date.now() > end) throw new Fail(`timed out after ${secs}s waiting for ${what} (game: ${JSON.stringify(await snap(page).catch(() => ({})))})`);
+    await sleep(250);
+  }
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function key(page, code, hold = 40) { await page.keyboard.down(code); await sleep(hold); await page.keyboard.up(code); }
@@ -94,14 +106,16 @@ const SCENARIOS = {
   // The title and every menu reachable from it open and close cleanly; a fresh save waits to offer the tutorial.
   async boot({ browser, use }) {
     const { page } = await use(open(browser, { seen: false }));
+    await set(page, { menus: false });   // the test closes each screen itself
     check(await page.isVisible('#ovTitle'), 'the title screen is not showing');
     check((await ns(page, () => localStorage.getItem('nova-swarm-tutorial-v1'))) === '{"seen":false}', 'a fresh save should wait to offer the tutorial');
     for (const [k, st] of [['KeyH', 'hangar'], ['KeyG', 'map'], ['KeyR', 'records']]) {
       await key(page, k);
       await until(page, s => window.__ns.state === s, st, { secs: 5, what: 'the ' + st + ' screen' });
       await sleep(400);
+      check((await ns(page, () => window.__ns.state)) === st, 'the ' + st + ' screen closed before Escape');
       await key(page, 'Escape');
-      await until(page, () => window.__ns.state === 'title', null, { secs: 5, what: 'the title after ' + st });
+      await until(page, () => window.__ns.state === 'title', null, { secs: 5, what: 'Escape to close the ' + st + ' screen' });
     }
     await key(page, 'KeyO');
     await page.waitForSelector('#ovOptions', { state: 'visible', timeout: 5000 });
@@ -117,14 +131,20 @@ const SCENARIOS = {
     await key(page, 'Space');
     await until(page, () => window.__ns.state === 'tutor', null, { secs: 5, what: 'the tutorial offer' });
     check(await page.isVisible('#ovTutor'), 'the tutorial offer is not showing');
-    const wave = await ns(page, () => window.__ns.G.phase);
+    const before = await ns(page, () => [window.__ns.G.phase, window.__ns.G.phaseT, window.__ns.G.formT].join(' '));
     await sleep(800);
-    check((await ns(page, () => window.__ns.G.phase)) === wave && wave === 'intro', 'wave 1 should wait while the offer is up');
+    const after = await ns(page, () => [window.__ns.G.phase, window.__ns.G.phaseT, window.__ns.G.formT].join(' '));
+    check(before === after && before.startsWith('intro'), `wave 1 should not move while the offer is up (${before} -> ${after})`);
     await key(page, 'KeyY');
     await until(page, () => window.__ns.state === 'play' && window.__ns.tut.on, null, { secs: 5, what: 'the tutorial to start' });
     check((await ns(page, () => localStorage.getItem('nova-swarm-tutorial-v1'))) === '{"seen":true}', 'the answer should be saved');
     await until(page, () => !document.getElementById('tutBox').hidden, null, { secs: 5, what: 'the first tip' });
     check((await page.textContent('#tutSr')).startsWith('MOVE WITH WASD'), 'the first tip should teach moving with the keyboard');
+    await key(page, 'KeyP');
+    await until(page, () => window.__ns.state === 'paused', null, { secs: 5, what: 'the pause screen' });
+    check(await page.isVisible('#tutSkipBtn'), 'the pause screen should offer to skip the tutorial');
+    await key(page, 'KeyP');
+    await until(page, () => window.__ns.state === 'play', null, { secs: 5, what: 'the run to resume' });
     await set(page, { god: true, speed: 4 });
     await until(page, () => ['move', 'fire', 'dive', 'charge'].every(k => window.__ns.tut.done[k]), null, { secs: 120, what: 'the four control tips' });
     await until(page, () => !window.__ns.tut.on, null, { secs: 240, what: 'the tutorial to finish after the first boss' });
@@ -165,6 +185,84 @@ const SCENARIOS = {
     await key(page, 'Space');
     await until(page, () => window.__ns.state === 'tutor', null, { secs: 5, what: 'the offer again after the options row' });
     return 'declined, no repeat offer, options row asks again';
+  },
+
+  // Skipping from the pause screen: the options row shows the tips as ON, T ends them, and no tip comes back.
+  async tutorialSkip({ browser, use }) {
+    const { page } = await use(open(browser, { seen: false }));
+    await key(page, 'Space');
+    await until(page, () => window.__ns.state === 'tutor', null, { secs: 5, what: 'the tutorial offer' });
+    await sleep(500);
+    await key(page, 'KeyY');
+    await until(page, () => !document.getElementById('tutBox').hidden, null, { secs: 5, what: 'the first tip' });
+    await key(page, 'KeyP');
+    await until(page, () => window.__ns.state === 'paused', null, { secs: 5, what: 'the pause screen' });
+    await key(page, 'KeyO');
+    await page.waitForSelector('#ovOptions', { state: 'visible', timeout: 5000 });
+    const row = page.locator('.opt-row[data-k="tutorial"] .opt-v');
+    check((await row.textContent()) === 'ON', 'the options row should read ON while tips are running');
+    await key(page, 'Escape');
+    await page.waitForSelector('#ovPause', { state: 'visible', timeout: 5000 });
+    await sleep(300);
+    await key(page, 'KeyT');
+    check(!(await ns(page, () => window.__ns.tut.on)), 'T on the pause screen should end the tutorial');
+    check(!(await page.isVisible('#tutSkipBtn')), 'the skip button should go once the tutorial is off');
+    await key(page, 'KeyP');
+    await until(page, () => window.__ns.state === 'play', null, { secs: 5, what: 'the run to resume' });
+    await sleep(2000);
+    check(await page.isHidden('#tutBox'), 'no tip should show after skipping');
+    return 'options row ON, T skips, no tips after';
+  },
+
+  // Every tip, in keyboard, pad and touch words, fits two lines under the HUD and above the swarm's top row at the smallest in-screen
+  // scale (2x), and a phone shows it under the play field instead, in the place of the control hints, without moving the page.
+  async tipLayout({ browser, use }) {
+    const measure = page => ns(page, () => {
+      const n = window.__ns, box = document.getElementById('tutBox'), scr = document.getElementById('screen').getBoundingClientRect();
+      const hud = document.querySelector('.hud').getBoundingClientRect(), tx = box.querySelector('.tut-tx'), bad = [];
+      for (const padOn of [false, true]) {
+        n.pad.active = padOn;
+        for (const p of n.TUT_TIPS) {
+          n.tutShow(p);
+          n.tut.typed = Infinity; n.tutType();
+          const b = box.getBoundingClientRect(), lines = Math.round(tx.offsetHeight / parseFloat(getComputedStyle(tx).lineHeight));
+          const bottom = (b.bottom - scr.top) / n.U;
+          if (lines > 2 || bottom > 30 || b.top < hud.bottom) bad.push(`${p.id}${padOn ? ' (pad)' : ''}: ${lines} lines, bottom at y ${bottom.toFixed(1)}: ${n.tut.text}`);
+        }
+      }
+      n.pad.active = false;
+      n.tutStop();
+      return { U: n.U, bad };
+    });
+    const notes = [];
+    for (const [name, viewport, touch] of [['desktop at 2x', { width: 900, height: 700 }, false], ['tablet', { width: 820, height: 1180 }, true]]) {
+      const { page } = await use(open(browser, { viewport, touch }));
+      await set(page, { menus: false });
+      const r = await measure(page);
+      check(r.U >= 2, `${name}: expected the in-screen box at 2x or more, got U ${r.U}`);
+      check(!r.bad.length, `${name} (U ${r.U}): tips that don't fit:\n  ` + r.bad.join('\n  '));
+      notes.push(`${name} U ${r.U}`);
+    }
+    const { page } = await use(open(browser, { seen: false, viewport: { width: 390, height: 844 }, touch: true }));
+    const at = () => ns(page, () => { const r = document.getElementById('screen').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; });
+    await page.tap('#startBtn');
+    await until(page, () => window.__ns.state === 'tutor', null, { secs: 5, what: 'the tutorial offer' });
+    await sleep(500);
+    await page.tap('#tutYes');
+    await until(page, () => !document.getElementById('tutBox').hidden, null, { secs: 5, what: 'the first tip' });
+    const r = await ns(page, () => {
+      const box = document.getElementById('tutBox'), b = box.getBoundingClientRect();
+      return { U: window.__ns.U, inDeck: !!box.closest('.deck'), hint: document.getElementById('keysHint').hidden, fits: b.left >= 0 && b.right <= innerWidth };
+    });
+    check(r.U < 2 && r.inDeck, `phone (U ${r.U}): the tip should show under the play field`);
+    check(r.hint && r.fits, 'phone: the tip should take the control hints\' place, inside the page width');
+    const during = await at();
+    await page.tap('#tutX');
+    const after = await at();
+    check(during.every((v, i) => Math.abs(v - after[i]) <= 0.5), `phone: showing a tip moved the play field (${during} vs ${after})`);
+    check(!(await page.isHidden('#keysHint')), 'phone: the control hints should come back after SKIP');
+    notes.push(`phone U ${r.U} under the play field`);
+    return notes.join(', ');
   },
 
   // A save from before the tutorial existed has flown already, so it is never offered.
@@ -260,8 +358,6 @@ const SCENARIOS = {
     await page.tap('#tutYes');
     await until(page, () => !document.getElementById('tutBox').hidden, null, { secs: 5, what: 'the first tip' });
     check((await page.textContent('#tutSr')).startsWith('DRAG ANYWHERE'), 'the first tip should use touch words');
-    const fit = await ns(page, () => { const b = document.getElementById('tutBox').getBoundingClientRect(), s = document.getElementById('screen').getBoundingClientRect(); return b.left >= s.left && b.right <= s.right; });
-    check(fit, 'the tip box spills out of the screen');
     await page.tap('#tutX');
     check(!(await ns(page, () => window.__ns.tut.on)), 'SKIP should end the tutorial');
     return 'touch offer, touch tip, SKIP';
@@ -312,10 +408,17 @@ async function online(browser, use, mode) {
 async function main() {
   const names = only.length ? only : Object.keys(SCENARIOS);
   for (const n of names) if (!SCENARIOS[n]) { console.error('no scenario named ' + n + '. Scenarios: ' + Object.keys(SCENARIOS).join(', ')); process.exit(2); }
+  fs.rmSync(OUT, { recursive: true, force: true });   // screenshots from an earlier run would read as this run's
   fs.mkdirSync(OUT, { recursive: true });
+  // The page loads PeerJS from three CDNs and checks it against VS_SRI: every URL must name the release in package.json, and the hash
+  // must be that release's. (The online scenarios preload PeerJS from node_modules, so they never fetch these URLs.)
+  const ver = JSON.parse(fs.readFileSync(path.join(here, 'node_modules', 'peerjs', 'package.json'))).version;
   const sri = /VS_SRI = '([^']+)'/.exec(GAME)[1], lib = 'sha384-' + crypto.createHash('sha384').update(fs.readFileSync(path.join(here, 'node_modules', 'peerjs', 'dist', 'peerjs.min.js'))).digest('base64');
-  let failed = sri === lib ? 0 : 1;
-  console.log((sri === lib ? 'ok  ' : 'FAIL') + '  peerjs-sri  ' + (sri === lib ? 'the page\'s integrity hash matches PeerJS ' + JSON.parse(fs.readFileSync(path.join(here, 'node_modules', 'peerjs', 'package.json'))).version : 'VS_SRI in index.html does not match the PeerJS release: ' + lib));
+  const urls = (/VS_LIB = \[([^\]]+)\]/.exec(GAME) || ['', ''])[1].match(/https:[^']+/g) || [];
+  const stale = urls.filter(u => !u.includes('/' + ver + '/') && !u.includes('@' + ver + '/'));
+  const why = sri !== lib ? 'VS_SRI in index.html does not match PeerJS ' + ver + ': ' + lib : urls.length !== 3 ? 'expected 3 PeerJS URLs in VS_LIB, found ' + urls.length : stale.length ? 'VS_LIB names another PeerJS version than ' + ver + ': ' + stale.join(' ') : '';
+  let failed = why ? 1 : 0;
+  console.log(why ? 'FAIL  peerjs-sri  ' + why : 'ok    peerjs-sri  the page loads PeerJS ' + ver + ' from 3 CDNs with its integrity hash');
   const pageServer = http.createServer((req, res) => {
     if (req.url === '/') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }); res.end(PAGE); }
     else { res.writeHead(404); res.end(); }

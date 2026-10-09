@@ -30,10 +30,12 @@ jobs:
           cache-dependency-path: tests/package-lock.json
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      # a step timeout fails the step, so the screenshots below are still kept (a cancelled job would skip them)
       - run: npm test
+        timeout-minutes: 15
       - name: Keep the screenshots of a failed scenario
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: smoke-screenshots
           path: tests/out/
