@@ -16,6 +16,8 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
 | Smart bomb | X | B or X | Tap with a second finger |
 | Hull ability | V | RB | Ability button under the screen |
 | Pause | P / Esc | Start | Pause button under the screen |
+| Tutorial offer (first run) | Y for yes, N or Esc for no; Space / Enter take the highlighted answer (yes if none is) | A takes the focused answer, Start yes, B no | Tap an answer |
+| Skip the tutorial | T on the pause screen | Skip Tutorial on the pause screen | SKIP in the tip box |
 | Sound | M (cycles on / SFX only / off) | Back / Select | Sound button under the screen |
 | Options | O (title and pause screens) | Options button | Options button |
 | Hangar | H (title screen and between waves) | Hangar button | Hangar button |
@@ -28,6 +30,20 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
 | Skip the ending | Space / Enter / Esc (after a moment) | A, B or Start | Tap |
 | Salvage draft | 1, 2, 3 take a card; arrows then Space / Enter take the highlighted card or the skip button. Esc does nothing | D-pad moves, A takes. B and Start do nothing | Tap a card |
 | Menus | Tab, arrow keys, Space / Enter, Esc | D-pad or left stick moves focus, A picks, B goes back, LB / RB flip tabs | Tap |
+
+## Your first flight: the tutorial
+
+Your first run (a regular run or a daily challenge) asks once, before wave 1 starts, whether you want a quick tutorial. Wave 1 waits for your answer.
+
+- **Yes:** short tips pop up in a small chatbox while you fly, never on the play field: beside it, pointing at it, where the page has room (desktops, landscape phones), or under it in place of the control hints on a narrow screen (a phone or tablet held upright). The run never stops for a tip. Each one types itself out when its moment comes, and goes away a moment after you do what it says, or after a few seconds:
+  - **The controls first:** moving, then firing, then the charge shot and what costs a ship and what a graze is (at the first enemy shot or dive).
+  - **Then each one as it first happens:** the first boss (it cuts in as the WARNING starts), a tractor beam, the bonus stage, a falling power-up, a full ability meter (with your hull's ability), a combo, a busy screen (smart bombs), scrap, and pausing (from wave 2).
+  - A closing line once the first boss is gone ends it.
+- **The words match your controls:** keys on a keyboard, buttons on a gamepad, gestures on a touch screen.
+- **Never in the way:** a tip never covers the play field, its HUD or a menu, and none starts while your ship is down. Under the play field, the tips and the control hints share one slot for the whole run, sized for the longest tip, so the page doesn't move as tips come and go.
+- **Skipping:** SKIP in the tip box, or Skip Tutorial (T) on the pause screen, ends it.
+- **No:** one line says how to get it back, and the run starts.
+- **Once:** your answer is saved in your browser, so later runs never ask. A save from before the tutorial existed counts as answered. Boss Rush and online matches never ask. To see it again, set Tutorial to Ask Next Run on the options screen. While tips are running, that row reads On, and changing it ends them.
 
 ## What's in it
 
@@ -101,6 +117,8 @@ Play it online at **https://onnihanski.github.io/Nova-Swarm/** (GitHub Pages), o
   - **Flashes:** full, or reduced to dim the white flashes from bombs, Nova Blasts, boss kills and ship losses.
   - **Hi-contrast shots:** draws enemy bullets and mines with a dark halo, a white edge and a hot core, so they stand out on every region's backdrop, in Dark Sector waves and in the Prism Rift.
   - **Pad rumble:** on or off.
+  - **Tutorial:** Ask Next Run makes your next regular or daily run offer the tutorial again; Off means it won't. While tips are running it reads On, and changing it ends them. Reset Defaults leaves this one as it is.
+  - In a short window, the options and pause screens scroll rather than cut off their last rows.
   - Shake and flashes start from your device's reduced-motion setting (off and reduced when it is on) until you pick a value; a choice you make overrides it.
 
 ### Score advance table
@@ -230,3 +248,36 @@ An unlock shows a short toast under the HUD, one at a time, so it doesn't pile o
 - **Prize wheel:** one free spin after every game over. 10 equal slices: scrap (40%), blank (30%), a mystery capsule from the region you just flew, a shield for your next run, or an extra ship for your next run (10% each).
 
 **Guardrails:** scrap is earned only by playing, never with real money. Every gamble shows its odds and can be skipped. Nothing you need to progress is locked behind a gamble: upgrades, ships and collectibles can all be bought directly. A prize is saved the moment a capsule, slot spin or wheel spin starts, so closing the page mid-animation never loses it.
+
+## Smoke test
+
+`tests/` holds a headless smoke test. It isn't part of the game, which stays one file with no build step. A bot plays `index.html` in Chromium and the run fails on any page error, or when a scenario doesn't reach its goal. GitHub Actions runs it on every push, except pushes that only change Markdown (`.github/workflows/smoke.yml`). A failed run keeps screenshots of the failing scenarios. To run it locally:
+
+```
+cd tests
+npm ci
+npx playwright install chromium
+npm test              # every scenario, about 5 minutes
+npm test -- rush coop # only the named ones
+```
+
+The bot is injected inside the game's script, so it reads the game's own state. It flies under the lowest foe, dodges shots coming at it, lets go of fire now and then to charge a shot, fires its ability when ready and takes the safe choice on every menu. Most scenarios make it invulnerable and run the game several times faster.
+
+| Scenario | What it checks |
+| --- | --- |
+| `boot` | The title, hangar, star map, records and options open and close. A fresh save waits to offer the tutorial |
+| `tutorial` | The offer holds wave 1; yes shows the tips from the controls through the first boss, then ends |
+| `tutorialNo` | No shows one line and never asks again; the options row brings the offer back |
+| `tutorialSkip` | The options row reads On while tips run; T on the pause screen ends them for good |
+| `tipLayout` | At six sizes (desktop, short window, landscape phone, two phones, tablet), every tip in keyboard, pad and touch words sits beside or under the play field as expected, stays inside the window, and never moves the play field |
+| `oldSave` | A save from before the tutorial goes straight into the run |
+| `run` | A mortal run to game over, then the prize wheel, initials and the top-10 table |
+| `deep` | Sector 9 to wave 16: all three bosses, convoys, bonus stages, salvage drafts and the elite swarm |
+| `hive` | The Hive Heart: the Hive Mind falls, the ending plays and the run goes on |
+| `rush` | Boss Rush cleared, with its pit stops |
+| `daily` | The daily challenge in the day's region |
+| `prism` | The Prism Rift to wave 8 |
+| `phone` | A 390×844 touch screen: no sideways scrolling, the offer and tips by tap, touch wording, and SKIP |
+| `versus`, `coop` | Two pages link through a local PeerJS server: same seed and region, and the rival's score comes through. A forfeit decides versus; in co-op the wingmate flies on solo |
+
+It also checks that the three PeerJS URLs in `index.html` name the PeerJS release in `tests/package.json`, and that the page's integrity hash is that release's. A page error, a crash or a stuck page stops a scenario at once rather than letting it run to its time limit. The test serves the page itself and refuses every outside request, so it needs no network once its packages are installed; Google Fonts is stubbed. The bot hooks into two lines of `index.html`, listed in `HOOKS` in `tests/smoke.mjs`. If either line changes, the test says so.

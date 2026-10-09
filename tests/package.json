@@ -1,0 +1,14 @@
+{
+  "name": "nova-swarm-smoke",
+  "private": true,
+  "description": "Headless smoke test for Nova Swarm: a bot plays the game in Chromium and the run fails on any page error.",
+  "type": "module",
+  "scripts": {
+    "test": "node smoke.mjs"
+  },
+  "devDependencies": {
+    "peer": "1.0.2",
+    "peerjs": "1.5.5",
+    "playwright": "1.56.1"
+  }
+}
