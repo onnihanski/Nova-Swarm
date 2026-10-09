@@ -247,3 +247,34 @@ An unlock shows a short toast under the HUD, one at a time, so it doesn't pile o
 - **Prize wheel:** one free spin after every game over. 10 equal slices: scrap (40%), blank (30%), a mystery capsule from the region you just flew, a shield for your next run, or an extra ship for your next run (10% each).
 
 **Guardrails:** scrap is earned only by playing, never with real money. Every gamble shows its odds and can be skipped. Nothing you need to progress is locked behind a gamble: upgrades, ships and collectibles can all be bought directly. A prize is saved the moment a capsule, slot spin or wheel spin starts, so closing the page mid-animation never loses it.
+
+## Smoke test
+
+`tests/` holds a headless smoke test. It isn't part of the game, which stays one file with no build step. A bot plays `index.html` in Chromium and the run fails on any page error, or when a scenario doesn't reach its goal. GitHub Actions runs it on every push, except pushes that only change Markdown (`.github/workflows/smoke.yml`). A failed run keeps screenshots of the failing scenarios. To run it locally:
+
+```
+cd tests
+npm ci
+npx playwright install chromium
+npm test              # every scenario, about 5 minutes
+npm test -- rush coop # only the named ones
+```
+
+The bot is injected inside the game's script, so it reads the game's own state. It flies under the lowest foe, dodges shots coming at it, lets go of fire now and then to charge a shot, fires its ability when ready and takes the safe choice on every menu. Most scenarios make it invulnerable and run the game several times faster.
+
+| Scenario | What it checks |
+| --- | --- |
+| `boot` | The title, hangar, star map, records and options open and close. A fresh save waits to offer the tutorial |
+| `tutorial` | The offer holds wave 1; yes shows the tips from the controls through the first boss, then ends |
+| `tutorialNo` | No shows one line and never asks again; the options row brings the offer back |
+| `oldSave` | A save from before the tutorial goes straight into the run |
+| `run` | A mortal run to game over, then the prize wheel, initials and the top-10 table |
+| `deep` | Sector 9 to wave 16: all three bosses, convoys, bonus stages, salvage drafts and the elite swarm |
+| `hive` | The Hive Heart: the Hive Mind falls, the ending plays and the run goes on |
+| `rush` | Boss Rush cleared, with its pit stops |
+| `daily` | The daily challenge in the day's region |
+| `prism` | The Prism Rift to wave 8 |
+| `phone` | A 390×844 touch screen: no sideways scrolling, touch wording, and SKIP |
+| `versus`, `coop` | Two pages link through a local PeerJS server: same seed and region, and the rival's score comes through. A forfeit decides versus; in co-op the wingmate flies on solo |
+
+It also checks that the PeerJS integrity hash in `index.html` matches the PeerJS release in `tests/package.json`. The test serves the page itself and refuses every outside request, so it needs no network once its packages are installed; Google Fonts is stubbed. The bot hooks into two lines of `index.html`, listed in `HOOKS` in `tests/smoke.mjs`. If either line changes, the test says so.
