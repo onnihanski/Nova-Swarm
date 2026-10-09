@@ -619,7 +619,7 @@
     position: absolute; left: calc(var(--px) * 4); right: calc(var(--px) * 4); top: calc(var(--px) * 15); z-index: 3;
     display: flex; align-items: flex-start; gap: calc(var(--px) * 3);
     padding: calc(var(--px) * 1.5) calc(var(--px) * 2) calc(var(--px) * 1.5) calc(var(--px) * 3);
-    font-size: max(9px, calc(var(--u) * 4.5px)); line-height: 1.25; letter-spacing: .04em; text-align: left;   /* two lines clear the formation's top row */
+    font-size: max(9px, calc(var(--u) * 4.5px)); line-height: 1.25; letter-spacing: .04em; text-align: left;   /* at 2x and up, two lines clear the swarm's top row */
     background: rgba(13, 10, 38, .84); box-shadow: inset 0 0 0 var(--px) var(--teal);
     pointer-events: none;
   }
@@ -633,9 +633,18 @@
   }
   .tut-x:hover { color: var(--ink); }
   .tut-x:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
-  .coarse .tut-x { min-width: 36px; min-height: 28px; }
+  .tut-x { position: relative; }
+  .coarse .tut-x::after { content: ""; position: absolute; inset: -8px -6px; }   /* a finger-sized target that doesn't make the box taller */
+  /* under the play field (screens below 2x): in the deck, in place of the control hints */
+  .deck .tut-box { position: static; flex: 1 1 100%; align-items: center; padding: 6px 8px; font-size: 12px; line-height: 1.5; color: var(--ink); }
+  .deck .tut-box .tut-ico { width: 14px; margin-top: 0; }
+  .deck .tut-x { font-size: 11px; padding: 4px 6px; }
   .screen.paused .tut-box { visibility: hidden; }
   .ov.tut-ask { background: rgba(13, 10, 38, .45); }
+  /* short windows: these screens scroll rather than clip (the tutorial adds an options row and a pause button) */
+  #ovOptions { overflow-y: auto; }
+  #ovPause { justify-content: safe center; overflow-y: auto; }
+  #ovPause .perk-list { flex-shrink: 0; }
   .tut-card {
     width: 100%; display: flex; flex-direction: column; align-items: center; gap: calc(var(--px) * 3);
     padding: calc(var(--px) * 5) calc(var(--px) * 5) calc(var(--px) * 4);
@@ -711,9 +720,10 @@
     <div class="banner" id="banner" hidden><div class="bt" id="bannerTitle"></div><div class="bs" id="bannerSub"></div></div>
     <div class="toast" id="toast" hidden></div>
     <div class="toast sys-toast" id="sysToast" hidden></div>
+    <span class="vh" id="tutSr" role="status"></span>
     <div class="tut-box" id="tutBox" hidden>
       <img class="tut-ico" alt="" data-icon="tutor">
-      <p class="tut-tx"><span class="vh" id="tutSr" role="status"></span><span aria-hidden="true" id="tutTy"></span><span class="rest" aria-hidden="true" id="tutRest"></span></p>
+      <p class="tut-tx"><span aria-hidden="true" id="tutTy"></span><span class="rest" aria-hidden="true" id="tutRest"></span></p>
       <button class="tut-x" type="button" id="tutX" aria-label="Skip the tutorial">SKIP</button>
     </div>
 
@@ -4365,7 +4375,7 @@ function tickMedalToast(dt) {
   const el = $('medalToast');
   if (mq.t > 0) { if ((mq.t -= dt) <= 0) { el.hidden = true; mq.gap = 0.3; } return; }
   if (mq.gap > 0) { mq.gap -= dt; return; }
-  if (!$('tutBox').hidden) return;   // a tutorial tip has the strip; the medal waits for it
+  if (!$('tutBox').hidden && !tutLow()) return;   // a tutorial tip has the strip under the HUD; the medal waits for it
   const n = mq.list.shift();
   if (!n) return;
   el.firstElementChild.src = n.img;
@@ -5383,7 +5393,7 @@ function showOverlay(id) {
   for (const o of OVERLAYS) $(o).hidden = o !== id;
   opt.open = id === 'ovOptions';
   scr.classList.toggle('paused', id === 'ovPause' || id === 'ovTutor');   // frozen banners stay out of the pause menu and the tutorial offer
-  if (id) $('tutBox').hidden = true;   // a tip never shows over a menu
+  if (id) tutBoxShow(false);   // a tip never shows over a menu
   cyclePanels(id === 'ovTitle');
   const pb = $('pauseBtn');
   pb.textContent = state === 'paused' ? 'RESUME' : 'PAUSE';
@@ -6625,17 +6635,19 @@ const powerUrl = k => powerUrls[k] || (powerUrls[k] = POWERS[k].img.toDataURL())
 
 /* ================= tutorial: a first-run offer, then short tips in a chatbox ================= */
 // The first regular or daily run asks once, before wave 1 starts, whether the pilot wants a tutorial. Yes shows short tips in a small box
-// under the HUD while they fly. The run never stops for a tip: each one waits for its moment (the swarm landing, the first dive, power-up,
-// scrap or full meter) and goes once the pilot does what it says, or after a while. SKIP in the box or on the pause screen ends it.
+// under the HUD (on smaller screens, under the play field) while they fly. The run never stops for a tip: each one waits for its moment
+// (the swarm landing, the first shot, power-up, scrap or full meter) and goes once the pilot has done what it says, or after a while.
+// SKIP in the box or on the pause screen ends it.
 // The answer is saved; a save from before the tutorial counts as answered, and the options screen can ask again on the next run.
 // Boss Rush and online runs never ask. Nothing here rolls rng(), so a daily run stays the same for everyone.
 const TUT_KEY = 'nova-swarm-tutorial-v1', TUT_CPS = 50, TUT_GAP = 0.8;
 const TUT_ICON = paint(['..111..', '.1...1.', '1.....1', '33...33', '33...33', '.....1.', '...11..'], ch => ch === '1' ? PAL.t : '#ffffff');   // a headset
-const tut = { seen: true, on: false, solo: false, cur: null, t: 0, gap: 0, typed: 0, rn: -1, text: '', shown: {}, done: {}, n0: {}, moved: 0, lx: 0, ly: 0 };
+const tut = { seen: true, on: false, solo: false, cur: null, t: 0, hit: false, gap: 0, typed: 0, rn: -1, text: '', shown: {}, done: {}, n0: {}, moved: 0, lx: 0, ly: 0 };
 // a tip's words for the keyboard, a pad, or touch
 const tutIn = (kb, gp, tp) => pad.active ? gp : coarse ? tp : kb;
-// In order: after names the tip that must have finished first, when says the moment has come, done ends it early (never before min seconds),
-// and max seconds ends it anyway. The first four teach the controls (a fast wave 1 may bring its first shot after the charge tip);
+// In order: after names the tip that must have finished first, when says the moment has come, done says the pilot did it (it then goes
+// once min seconds have passed), and max seconds ends it anyway. An urgent tip cuts in on another (which comes back later), since its
+// moment is short. Every tip fits two lines under the HUD at 2x scale. The first four teach the controls (a fast wave 1 may bring its first shot after the charge tip);
 // the rest wait for their moment; END closes the tutorial after the first boss.
 const TUT_TIPS = [
   { id: 'move', when: () => true, start: () => { tut.moved = 0; }, done: () => tut.moved > 30, min: 1.5, max: 9,
@@ -6643,33 +6655,49 @@ const TUT_TIPS = [
   { id: 'fire', after: 'move', when: () => G.phase === 'active' && enemies.length > 0, start: () => { tut.n0.score = G.score; }, done: () => G.score >= tut.n0.score + 150, min: 2, max: 10,
     text: () => tutIn('HOLD SPACE (OR Z) TO FIRE. SHOOT DOWN THE SWARM!', 'HOLD A TO FIRE. SHOOT DOWN THE SWARM!', 'KEEP A FINGER DOWN TO KEEP FIRING. SHOOT DOWN THE SWARM!') },
   { id: 'dive', after: 'fire', when: () => eshots.length > 0 || enemies.some(e => e.diving && !e.dead), min: 5, max: 5,
-    text: () => 'DIVERS AND ENEMY SHOTS COST A SHIP. A SHOT THAT JUST MISSES PAYS A GRAZE BONUS.' },
+    text: () => 'DIVERS AND ENEMY SHOTS COST A SHIP. A NEAR MISS PAYS A GRAZE BONUS.' },
   { id: 'charge', after: 'fire', when: () => G.phase === 'active', done: () => pshots.some(s => s.pierce && !s.ally), min: 2, max: 12,
     text: () => tutIn('LET GO OF FIRE FOR A SECOND', 'LET GO OF A FOR A SECOND', 'LIFT YOUR FINGER FOR A SECOND') + ': YOUR NEXT SHOT PIERCES A WHOLE COLUMN.' },
-  // moments that pass quickly come first, so a short boss fight or a falling capsule still gets its tip
-  { id: 'boss', after: 'fire', when: () => !!boss && boss.state === 'fight', min: 5, max: 5,
-    text: () => 'BOSS! WATCH FOR ITS WARNINGS AND KEEP MOVING. SMART BOMBS HURT IT TOO.' },
+  // moments that pass quickly come first. The boss tip comes with the WARNING: under the HUD, nothing else shows while a boss is up.
+  { id: 'boss', after: 'fire', urgent: true, when: () => G.wave % 5 === 0 && (G.phase === 'intro' || (boss && boss.state === 'enter') || tutLow()), min: 5, max: 5,
+    text: () => 'BOSS AHEAD! WATCH ITS WARNINGS, KEEP MOVING. SMART BOMBS HURT IT TOO.' },
   { id: 'beam', after: 'fire', when: () => enemies.some(e => e.state === 'beam'), min: 6, max: 6,
-    text: () => 'TRACTOR BEAM! IF A WARDEN TAKES A SHIP, SHOOT IT TO WIN THE SHIP BACK AS A TWIN.' },
+    text: () => 'TRACTOR BEAM! SHOOT A WARDEN THAT TOOK A SHIP TO WIN IT BACK AS A TWIN.' },
   { id: 'bonus', after: 'fire', when: () => G.bonus && G.phase === 'active' && enemies.length > 0, min: 5, max: 5,
     text: () => 'BONUS STAGE: EVERY HIT PAYS 100. HIT ALL 40 FOR A PERFECT 10,000.' },
   { id: 'power', after: 'fire', when: () => pickups.length > 0, done: () => !pickups.length, min: 2, max: 7,
     text: () => 'CATCH THE FALLING CAPSULE FOR A POWER-UP.' },
   { id: 'ability', after: 'fire', when: () => ab.ready, start: () => { tut.n0.uses = ab.uses; }, done: () => ab.uses > tut.n0.uses, min: 2, max: 10,
-    text: () => { const a = hullAbility(); return tutIn('ABILITY READY! PRESS V', 'ABILITY READY! PRESS RB', 'ABILITY READY! TAP ABILITY BELOW') + ' FOR ' + a.name + ': ' + a.desc + '.'; } },
+    text: () => { const a = hullAbility(); return tutIn('ABILITY READY! PRESS V', 'ABILITY READY! PRESS RB', 'ABILITY READY! TAP ABILITY') + ' FOR ' + a.name + ': ' + a.desc + '.'; } },
   { id: 'combo', after: 'charge', when: () => comboMult() >= 2, min: 4.5, max: 4.5,
     text: () => 'COMBO X2! QUICK KILLS BUILD IT UP TO X8. GETTING HIT RESETS IT.' },
   { id: 'bomb', after: 'charge', when: () => G.wave >= 2 && G.phase === 'active' && G.bombs > 0 && eshots.length >= 4, start: () => { tut.n0.bombs = G.bombs; }, done: () => G.bombs < tut.n0.bombs, min: 2, max: 8,
-    text: () => tutIn('TIGHT SPOT? X DROPS A SMART BOMB', 'TIGHT SPOT? B DROPS A SMART BOMB', 'TIGHT SPOT? TAP A 2ND FINGER: SMART BOMB') + '. IT CLEARS ENEMY FIRE. YOU HAVE ' + G.bombs + '.' },
+    text: () => tutIn('TIGHT SPOT? PRESS X', 'TIGHT SPOT? PRESS B', 'TIGHT SPOT? TAP A 2ND FINGER') + ' FOR A SMART BOMB: IT CLEARS ENEMY FIRE.' },
   { id: 'scrap', after: 'fire', when: () => scrapBits.length > 0, min: 5, max: 5,
-    text: () => 'SCRAP! FLY CLOSE TO PICK IT UP, THEN SPEND IT IN THE HANGAR BETWEEN WAVES.' },
+    text: () => 'SCRAP! FLY CLOSE TO GRAB IT, THEN SPEND IT IN THE HANGAR BETWEEN WAVES.' },
   { id: 'pause', after: 'charge', when: () => G.wave >= 2 && G.phase === 'active', min: 5, max: 5,
-    text: () => tutIn('P PAUSES', 'START PAUSES', 'PAUSE (BELOW) STOPS THE RUN') + '. THE PAUSE SCREEN LISTS YOUR MISSIONS AND PERKS.' },
-  { id: 'end', after: 'charge', when: () => tut.done.boss || G.wave > 5, min: 4, max: 4,
+    text: () => tutIn('P', 'START', 'THE PAUSE BUTTON') + ' PAUSES THE RUN AND SHOWS YOUR MISSIONS AND PERKS.' },
+  { id: 'end', after: 'charge', when: () => (tut.done.boss && !boss) || G.wave > 5, min: 4, max: 4,
     text: () => "THAT'S THE BASICS. GOOD HUNTING, PILOT!" }
 ];
 const tutSave = () => store.set(TUT_KEY, { seen: tut.seen });
 function tutSetSeen(v) { tut.seen = v; tutSave(); }
+// At 2x scale and up the box sits under the HUD, above the swarm's top row. A smaller screen has no room there (its fonts keep a 9px
+// floor), so the box takes the place of the control hints under the play field. fit() calls tutPlace() on every resize.
+const tutLow = () => U < 2;
+function tutPlace() {
+  const box = $('tutBox'), host = tutLow() ? document.querySelector('.deck') : scr;
+  if (box.parentNode !== host) host.insertBefore(box, host.firstChild);
+  if (!box.hidden) tutBoxShow(true);
+}
+// Under the play field the box stands in for the control hints, at their height, so nothing on the page moves.
+function tutBoxShow(on) {
+  const box = $('tutBox'), hint = $('keysHint'), low = on && tutLow();
+  if (low && !hint.hidden) box.style.minHeight = hint.getBoundingClientRect().height + 'px';   // exact, so not even a subpixel shift
+  else if (!low) box.style.minHeight = '';
+  hint.hidden = low;
+  box.hidden = !on;
+}
 function tutBoot() {
   const s = store.get(TUT_KEY, null);
   if (s && typeof s === 'object' && typeof s.seen === 'boolean') tut.seen = s.seen;
@@ -6682,7 +6710,8 @@ function tutAsk() {
   state = 'tutor';
   keys.clear();
   touch.id = null;
-  $('tutAbout').textContent = 'SHORT TIPS POP UP UNDER THE SCORE WHILE YOU FLY. ' + tutIn('THE PAUSE SCREEN (P) CAN SKIP THEM.', 'THE PAUSE SCREEN (START) CAN SKIP THEM.', 'SKIP IN THE TIP BOX ENDS THEM.');
+  $('tutAbout').textContent = 'SHORT TIPS POP UP ' + (tutLow() ? 'UNDER THE SCREEN' : 'UNDER THE SCORE') + ' WHILE YOU FLY. ' + tutIn('THE PAUSE SCREEN (P) CAN SKIP THEM.', 'THE PAUSE SCREEN (START) CAN SKIP THEM.', 'SKIP IN THE TIP BOX ENDS THEM.');
+  updateHud();   // the run's numbers, not the last screen's, show behind the offer
   showOverlay('ovTutor');
   ui.readyAt = clock + 0.4;   // a key or tap still held from the title must not answer
   Snd.tick();
@@ -6699,12 +6728,12 @@ function tutAnswer(yes) {
   if (!yes) tutShow({ id: 'bye', min: 4, max: 4, text: () => 'NO PROBLEM. THE OPTIONS SCREEN CAN BRING THE TUTORIAL BACK.' });
 }
 function tutShow(p) {
-  Object.assign(tut, { cur: p, t: 0, typed: reduceMotion ? Infinity : 0, rn: -1, text: p.text() });
+  Object.assign(tut, { cur: p, t: 0, hit: false, typed: reduceMotion ? Infinity : 0, rn: -1, text: p.text() });
   tut.shown[p.id] = 1;
   if (p.start) p.start();
-  $('tutSr').textContent = tut.text;
+  $('tutSr').textContent = tut.text;   // the live region stays outside the box, so a tip is announced once, not each time the box returns
   tutType();
-  $('tutBox').hidden = false;
+  tutBoxShow(true);
   Snd.tick();
 }
 // The tip types itself out; the untyped rest already holds its space, so the box never grows while it types.
@@ -6720,34 +6749,39 @@ function tutClose() {
   const last = tut.solo || tut.cur.id === 'end';
   tut.cur = null;
   tut.gap = TUT_GAP;
-  $('tutBox').hidden = true;
+  $('tutSr').textContent = '';
+  tutBoxShow(false);
   if (last) tutStop();
 }
 function tutStop() {
   tut.on = false;
   tut.cur = null;
-  $('tutBox').hidden = true;
+  $('tutSr').textContent = '';
+  tutBoxShow(false);
   $('tutSkipBtn').hidden = true;
 }
 function tutSkip() { if (tut.on) { tutStop(); Snd.blip(); } }
-// Runs with the run's update. A tip only shows during play, never over a menu, and never with a medal toast in the same strip.
+// Runs with the run's update. A tip shows only during play and never over a menu. Under the HUD it also waits while a medal toast has the
+// strip, and while a boss's name and health bar are there (only the boss tip, which comes with the WARNING, carries on).
 function tutTick(dt) {
   if (!tut.on) return;
   if (player.alive) tut.moved += Math.abs(player.x - tut.lx) + Math.abs(player.y - tut.ly);
   tut.lx = player.x; tut.ly = player.y;
-  const box = $('tutBox');
-  if (state !== 'play' || G.lives <= 0 || !$('medalToast').hidden) { box.hidden = true; return; }
-  const c = tut.cur;
+  const c = tut.cur, top = !tutLow();
+  if (state !== 'play' || G.lives <= 0 || (top && (!$('medalToast').hidden || (boss && !(c && c.id === 'boss'))))) { tutBoxShow(false); return; }
+  const urgent = (!c || !c.urgent) && player.alive && G.phase !== 'clear' && TUT_TIPS.find(p => p.urgent && !tut.shown[p.id] && (!p.after || tut.done[p.after]) && p.when());
+  if (urgent) { if (c) delete tut.shown[c.id]; tutShow(urgent); return; }
   if (c) {
-    box.hidden = false;
+    tutBoxShow(true);
     tut.t += dt;
     tut.typed += dt * TUT_CPS;
     tutType();
-    if (tut.t >= c.max || (c.done && tut.t >= c.min && c.done())) tutClose();
+    if (c.done && !tut.hit && c.done()) tut.hit = true;   // counted even before min, so a quick pilot isn't told twice
+    if (tut.t >= c.max || (tut.hit && tut.t >= c.min)) tutClose();
     return;
   }
   if (tut.gap > 0) { tut.gap -= dt; return; }
-  if (G.phase === 'clear') return;   // the debrief is coming: a new tip would be cut short
+  if (G.phase === 'clear' || !player.alive) return;   // the debrief is coming, or the ship is down: a new tip would be cut short or moot
   const next = TUT_TIPS.find(p => !tut.shown[p.id] && (!p.after || tut.done[p.after]) && p.when());
   if (next) tutShow(next);
 }
@@ -6763,7 +6797,9 @@ const OPT_DEFS = [
   { k: 'flash', name: 'FLASHES', text: () => flashMode().toUpperCase(), step: d => { OPT.flash = FLASHES[wrapIdx(FLASHES.indexOf(flashMode()) + d, FLASHES.length)]; } },
   { k: 'contrast', name: 'HI-CONTRAST SHOTS', text: () => OPT.contrast ? 'ON' : 'OFF', step: () => { OPT.contrast = !OPT.contrast; } },
   { k: 'rumble', name: 'PAD RUMBLE', text: () => OPT.rumble ? 'ON' : 'OFF', step: () => { OPT.rumble = !OPT.rumble; if (OPT.rumble) rumble(200, 0.6, 0.4); } },
-  { k: 'tutorial', name: 'TUTORIAL', text: () => tut.seen ? 'OFF' : 'ASK NEXT RUN', step: () => tutSetSeen(!tut.seen) }   // a saved answer, not a setting: Reset Defaults leaves it
+  // ON while tips are running (a step stops them); otherwise the saved answer, which Reset Defaults leaves alone
+  { k: 'tutorial', name: 'TUTORIAL', text: () => tut.on && !tut.solo ? 'ON' : tut.seen ? 'OFF' : 'ASK NEXT RUN',
+    step: () => { if (tut.on && !tut.solo) tutStop(); else tutSetSeen(!tut.seen); } }
 ];
 function buildOptions() {
   const list = $('optList');
@@ -7911,7 +7947,7 @@ function handleMenuKey(e) {
   if (c === 'KeyM') { e.preventDefault(); if (!e.repeat) cycleSound(); return; }
   if (state === 'records') { handleRecordsKey(e); return; }
   const confirm = c === 'Space' || c === 'Enter';
-  if (confirm && state !== 'draft' && a && a.tagName === 'BUTTON' && !a.disabled && !a.closest('[hidden]')) return;   // the draft acts on Space itself (keyup would cancel the click)
+  if (confirm && state !== 'draft' && state !== 'tutor' && a && a.tagName === 'BUTTON' && !a.disabled && !a.closest('[hidden]')) return;   // the draft and the tutorial offer act on Space themselves (keyup would cancel the click)
   const step = c === 'ArrowLeft' || c === 'ArrowUp' || c === 'KeyA' || c === 'KeyW' ? -1 : c === 'ArrowRight' || c === 'ArrowDown' || c === 'KeyD' || c === 'KeyS' ? 1 : 0;
   if (confirm || c === 'Escape' || c === 'KeyH' || /^Digit[1-5]$/.test(c) || (state === 'pit' && step) || (state === 'map' && (step || c === 'KeyG')) || (state === 'hangar' && /^Arrow(Left|Right)$/.test(c)) || (state === 'tutor' && (c === 'KeyY' || c === 'KeyN'))) e.preventDefault();
   if (e.repeat || clock < ui.readyAt) return;
@@ -7922,7 +7958,8 @@ function handleMenuKey(e) {
     return;
   }
   if (state === 'tutor') {
-    if (confirm || c === 'KeyY') tutAnswer(true);
+    if (confirm) tutAnswer(a !== $('tutNo'));   // the highlighted answer, or yes
+    else if (c === 'KeyY') tutAnswer(true);
     else if (c === 'Escape' || c === 'KeyN') tutAnswer(false);
   } else if (state === 'debrief') {
     if (reflex.on) { if (confirm || FIRE.has(c)) stopReflex(); }
@@ -8074,6 +8111,7 @@ function fit() {
   U = Math.max(u, 1);
   root.style.setProperty('--u', U);
   fitLogo();
+  tutPlace();
 }
 // Shrink the logo if the pixel font is unavailable and a wider fallback face is in use.
 function fitLogo() {
@@ -8144,7 +8182,7 @@ function frame(now) {
   if (state === 'ending') tickEnding(dt);
   draw();
   if (state === 'map') drawMap();
-  if (state !== 'paused') Rec.tick(dt);
+  if (state !== 'paused' && state !== 'tutor') Rec.tick(dt);   // a medal toast would play unseen behind the pause screen or the tutorial offer
   if (state === 'hangar') animatePreviews();
   requestAnimationFrame(frame);
 }
